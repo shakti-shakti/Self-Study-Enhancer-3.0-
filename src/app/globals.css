@@ -34,14 +34,15 @@ body {
     --chart-5: 120 100% 50%;
     --radius: 0.75rem; /* Slightly larger radius for a modern feel */
 
+    /* Sidebar Specific Colors */
     --sidebar-background: 220 20% 12%;
     --sidebar-foreground: 210 40% 90%;
-    --sidebar-primary: 190 100% 50%;
-    --sidebar-primary-foreground: 220 20% 5%;
-    --sidebar-accent: 300 100% 65%;
-    --sidebar-accent-foreground: 220 20% 5%;
     --sidebar-border: 220 20% 22%;
     --sidebar-ring: 190 100% 55%;
+    --sidebar-accent: 220 20% 25%; /* Accent color for sidebar items (e.g. hover) */
+    --sidebar-accent-foreground: 190 100% 50%; /* Text color on sidebar accent */
+    --sidebar-primary: 190 100% 50%; /* Primary elements within sidebar if needed */
+    --sidebar-primary-foreground: 220 20% 5%;
   }
 
   /* Fallback for non-dark mode if needed, but main theme is dark */
@@ -73,12 +74,12 @@ body {
 
     --sidebar-background: 240 17% 92%;
     --sidebar-foreground: 240 10% 3.9%;
-    --sidebar-primary: 275 58% 63%;
-    --sidebar-primary-foreground: 275 58% 98%;
-    --sidebar-accent: 209 58% 63%;
-    --sidebar-accent-foreground: 209 58% 98%;
     --sidebar-border: 240 10% 80%;
     --sidebar-ring: 209 58% 50%;
+    --sidebar-accent: 240 10% 85%;
+    --sidebar-accent-foreground: 209 58% 30%;
+    --sidebar-primary: 275 58% 63%;
+    --sidebar-primary-foreground: 275 58% 98%;
   }
 }
 

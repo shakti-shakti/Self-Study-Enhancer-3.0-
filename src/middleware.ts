@@ -3,10 +3,12 @@ import { createMiddlewareClient } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 
 export async function middleware(request: NextRequest) {
-  const supabase = createMiddlewareClient<Database>({ req: request, res: NextResponse.next() });
+  const res = NextResponse.next(); // Create the response object once
+  const supabase = createMiddlewareClient<Database>({ req: request, res }); // Pass it to Supabase
+
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await supabase.auth.getSession(); // Supabase reads/writes cookies to `res`
 
   const { pathname } = request.nextUrl;
 
@@ -28,10 +30,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   
-  // Refresh session
-  await supabase.auth.getSession();
+  // The getSession() call above also refreshes the session if needed.
 
-  return NextResponse.next();
+  return res; // Return the same response object that Supabase has modified
 }
 
 export const config = {
