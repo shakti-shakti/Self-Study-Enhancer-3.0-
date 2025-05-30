@@ -157,6 +157,256 @@ export type Database = {
           }
         ]
       }
+      study_plans: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          due_date: string 
+          completed: boolean
+          subject: string | null
+          plan_type: string // e.g., 'task', 'exam', 'revision'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          due_date: string 
+          completed?: boolean
+          subject?: string | null
+          plan_type?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          due_date?: string 
+          completed?: boolean
+          subject?: string | null
+          plan_type?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_plans_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      study_rooms: {
+        Row: {
+          id: string
+          name: string
+          topic: string | null
+          created_by_user_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          topic?: string | null
+          created_by_user_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          topic?: string | null
+          created_by_user_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_rooms_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      study_room_messages: {
+        Row: {
+          id: string
+          room_id: string
+          user_id: string
+          message_text: string 
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          room_id: string
+          user_id: string
+          message_text: string 
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          room_id?: string
+          user_id?: string
+          message_text?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_room_messages_room_id_fkey"
+            columns: ["room_id"]
+            referencedRelation: "study_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_room_messages_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      doubt_resolution_logs: {
+        Row: {
+          id: string
+          user_id: string
+          question_image_data_uri: string | null // Storing data URI for simplicity for now
+          explanation: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          question_image_data_uri?: string | null
+          explanation?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          question_image_data_uri?: string | null
+          explanation?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doubt_resolution_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      smart_notes_logs: {
+        Row: {
+          id: string
+          user_id: string
+          content_type: string // 'test' or 'chapter'
+          original_content_preview: string | null // A preview of the content
+          generated_notes: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content_type: string
+          original_content_preview?: string | null
+          generated_notes: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content_type?: string
+          original_content_preview?: string | null
+          generated_notes?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_notes_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      study_assistant_logs: {
+        Row: {
+          id: string
+          user_id: string
+          query: string
+          context: string | null
+          preferences: string | null
+          ai_answer: string | null
+          ai_study_tips: Json | null // Array of strings
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          query: string
+          context?: string | null
+          preferences?: string | null
+          ai_answer?: string | null
+          ai_study_tips?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          query?: string
+          context?: string | null
+          preferences?: string | null
+          ai_answer?: string | null
+          ai_study_tips?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_assistant_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      customization_requests_logs: {
+        Row: {
+          id: string
+          user_id: string
+          command: string
+          ai_instruction: string | null
+          ai_explanation: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          command: string
+          ai_instruction?: string | null
+          ai_explanation?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          command?: string
+          ai_instruction?: string | null
+          ai_explanation?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customization_requests_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -252,3 +502,5 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
+
+    
