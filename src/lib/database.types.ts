@@ -43,39 +43,120 @@ export type Database = {
           }
         ]
       }
-      // Define your tables here as they are in your Supabase project
-      // Example:
-      // profiles: {
-      //   Row: {
-      //     id: string
-      //     updated_at: string | null
-      //     username: string | null
-      //     avatar_url: string | null
-      //     website: string | null
-      //   }
-      //   Insert: {
-      //     id: string
-      //     updated_at?: string | null
-      //     username?: string | null
-      //     avatar_url?: string | null
-      //     website?: string | null
-      //   }
-      //   Update: {
-      //     id?: string
-      //     updated_at?: string | null
-      //     username?: string | null
-      //     avatar_url?: string | null
-      //     website?: string | null
-      //   }
-      //   Relationships: [
-      //     {
-      //       foreignKeyName: "profiles_id_fkey"
-      //       columns: ["id"]
-      //       referencedRelation: "users"
-      //       referencedColumns: ["id"]
-      //     }
-      //   ]
-      // }
+      quizzes: {
+        Row: {
+          id: string
+          user_id: string | null 
+          topic: string
+          difficulty: string
+          num_questions: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null 
+          topic: string
+          difficulty: string
+          num_questions: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          topic?: string
+          difficulty?: string
+          num_questions?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quizzes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      questions: {
+        Row: {
+          id: string
+          quiz_id: string
+          question_text: string
+          options: Json 
+          correct_option_index: number 
+          explanation_prompt: string | null 
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          quiz_id: string
+          question_text: string
+          options: Json 
+          correct_option_index: number
+          explanation_prompt?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          quiz_id?: string
+          question_text?: string
+          options?: Json
+          correct_option_index?: number
+          explanation_prompt?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      quiz_attempts: {
+        Row: {
+          id: string
+          user_id: string
+          quiz_id: string
+          score: number
+          answers_submitted: Json 
+          completed_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          quiz_id: string
+          score: number
+          answers_submitted: Json
+          completed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          quiz_id?: string
+          score?: number
+          answers_submitted?: Json
+          completed_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_attempts_quiz_id_fkey"
+            columns: ["quiz_id"]
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
