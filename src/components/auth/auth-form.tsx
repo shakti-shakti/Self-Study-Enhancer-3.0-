@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { loginWithEmail, signupWithEmail } from '@/app/auth/actions';
 import { useState, useTransition } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogInIcon, UserPlus } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -68,9 +68,9 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
           } else {
-            toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
+            toast({ title: 'Login Successful', description: 'Redirecting to dashboard...', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
             router.push('/dashboard');
-            router.refresh(); // Ensure layout re-renders with new auth state
+            router.refresh(); 
           }
         } else {
           const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
@@ -78,8 +78,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
           } else {
-            toast({ title: 'Signup Successful', description: 'Please check your email to confirm your account.' });
-            // Optionally redirect or clear form
+            toast({ title: 'Signup Successful', description: 'Please check your email to confirm your account.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
             form.reset();
           }
         }
@@ -92,13 +91,13 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <Card className="w-full shadow-xl">
+    <Card className="w-full shadow-xl shadow-primary/20 border-border/50 interactive-card">
       <CardHeader>
-        <CardTitle className="font-headline text-3xl">
-          {mode === 'login' ? 'Welcome Back!' : 'Create Account'}
+        <CardTitle className="font-headline text-3xl glow-text-primary">
+          {mode === 'login' ? 'Welcome Back, Warrior!' : 'Join the Ranks!'}
         </CardTitle>
         <CardDescription>
-          {mode === 'login' ? 'Login to access your NEET Prep+ dashboard.' : 'Sign up to get started with NEET Prep+.'}
+          {mode === 'login' ? 'Enter the arena and continue your NEET conquest.' : 'Forge your legend. Sign up for NEET Prep+.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -109,9 +108,9 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
+                    <Input type="email" placeholder="your-battle-tag@example.com" {...field} className="border-2 border-input focus:border-primary"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -124,7 +123,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" {...field} className="border-2 border-input focus:border-primary"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,7 +137,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="password" placeholder="••••••••" {...field} className="border-2 border-input focus:border-primary"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,9 +147,13 @@ export function AuthForm({ mode }: AuthFormProps) {
             {error && (
                 <p className="text-sm font-medium text-destructive">{error}</p>
             )}
-            <Button type="submit" className="w-full font-semibold" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === 'login' ? 'Login' : 'Sign Up'}
+            <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
+              {isPending ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                mode === 'login' ? <LogInIcon className="mr-2 h-5 w-5" /> : <UserPlus className="mr-2 h-5 w-5" />
+              )}
+              {mode === 'login' ? 'Login to Arena' : 'Create Account'}
             </Button>
           </form>
         </Form>
@@ -158,7 +161,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <Link href={mode === 'login' ? '/signup' : '/login'} className="font-medium text-primary hover:underline">
+          <Link href={mode === 'login' ? '/signup' : '/login'} className="font-medium text-primary hover:underline hover:glow-text-primary">
             {mode === 'login' ? 'Sign Up' : 'Login'}
           </Link>
         </p>

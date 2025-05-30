@@ -8,33 +8,70 @@ body {
 
 @layer base {
   :root {
-    --background: 240 17% 94%; /* Very light pinkish-purple (#F2EEF4) */
-    --foreground: 240 10% 3.9%; /* Default dark text for readability */
-    --card: 240 17% 99%; /* Slightly lighter than background for cards */
+    --background: 220 20% 10%; /* Dark Blue/Grey */
+    --foreground: 210 40% 95%; /* Light Grey/Blue */
+    --card: 220 20% 15%; /* Slightly Lighter Dark Blue/Grey */
+    --card-foreground: 210 40% 95%;
+    --popover: 220 20% 18%; /* Dark Popover */
+    --popover-foreground: 210 40% 95%;
+    --primary: 190 100% 50%; /* Bright Cyan/Teal */
+    --primary-foreground: 220 20% 5%; /* Very Dark for contrast on primary */
+    --secondary: 275 60% 55%; /* Vibrant Purple */
+    --secondary-foreground: 210 40% 95%;
+    --muted: 220 15% 30%; /* Muted Darker Grey */
+    --muted-foreground: 210 30% 70%; /* Lighter Muted Text */
+    --accent: 300 100% 65%; /* Bright Magenta/Purple */
+    --accent-foreground: 220 20% 5%; /* Very Dark for contrast on accent */
+    --destructive: 0 70% 55%; /* Saturated Red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 25%; /* Visible Border on Dark */
+    --input: 220 20% 20%; /* Dark Input Background */
+    --ring: 190 100% 55%; /* Primary color for ring, slightly brighter */
+    --chart-1: 190 100% 60%;
+    --chart-2: 300 100% 70%;
+    --chart-3: 50 100% 60%;
+    --chart-4: 240 100% 70%;
+    --chart-5: 120 100% 50%;
+    --radius: 0.75rem; /* Slightly larger radius for a modern feel */
+
+    --sidebar-background: 220 20% 12%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-primary: 190 100% 50%;
+    --sidebar-primary-foreground: 220 20% 5%;
+    --sidebar-accent: 300 100% 65%;
+    --sidebar-accent-foreground: 220 20% 5%;
+    --sidebar-border: 220 20% 22%;
+    --sidebar-ring: 190 100% 55%;
+  }
+
+  /* Fallback for non-dark mode if needed, but main theme is dark */
+  .light { /* Or remove this if only dark mode is desired */
+    --background: 240 17% 94%;
+    --foreground: 240 10% 3.9%;
+    --card: 240 17% 99%;
     --card-foreground: 240 10% 3.9%;
     --popover: 240 17% 99%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 275 58% 63%; /* Saturated purple (#A758A9) */
-    --primary-foreground: 275 58% 98%; /* Light text for contrast on primary */
-    --secondary: 275 45% 88%; /* Lighter shade of primary for secondary elements */
-    --secondary-foreground: 275 58% 20%; /* Darker text for contrast on secondary */
-    --muted: 240 10% 88%; /* Muted gray, slightly lighter */
+    --primary: 275 58% 63%;
+    --primary-foreground: 275 58% 98%;
+    --secondary: 275 45% 88%;
+    --secondary-foreground: 275 58% 20%;
+    --muted: 240 10% 88%;
     --muted-foreground: 240 7% 45%;
-    --accent: 209 58% 63%; /* Vibrant, but softer blue (#559BBA) */
-    --accent-foreground: 209 58% 98%; /* Light text for contrast on accent */
+    --accent: 209 58% 63%;
+    --accent-foreground: 209 58% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 10% 83%; /* Slightly darker border */
-    --input: 240 10% 90%; /* Slightly darker input background than card */
-    --ring: 209 58% 50%; /* Ring color based on accent */
+    --border: 240 10% 83%;
+    --input: 240 10% 90%;
+    --ring: 209 58% 50%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
 
-    --sidebar-background: 240 17% 92%; /* Slightly darker than main background */
+    --sidebar-background: 240 17% 92%;
     --sidebar-foreground: 240 10% 3.9%;
     --sidebar-primary: 275 58% 63%;
     --sidebar-primary-foreground: 275 58% 98%;
@@ -42,42 +79,6 @@ body {
     --sidebar-accent-foreground: 209 58% 98%;
     --sidebar-border: 240 10% 80%;
     --sidebar-ring: 209 58% 50%;
-  }
-
-  .dark {
-    --background: 240 10% 10%; /* Dark background */
-    --foreground: 0 0% 95%; /* Light text */
-    --card: 240 10% 15%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 10% 15%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 275 58% 63%; /* Keep primary color same */
-    --primary-foreground: 275 58% 15%; /* Darker text on primary for dark mode */
-    --secondary: 275 40% 40%; /* Darker secondary */
-    --secondary-foreground: 0 0% 95%;
-    --muted: 240 5% 25%;
-    --muted-foreground: 240 5% 65%;
-    --accent: 209 58% 63%; /* Keep accent color same */
-    --accent-foreground: 209 58% 15%; /* Darker text on accent for dark mode */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5% 20%;
-    --input: 240 5% 22%;
-    --ring: 209 58% 70%; /* Lighter ring for dark mode */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-
-    --sidebar-background: 240 10% 12%; /* Slightly lighter than main dark background */
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 275 58% 63%;
-    --sidebar-primary-foreground: 275 58% 15%;
-    --sidebar-accent: 209 58% 63%;
-    --sidebar-accent-foreground: 209 58% 15%;
-    --sidebar-border: 240 5% 18%;
-    --sidebar-ring: 209 58% 70%;
   }
 }
 
@@ -87,5 +88,21 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Additional global styles for gaming feel */
+@layer components {
+  .interactive-card {
+    @apply bg-card border border-border shadow-lg hover:shadow-primary/30 transition-all duration-300 ease-out transform hover:-translate-y-1 rounded-xl;
+  }
+  .glow-button {
+    @apply shadow-[0_0_15px_0_hsl(var(--primary)/0.7),_0_0_5px_0_hsl(var(--primary)/0.5)] hover:shadow-[0_0_25px_5px_hsl(var(--primary)/0.7),_0_0_10px_0_hsl(var(--primary)/0.5)];
+  }
+   .glow-text-primary {
+    text-shadow: 0 0 5px hsl(var(--primary)/0.7), 0 0 10px hsl(var(--primary)/0.5);
+  }
+  .glow-text-accent {
+    text-shadow: 0 0 5px hsl(var(--accent)/0.7), 0 0 10px hsl(var(--accent)/0.5);
   }
 }

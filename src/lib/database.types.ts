@@ -9,6 +9,40 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      mood_logs: {
+        Row: {
+          id: string
+          user_id: string
+          created_at: string 
+          mood: string
+          focus_level: number
+          suggestions: string[] | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          created_at?: string
+          mood: string
+          focus_level: number
+          suggestions?: string[] | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          created_at?: string
+          mood?: string
+          focus_level?: number
+          suggestions?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       // Define your tables here as they are in your Supabase project
       // Example:
       // profiles: {
