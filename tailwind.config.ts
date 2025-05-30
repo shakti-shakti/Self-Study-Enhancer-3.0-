@@ -10,9 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
-        code: ['Source Code Pro', 'monospace'],
+        body: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-space-grotesk)', 'sans-serif'],
+        code: ['Source Code Pro', 'monospace'], // Kept for potential code blocks
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -46,7 +46,10 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
+        input: {
+          DEFAULT: 'hsl(var(--input))',
+          foreground: 'hsl(var(--input-foreground))',
+        },
         ring: 'hsl(var(--ring))',
         chart: {
           '1': 'hsl(var(--chart-1))',
@@ -88,10 +91,16 @@ export default {
             height: '0',
           },
         },
+        'gradient-flow': {
+          '0%': { 'background-position': '0% 50%' },
+          '50%': { 'background-position': '100% 50%' },
+          '100%': { 'background-position': '0% 50%' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'gradient-flow': 'gradient-flow 15s ease infinite',
       },
     },
   },

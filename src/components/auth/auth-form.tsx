@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { loginWithEmail, signupWithEmail } from '@/app/auth/actions';
 import { useState, useTransition } from 'react';
-import { Loader2, LogInIcon, UserPlus } from 'lucide-react';
+import { Loader2, LogInIcon, UserPlus, ShieldCheck } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -68,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
           } else {
-            toast({ title: 'Login Successful', description: 'Redirecting to dashboard...', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+            toast({ title: 'Login Successful!', description: 'Redirecting to your command center...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
             router.push('/dashboard');
             router.refresh(); 
           }
@@ -78,7 +78,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             setError(result.error);
             toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
           } else {
-            toast({ title: 'Signup Successful', description: 'Please check your email to confirm your account.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+            toast({ title: 'Account Created!', description: 'Welcome, warrior! Please check your email to verify your account.', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
             form.reset();
           }
         }
@@ -91,16 +91,17 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <Card className="w-full shadow-xl shadow-primary/20 border-border/50 interactive-card">
-      <CardHeader>
-        <CardTitle className="font-headline text-3xl glow-text-primary">
-          {mode === 'login' ? 'Welcome Back, Warrior!' : 'Join the Ranks!'}
+    <Card className="w-full bg-card/80 backdrop-blur-sm border-border/50 shadow-2xl shadow-primary/30">
+      <CardHeader className="text-center">
+        <ShieldCheck className="mx-auto h-12 w-12 text-primary mb-4 glow-text-primary" />
+        <CardTitle className="font-headline text-4xl glow-text-primary">
+          {mode === 'login' ? 'Secure Access' : 'Create Your Profile'}
         </CardTitle>
-        <CardDescription>
-          {mode === 'login' ? 'Enter the arena and continue your NEET conquest.' : 'Forge your legend. Sign up for NEET Prep+.'}
+        <CardDescription className="text-muted-foreground text-base">
+          {mode === 'login' ? 'Enter your credentials to access the NEET Prep+ portal.' : 'Join the elite ranks of NEET Prep+ aspirants.'}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2 pb-6 px-6 md:px-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -108,9 +109,9 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel className="text-base text-muted-foreground">Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="your-battle-tag@example.com" {...field} className="border-2 border-input focus:border-primary"/>
+                    <Input type="email" placeholder="your-callsign@domain.com" {...field} className="h-12 text-base input-glow"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -121,9 +122,9 @@ export function AuthForm({ mode }: AuthFormProps) {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-base text-muted-foreground">Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} className="border-2 border-input focus:border-primary"/>
+                    <Input type="password" placeholder="Enter secure password" {...field} className="h-12 text-base input-glow"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -135,9 +136,9 @@ export function AuthForm({ mode }: AuthFormProps) {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel className="text-base text-muted-foreground">Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} className="border-2 border-input focus:border-primary"/>
+                      <Input type="password" placeholder="Re-enter password" {...field} className="h-12 text-base input-glow"/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -145,24 +146,24 @@ export function AuthForm({ mode }: AuthFormProps) {
               />
             )}
             {error && (
-                <p className="text-sm font-medium text-destructive">{error}</p>
+                <p className="text-sm font-semibold text-destructive text-center py-2 bg-destructive/10 rounded-md">{error}</p>
             )}
-            <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
+            <Button type="submit" className="w-full font-headline font-semibold text-xl py-7 glow-button tracking-wider" disabled={isPending}>
               {isPending ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <Loader2 className="mr-2 h-6 w-6 animate-spin" />
               ) : (
-                mode === 'login' ? <LogInIcon className="mr-2 h-5 w-5" /> : <UserPlus className="mr-2 h-5 w-5" />
+                mode === 'login' ? <LogInIcon className="mr-2 h-6 w-6" /> : <UserPlus className="mr-2 h-6 w-6" />
               )}
-              {mode === 'login' ? 'Login to Arena' : 'Create Account'}
+              {mode === 'login' ? 'Enter Portal' : 'Register Account'}
             </Button>
           </form>
         </Form>
       </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-muted-foreground">
-          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <Link href={mode === 'login' ? '/signup' : '/login'} className="font-medium text-primary hover:underline hover:glow-text-primary">
-            {mode === 'login' ? 'Sign Up' : 'Login'}
+      <CardFooter className="flex justify-center pb-8">
+        <p className="text-base text-muted-foreground">
+          {mode === 'login' ? "New challenger? " : 'Already registered? '}
+          <Link href={mode === 'login' ? '/signup' : '/login'} className="font-semibold text-primary hover:text-accent transition-colors duration-300 hover:glow-text-accent">
+            {mode === 'login' ? 'Create Account' : 'Login Here'}
           </Link>
         </p>
       </CardFooter>
