@@ -166,7 +166,7 @@ export type Database = {
           due_date: string 
           completed: boolean
           subject: string | null
-          plan_type: string // e.g., 'task', 'exam', 'revision'
+          plan_type: string 
           created_at: string
         }
         Insert: {
@@ -272,7 +272,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          question_image_data_uri: string | null // Storing data URI for simplicity for now
+          question_image_data_uri: string | null 
           explanation: string | null
           created_at: string
         }
@@ -303,8 +303,8 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          content_type: string // 'test' or 'chapter'
-          original_content_preview: string | null // A preview of the content
+          content_type: string 
+          original_content_preview: string | null 
           generated_notes: string
           created_at: string
         }
@@ -341,7 +341,7 @@ export type Database = {
           context: string | null
           preferences: string | null
           ai_answer: string | null
-          ai_study_tips: Json | null // Array of strings
+          ai_study_tips: Json | null 
           created_at: string
         }
         Insert: {
@@ -406,6 +406,215 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          full_name: string | null
+          avatar_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      missions: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          mission_type: "daily" | "weekly";
+          reward_points: number;
+          badge_id_reward: string | null; // Foreign key to badges table
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          mission_type: "daily" | "weekly";
+          reward_points: number;
+          badge_id_reward?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          mission_type?: "daily" | "weekly";
+          reward_points?: number;
+          badge_id_reward?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "missions_badge_id_reward_fkey";
+            columns: ["badge_id_reward"];
+            referencedRelation: "badges";
+            referencedColumns: ["id"];
+          }
+        ];
+      }
+      user_missions: {
+        Row: {
+          id: string;
+          user_id: string;
+          mission_id: string;
+          status: "accepted" | "in_progress" | "completed" | "failed";
+          progress: number; // e.g., 0-100 for percentage, or count
+          completed_at: string | null;
+          started_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          mission_id: string;
+          status?: "accepted" | "in_progress" | "completed" | "failed";
+          progress?: number;
+          completed_at?: string | null;
+          started_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          mission_id?: string;
+          status?: "accepted" | "in_progress" | "completed" | "failed";
+          progress?: number;
+          completed_at?: string | null;
+          started_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_missions_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_missions_mission_id_fkey";
+            columns: ["mission_id"];
+            referencedRelation: "missions";
+            referencedColumns: ["id"];
+          }
+        ];
+      }
+      badges: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          icon_url: string | null; // URL or identifier for badge image/icon
+          criteria: string; // How to earn the badge
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description: string;
+          icon_url?: string | null;
+          criteria: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          icon_url?: string | null;
+          criteria?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      }
+      user_badges: {
+        Row: {
+          id: string;
+          user_id: string;
+          badge_id: string;
+          earned_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          badge_id: string;
+          earned_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          badge_id?: string;
+          earned_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_badges_badge_id_fkey";
+            columns: ["badge_id"];
+            referencedRelation: "badges";
+            referencedColumns: ["id"];
+          }
+        ];
+      }
+      leaderboard_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          score: number; // Could be total points, completed missions, etc.
+          rank: number | null;
+          period: "daily" | "weekly" | "all_time";
+          last_updated: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          score: number;
+          rank?: number | null;
+          period: "daily" | "weekly" | "all_time";
+          last_updated?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          score?: number;
+          rank?: number | null;
+          period?: "daily" | "weekly" | "all_time";
+          last_updated?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_entries_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
       }
     }
     Views: {
@@ -502,5 +711,6 @@ export type Enums<
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
+    
 
     

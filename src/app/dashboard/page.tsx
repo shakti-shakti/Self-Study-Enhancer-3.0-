@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { CheckCircle, Clock, Brain, Edit3, Users, BookOpen, BarChart3, Target, Bot, MessageSquare, SlidersHorizontal, Lightbulb, FileText } from 'lucide-react';
+import { CheckCircle, Clock, Brain, Edit3, Users, BookOpen, BarChart3, Target, Bot, MessageSquare, SlidersHorizontal, Lightbulb, FileText, Trophy } from 'lucide-react';
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -15,6 +15,7 @@ export default async function DashboardPage() {
   const quickAccessItems = [
     { name: 'Planner', href: '/dashboard/planner', icon: <Edit3 className="h-8 w-8 mb-2 text-primary group-hover:scale-110 transition-transform" />, description: "Plan your study sessions & tasks." },
     { name: 'Quizzes', href: '/dashboard/quizzes', icon: <Target className="h-8 w-8 mb-2 text-primary group-hover:scale-110 transition-transform" />, description: "Test your knowledge." },
+    { name: 'Challenges', href: '/dashboard/challenges', icon: <Trophy className="h-8 w-8 mb-2 text-accent group-hover:scale-110 transition-transform" />, description: "Missions & Leaderboard." },
     { name: 'Study Rooms', href: '/dashboard/study-rooms', icon: <Users className="h-8 w-8 mb-2 text-primary group-hover:scale-110 transition-transform" />, description: "Collaborate with peers." },
     { name: 'NCERT Explorer', href: '/dashboard/ncert-explorer', icon: <BookOpen className="h-8 w-8 mb-2 text-primary group-hover:scale-110 transition-transform" />, description: "Explore NCERT content." },
     { name: 'Mind & Focus Hub', href: '/dashboard/mental-health', icon: <Brain className="h-8 w-8 mb-2 text-accent group-hover:scale-110 transition-transform" />, description: "Track your well-being." },
@@ -95,5 +96,7 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
