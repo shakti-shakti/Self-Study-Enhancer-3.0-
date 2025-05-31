@@ -37,12 +37,14 @@ import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircl
 import { cn } from '@/lib/utils';
 
 // DEVELOPER NOTE: This is SAMPLE syllabus data. For full functionality, 
-// this object MUST be populated with the complete and accurate NCERT syllabus 
-// for all relevant classes, subjects, chapters, and topics.
-// I have expanded Physics Class 11 to show more detail.
+// this object MUST be populated by YOU (the developer) with the complete and accurate 
+// NCERT syllabus for all relevant classes, subjects, chapters, and topics.
+// The structure below demonstrates how to organize it.
+// I have expanded Physics Class 11 to show more detail as an example.
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   '11': {
     'Physics': {
+      // Class 11 Physics - Part I
       'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society', 'Fundamental forces in nature'],
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
@@ -63,7 +65,7 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       'Chapter 6: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Notion of potential energy, potential energy of a spring, conservative forces: conservation of mechanical energy (kinetic and potential energies)', 'Non-conservative forces: motion in a vertical circle', 'Elastic and inelastic collisions in one and two dimensions'],
       'Chapter 7: System of Particles and Rotational Motion': ['Centre of mass of a two-particle system, momentum conservation and centre of mass motion', 'Centre of mass of a rigid body; centre of mass of a uniform rod', 'Moment of a force, torque, angular momentum, conservation of angular momentum with some examples', 'Equilibrium of rigid bodies, rigid body rotation and equations of rotational motion, comparison of linear and rotational motions', 'Moment of inertia, radius of gyration', 'Values of M.I. for simple geometrical objects (no derivation)', 'Statement of parallel and perpendicular axes theorems and their applications'],
       'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
-      // Part II Chapters for Class 11 Physics
+      // Class 11 Physics - Part II
       'Chapter 9: Mechanical Properties of Solids': ['Elastic behaviour, Stress-strain relationship, Hooke\'s law, Young\'s modulus, bulk modulus, shear modulus of rigidity, Poisson\'s ratio; elastic energy.'],
       'Chapter 10: Mechanical Properties of Fluids': ['Pressure due to a fluid column; Pascal\'s law and its applications (hydraulic lift and hydraulic brakes)', 'Effect of gravity on fluid pressure', 'Viscosity, Stokes\' law, terminal velocity, streamline and turbulent flow, critical velocity, Bernoulli\'s theorem and its applications', 'Surface energy and surface tension, angle of contact, excess of pressure across a curved surface, application of surface tension ideas to drops, bubbles and capillary rise.'],
       'Chapter 11: Thermal Properties of Matter': ['Heat, temperature, thermal expansion; thermal expansion of solids, liquids and gases', 'Anomalous expansion of water; specific heat capacity: Cp, Cv - calorimetry; change of state - latent heat capacity', 'Heat transfer-conduction, convection and radiation, thermal conductivity, qualitative ideas of Blackbody radiation, Wein\'s displacement Law, Stefan\'s law, Greenhouse effect.'],
@@ -267,7 +269,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: null, // Singular topic field in questions table is not being populated
+            topic: null, // This field is not inserted into DB per previous corrections
             source: values.question_source || null,
             neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
@@ -315,29 +317,26 @@ export default function QuizzesPage() {
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase, 
             user_id: userId,
-            // topic field is intentionally not set here as it doesn't exist in the user's DB schema
-            // topic: null, 
         };
         
         console.log("Attempting to insert quiz:", JSON.stringify(quizToInsert, null, 2));
-        const { error: quizError } = await supabase.from('quizzes').insert(quizToInsert);
+        const { data: insertedQuiz, error: quizError } = await supabase.from('quizzes').insert(quizToInsert).select().single();
         if (quizError) {
             console.error("Supabase error inserting quiz:", JSON.stringify(quizError, null, 2));
             toast({ variant: 'destructive', title: 'DB Error: Quiz Save', description: `Code: ${quizError.code}. ${quizError.message}` });
             return; 
         }
-        console.log("Quiz inserted successfully. ID:", quizToInsert.id);
+        console.log("Quiz inserted successfully. ID:", insertedQuiz.id);
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
             id: q.id,
-            quiz_id: quizToInsert.id, // Use the ID from the just-inserted quiz
+            quiz_id: insertedQuiz.id,
             question_text: q.question_text,
             options: q.options,
             correct_option_index: q.correct_option_index,
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            // topic field is intentionally not set here
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
@@ -348,7 +347,7 @@ export default function QuizzesPage() {
           toast({ variant: 'destructive', title: 'Quiz Error', description: 'No questions were generated or found to save. Please try configuring the quiz again.' });
           return;
         }
-        console.log("Using quiz_id for questions:", quizToInsert.id);
+        console.log("Using quiz_id for questions:", insertedQuiz.id);
         console.log("Attempting to insert questions:", JSON.stringify(questionsToInsert, null, 2));
 
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
@@ -372,7 +371,7 @@ export default function QuizzesPage() {
         const attemptInsert: TablesInsert<'quiz_attempts'> = {
           id: attemptId,
           user_id: userId,
-          quiz_id: currentGeneratedQuiz.quizData.id,
+          quiz_id: insertedQuiz.id,
           score: score,
           total_questions: currentGeneratedQuiz.questions.length,
           answers_submitted: userAnswers.map(ua => ({q: ua.questionId, a: ua.selectedOptionIndex})),
@@ -392,7 +391,7 @@ export default function QuizzesPage() {
           activity_type: 'quiz_attempted',
           description: `Attempted quiz: "${currentGeneratedQuiz.quizData.subject} - ${currentGeneratedQuiz.quizData.difficulty}". Score: ${score}/${currentGeneratedQuiz.questions.length}`,
           details: {
-            quiz_id: currentGeneratedQuiz.quizData.id,
+            quiz_id: insertedQuiz.id,
             score: score,
             total_questions: currentGeneratedQuiz.questions.length,
             subject: currentGeneratedQuiz.quizData.subject,
@@ -405,7 +404,7 @@ export default function QuizzesPage() {
             score,
             totalQuestions: currentGeneratedQuiz.questions.length,
             attemptId,
-            quizId: currentGeneratedQuiz.quizData.id,
+            quizId: insertedQuiz.id,
             questionsWithUserAnswers
         });
         toast({
@@ -457,7 +456,6 @@ export default function QuizzesPage() {
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: null, 
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
@@ -508,7 +506,12 @@ export default function QuizzesPage() {
           <Progress value={((currentQuestionIndex + 1) / currentGeneratedQuiz.questions.length) * 100} className="w-full h-2 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-lg font-semibold">{question.question_text}</p>
+          <div className="flex justify-between items-start">
+            <p className="text-lg font-semibold flex-1 pr-2">{question.question_text}</p>
+            <Button variant="ghost" size="icon" onClick={() => handleCopyQuestionText(question.question_text)} className="text-muted-foreground hover:text-primary">
+                <ClipboardCopy className="w-5 h-5"/>
+            </Button>
+          </div>
           <div className="space-y-3">
             {(question.options as string[]).map((option, index) => (
               <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
