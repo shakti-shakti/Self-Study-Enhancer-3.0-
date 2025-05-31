@@ -36,9 +36,11 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/dashboard']; 
-  const authRoutes = ['/login', '/signup'];
+  // const protectedRoutes = ['/dashboard']; 
+  // const authRoutes = ['/login', '/signup'];
 
+  // Temporarily commented out for development to bypass login
+  /*
   if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -52,6 +54,7 @@ export async function middleware(request: NextRequest) {
      console.log(`[Middleware] Session found, accessing auth route ${pathname}. Redirecting to /dashboard.`);
     return NextResponse.redirect(url);
   }
+  */
   
   return response;
 }
