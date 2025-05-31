@@ -25,6 +25,7 @@ type Badge = Tables<'badges'> & {
 };
 
 type LeaderboardUser = Tables<'leaderboard_entries'> & {
+  rank?: number; // Added rank here for mapping
   profiles: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
 };
 
@@ -135,12 +136,16 @@ export default function ChallengesPage() {
         // Fetch leaderboard (all_time for now, simple example)
         const { data: leaderboardData, error: leaderboardError } = await supabase
           .from('leaderboard_entries')
-          .select('*, profiles(full_name, username, avatar_url)')
+          .select('*, profiles!user_id(full_name, username, avatar_url)')
           .eq('period', 'all_time')
           .order('score', { ascending: false })
           .limit(10);
-        if (leaderboardError) toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: leaderboardError.message });
-        else setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+        if (leaderboardError) {
+            toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: leaderboardError.message });
+            console.error("Leaderboard fetch error:", leaderboardError);
+        } else {
+            setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+        }
       });
     };
     fetchData();
@@ -232,8 +237,17 @@ export default function ChallengesPage() {
                  setUserBadges(mappedUserBadges);
                  setAvailableBadges(allBadgesData.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)).map(b => ({...b, icon: Award})));
              }
-            const { data: leaderboardData } = await supabase.from('leaderboard_entries').select('*, profiles(full_name, username, avatar_url)').eq('period', 'all_time').order('score', { ascending: false }).limit(10);
-            setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+            const { data: leaderboardData, error: leaderboardError } = await supabase
+                .from('leaderboard_entries')
+                .select('*, profiles!user_id(full_name, username, avatar_url)')
+                .eq('period', 'all_time')
+                .order('score', { ascending: false })
+                .limit(10);
+            if (leaderboardError) {
+                console.error("Leaderboard refetch error:", leaderboardError);
+            } else {
+                setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+            }
         }
     });
   };
@@ -387,3 +401,4 @@ export default function ChallengesPage() {
   );
 }
     
+
