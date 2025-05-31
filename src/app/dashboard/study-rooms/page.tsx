@@ -77,12 +77,12 @@ export default function StudyRoomsPage() {
       fetchMessages(selectedRoom.id);
       const channel = supabase
         .channel(`study_room:${selectedRoom.id}`)
-        .on<Tables<'study_room_messages'>>( // Use base type for payload
+        .on<Tables<'study_room_messages'>>( 
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'study_room_messages', filter: `room_id=eq.${selectedRoom.id}` },
           async (payload) => {
-            const newMessage = payload.new as Tables<'study_room_messages'>; // Cast to base type
-            // Fetch the user profile for the new message
+            const newMessage = payload.new as Tables<'study_room_messages'>; 
+            
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('email, full_name, avatar_url')
@@ -120,10 +120,10 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles(email, full_name, avatar_url)') 
+        .select('*, profiles!user_id(email, full_name, avatar_url)') // Explicit join hint
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
-        .limit(100); // Limit messages fetched initially
+        .limit(100); 
       if (error) toast({ variant: 'destructive', title: 'Error fetching messages', description: error.message });
       else setMessages(data as StudyRoomMessageWithProfile[] || []);
     });
@@ -144,7 +144,7 @@ export default function StudyRoomsPage() {
         createRoomForm.reset();
         if (data) {
           setRooms(prev => [data as StudyRoom, ...prev]); 
-          setSelectedRoom(data as StudyRoom); // Auto-select new room
+          setSelectedRoom(data as StudyRoom); 
         }
       }
     });

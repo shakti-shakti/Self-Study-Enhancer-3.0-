@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -43,7 +44,14 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: GenerateSmartNotesInputSchema},
   output: {schema: GenerateSmartNotesOutputSchema},
-  prompt: `You are an expert AI assistant for NEET (medical entrance exam) aspirants. Your task is to generate "smart notes" from the provided content. These notes should be highly effective for revision and understanding.
+  prompt: `You are an expert AI assistant for NEET (medical entrance exam) aspirants. Your task is to generate "smart notes" from the provided content.
+
+You MUST return a JSON object that strictly adheres to the following schema:
+{
+  "notes": "string (The generated smart notes. This could be a combination of summarized text, bullet points, identified key formulas (if applicable), or mnemonic suggestions, tailored for NEET aspirants.)",
+  "titleSuggestion": "string (Optional: A suggested title for these notes, e.g., 'Key Concepts: Newton's Laws' or 'Chapter 5 Biology Summary'.)"
+}
+DO NOT include any other keys or nested structures. DO NOT attempt to call any tools or functions.
 
 Content Type: "{{contentType}}"
 {{#if subject}}Subject: "{{subject}}"{{/if}}
@@ -70,6 +78,7 @@ Based on the content type and subject (if provided):
 
 Generate the notes in the 'notes' field and a title in the 'titleSuggestion' field.
 If the content is too short or unclear for meaningful notes, state that in the 'notes' field.
+Ensure the output is a valid JSON object matching the specified schema.
 `,
 });
 
@@ -90,3 +99,4 @@ const generateSmartNotesFlow = ai.defineFlow(
     return output;
   }
 );
+

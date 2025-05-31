@@ -94,12 +94,10 @@ const quizConfigSchema = z.object({
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
 
 type CurrentGeneratedQuiz = {
-  // quizData includes 'topic' which might not be insertable if DB column is missing
   quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at' | 'topic'> & { 
     id: string, 
     user_id: string, 
     topics: string[] | null,
-    // Explicitly add topic here for display purposes, even if not reliably saved
     display_topic?: string 
   };
   questions: Question[];
@@ -220,7 +218,6 @@ export default function QuizzesPage() {
         if (values.chapter) allTopicsForDB.push(`Chapter: ${values.chapter.trim()}`);
         if (values.topic) allTopicsForDB.push(`Topic: ${values.topic.trim()}`);
 
-        // This is the general topic string that was causing issues if 'topic' column is missing in DB
         const displayTopicString = values.chapter || values.subject;
 
         const quizDataForState: CurrentGeneratedQuiz['quizData'] = {
@@ -228,12 +225,11 @@ export default function QuizzesPage() {
             user_id: userId,
             class_level: values.class_level,
             subject: values.subject,
-            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null, // More specific topics array
+            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null,
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            display_topic: displayTopicString, // For display, not necessarily for DB insert if 'topic' column is missing
-            // The actual 'topic' field (singular) for DB insert is omitted here to avoid the error
+            display_topic: displayTopicString,
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -245,7 +241,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: allTopicsForDB.length > 0 ? allTopicsForDB.join('; ') : values.subject || null,
+            // topic: allTopicsForDB.length > 0 ? allTopicsForDB.join('; ') : values.subject || null, // This line is removed/commented out
             source: values.question_source || null,
             neet_syllabus_year: 2026,
             created_at: new Date().toISOString(),
@@ -279,7 +275,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -288,27 +284,43 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
-        // Prepare data for 'quizzes' table, excluding the 'topic' (singular) field
-        // to avoid the "column not found" error. 'display_topic' is not for DB.
         const { display_topic, ...quizDataForDb } = currentGeneratedQuiz.quizData;
         
         const quizToInsert: TablesInsert<'quizzes'> = {
-            ...quizDataForDb, // This now correctly omits 'topic' if it's the issue
+            ...quizDataForDb, 
             user_id: userId,
         };
         
+        console.log("Attempting to insert quiz:", JSON.stringify(quizToInsert, null, 2));
         const { error: quizError } = await supabase.from('quizzes').insert(quizToInsert);
         if (quizError) {
             console.error("Supabase error inserting quiz:", JSON.stringify(quizError, null, 2));
             throw quizError;
         }
+        console.log("Quiz inserted successfully.");
 
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
-            ...q, // Contains quiz_id which links to the quiz inserted above
+            id: q.id,
+            quiz_id: q.quiz_id,
+            question_text: q.question_text,
+            options: q.options,
+            correct_option_index: q.correct_option_index,
+            explanation_prompt: q.explanation_prompt,
+            class_level: q.class_level,
+            subject: q.subject,
+            // topic: q.topic, // Ensure this matches your DB schema or is omitted
+            source: q.source,
+            neet_syllabus_year: q.neet_syllabus_year,
+            created_at: q.created_at,
         }));
+        console.log("Attempting to insert questions:", JSON.stringify(questionsToInsert, null, 2));
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
-        if (questionsError) throw questionsError;
+        if (questionsError) {
+             console.error("Supabase error inserting questions:", JSON.stringify(questionsError, null, 2));
+            throw questionsError;
+        }
+        console.log("Questions inserted successfully.");
 
         let score = 0;
         const questionsWithUserAnswers = currentGeneratedQuiz.questions.map(q => {
@@ -329,9 +341,13 @@ export default function QuizzesPage() {
           answers_submitted: userAnswers.map(ua => ({q: ua.questionId, a: ua.selectedOptionIndex})),
           completed_at: new Date().toISOString(),
         };
-
+        console.log("Attempting to insert quiz attempt:", JSON.stringify(attemptInsert, null, 2));
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
-        if (attemptError) throw attemptError;
+        if (attemptError) {
+            console.error("Supabase error inserting quiz attempt:", JSON.stringify(attemptError, null, 2));
+            throw attemptError;
+        }
+        console.log("Quiz attempt inserted successfully.");
         
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: userId,
@@ -396,21 +412,25 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id,
+                question_id: question.id, // This ID must exist in the 'questions' table
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: question.topic,
+                // topic: question.topic, // If 'topic' column exists in saved_questions
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') {
+              if (error.code === '23505') { // unique constraint violation
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
-              } else {
+              } else if (error.code === '23503') { // foreign key violation
+                toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save: Question data integrity issue. The original question might not have been saved correctly. Please try submitting the quiz again."});
+                console.error("FK violation saving question:", error);
+              }
+              else {
                 throw error;
               }
             } else {
@@ -424,7 +444,8 @@ export default function QuizzesPage() {
                 await supabase.from('activity_logs').insert(activityLog);
             }
         } catch(error: any) {
-            toast({ variant: 'destructive', title: "Error Saving Question", description: error.message});
+            console.error("Error in handleSaveQuestion:", JSON.stringify(error, null, 2));
+            toast({ variant: 'destructive', title: "Error Saving Question", description: error.message || "An unexpected error occurred."});
         }
     });
   }
@@ -445,18 +466,17 @@ export default function QuizzesPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-lg font-semibold">{question.question_text}</p>
-          {/* This section now uses plain HTML radio inputs */}
           <div className="space-y-3">
             {(question.options as string[]).map((option, index) => (
               <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
                 <input
                   type="radio"
-                  name={question.id} // Group radio buttons by question
+                  name={question.id} 
                   value={index.toString()}
                   id={`${question.id}-option-${index}`}
                   checked={userAnswer?.selectedOptionIndex === index}
                   onChange={() => handleAnswerChange(question.id, index)}
-                  className="form-radio h-4 w-4 text-primary border-border focus:ring-primary cursor-pointer" // Basic Tailwind classes
+                  className="form-radio h-4 w-4 text-primary border-border focus:ring-primary cursor-pointer" 
                 />
                 <label htmlFor={`${question.id}-option-${index}`} className="font-normal text-base flex-1 cursor-pointer">
                   {String.fromCharCode(65 + index)}. {option}
