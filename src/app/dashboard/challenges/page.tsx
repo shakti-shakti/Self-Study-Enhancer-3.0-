@@ -1,3 +1,4 @@
+
 // src/app/dashboard/challenges/page.tsx
 'use client';
 
@@ -25,7 +26,7 @@ type Badge = Tables<'badges'> & {
 };
 
 type LeaderboardUser = Tables<'leaderboard_entries'> & {
-  rank?: number; // Added rank here for mapping
+  rank?: number; 
   profiles: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
 };
 
@@ -113,8 +114,8 @@ export default function ChallengesPage() {
         
         if (earnedUserBadgesData && allBadgesData) {
             const mappedUserBadges = earnedUserBadgesData.map(ub => {
-                const badgeDetails = ub.badges as Badge; // Cast since we selected * from badges
-                let iconComp = Award; // Default
+                const badgeDetails = ub.badges as Badge; 
+                let iconComp = Award; 
                 if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
                 else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
                 else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
@@ -133,18 +134,25 @@ export default function ChallengesPage() {
         }
 
 
-        // Fetch leaderboard (all_time for now, simple example)
+        // Fetch leaderboard
         const { data: leaderboardData, error: leaderboardError } = await supabase
           .from('leaderboard_entries')
           .select('*, profiles!user_id(full_name, username, avatar_url)')
           .eq('period', 'all_time')
           .order('score', { ascending: false })
           .limit(10);
+
         if (leaderboardError) {
             toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: leaderboardError.message });
             console.error("Leaderboard fetch error:", leaderboardError);
         } else {
-            setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+            const processedLeaderboard = (leaderboardData as LeaderboardUser[] || []).map((entry, index) => {
+                if (!entry.profiles) {
+                    console.warn(`Leaderboard entry for user ID ${entry.user_id} is missing profile data. Join might have failed or profile doesn't exist.`);
+                }
+                return {...entry, rank: index + 1};
+            });
+            setLeaderboard(processedLeaderboard);
         }
       });
     };
@@ -153,15 +161,12 @@ export default function ChallengesPage() {
 
   const handleCompleteMission = async (mission: Mission) => {
     if(!userId) return;
-    // This would typically involve verifying the mission completion criteria based on `mission.criteria_type`.
-    // For demo, we assume it's directly completable by button click if active.
     if (mission.status !== 'active') {
         toast({title: "Mission not active", description: "This mission is either locked or already completed."});
         return;
     }
 
     startTransition(async () => {
-        // Update user_mission status to completed
         const { error: updateError } = await supabase
             .from('user_missions')
             .update({ status: 'completed', current_progress: mission.target_value, completed_at: new Date().toISOString() })
@@ -173,7 +178,6 @@ export default function ChallengesPage() {
             return;
         }
         
-        // Add reward points to leaderboard (simplified: directly update all_time score)
         const { error: scoreError } = await supabase.rpc('increment_leaderboard_score', { 
             p_user_id: userId, 
             p_score_increment: mission.reward_points, 
@@ -182,13 +186,12 @@ export default function ChallengesPage() {
         if (scoreError) console.error("Error updating score via RPC:", scoreError);
 
 
-        // Grant badge if applicable
         if (mission.badge_id_reward) {
             const { error: badgeError } = await supabase
                 .from('user_badges')
                 .insert({ user_id: userId, badge_id: mission.badge_id_reward });
             
-            if (badgeError && badgeError.code !== '23505') { // 23505 is unique violation, means badge already earned
+            if (badgeError && badgeError.code !== '23505') { 
                 toast({ variant: 'destructive', title: "Error granting badge", description: badgeError.message });
             } else if (!badgeError) {
                 const awardedBadge = availableBadges.find(b => b.id === mission.badge_id_reward) || userBadges.find(b => b.id === mission.badge_id_reward);
@@ -200,7 +203,6 @@ export default function ChallengesPage() {
             }
         }
         
-        // Log activity
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: userId,
           activity_type: 'mission_completed',
@@ -215,10 +217,9 @@ export default function ChallengesPage() {
             className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'
         });
         
-        // Refetch all data to update UI
-        if (userId) { // Re-check userId before calling dependent functions
-            const { data: missionsData, error: missionsError } = await supabase.from('missions').select('*').eq('is_active', true);
-            const { data: userMissionsData, error: userMissionsError } = await supabase.from('user_missions').select('*').eq('user_id', userId);
+        if (userId) { 
+            const { data: missionsData } = await supabase.from('missions').select('*').eq('is_active', true);
+            const { data: userMissionsData } = await supabase.from('user_missions').select('*').eq('user_id', userId);
             if (missionsData) {
                 const combinedMissions = missionsData.map(m => {
                     const userProgress = userMissionsData?.find(um => um.mission_id === m.id);
@@ -233,20 +234,26 @@ export default function ChallengesPage() {
             const { data: earnedUserBadgesData } = await supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId);
             const { data: allBadgesData } = await supabase.from('badges').select('*');
              if (earnedUserBadgesData && allBadgesData) {
-                 const mappedUserBadges = earnedUserBadgesData.map(ub => ({ ...(ub.badges as Badge), icon: Award })); // Add dynamic icon logic
+                 const mappedUserBadges = earnedUserBadgesData.map(ub => ({ ...(ub.badges as Badge), icon: Award })); 
                  setUserBadges(mappedUserBadges);
                  setAvailableBadges(allBadgesData.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)).map(b => ({...b, icon: Award})));
              }
-            const { data: leaderboardData, error: leaderboardError } = await supabase
+            const { data: leaderboardData, error: leaderboardRefetchError } = await supabase
                 .from('leaderboard_entries')
                 .select('*, profiles!user_id(full_name, username, avatar_url)')
                 .eq('period', 'all_time')
                 .order('score', { ascending: false })
                 .limit(10);
-            if (leaderboardError) {
-                console.error("Leaderboard refetch error:", leaderboardError);
+            if (leaderboardRefetchError) {
+                console.error("Leaderboard refetch error:", leaderboardRefetchError);
             } else {
-                setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+                 const processedLeaderboard = (leaderboardData as LeaderboardUser[] || []).map((entry, index) => {
+                    if (!entry.profiles) {
+                        console.warn(`Leaderboard entry for user ID ${entry.user_id} is missing profile data after refetch.`);
+                    }
+                    return {...entry, rank: index + 1};
+                });
+                setLeaderboard(processedLeaderboard);
             }
         }
     });
@@ -285,7 +292,7 @@ export default function ChallengesPage() {
           <Button 
             className="w-full glow-button" 
             onClick={() => handleCompleteMission(mission)}
-            disabled={isPending || mission.current_progress >= mission.target_value} // Disable if already met for demo
+            disabled={isPending || mission.current_progress >= mission.target_value} 
           >
             {isPending ? <Loader2 className="animate-spin mr-2"/> : <CheckCircle className="mr-2"/>}
             {mission.current_progress >= mission.target_value ? 'Claim Reward' : 'Mark as Complete (Demo)'}
@@ -401,4 +408,3 @@ export default function ChallengesPage() {
   );
 }
     
-

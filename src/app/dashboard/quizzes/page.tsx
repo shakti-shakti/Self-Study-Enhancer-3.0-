@@ -36,46 +36,50 @@ import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/c
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Simplified syllabus data structure (example)
+// Expanded sample syllabus data
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   '11': {
     'Physics': {
-      'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society'],
+      'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society', 'Fundamental forces in nature'],
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
-      'Chapter 4: Laws of Motion': ['Newton\'s first law', 'Newton\'s second law', 'Newton\'s third law', 'Conservation of linear momentum'],
-      'Chapter 5: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Potential energy, conservative forces'],
+      'Chapter 4: Motion in a Plane': ['Scalars and vectors', 'Position and displacement vectors', 'General vectors and their notations', 'Equality of vectors, multiplication of vectors by a real number', 'Addition and subtraction of vectors', 'Relative velocity', 'Unit vector', 'Resolution of a vector in a plane - rectangular components', 'Scalar and Vector products of Vectors', 'Motion in a plane', 'Cases of uniform velocity and uniform acceleration-projectile motion', 'Uniform circular motion'],
+      'Chapter 5: Laws of Motion': ['Intuitive concept of force', 'Inertia, Newton\'s first law of motion', 'Momentum and Newton\'s second law of motion; impulse', 'Newton\'s third law of motion', 'Law of conservation of linear momentum and its applications', 'Equilibrium of concurrent forces', 'Static and kinetic friction, laws of friction, rolling friction, lubrication', 'Dynamics of uniform circular motion: Centripetal force, examples of circular motion (vehicle on a level circular road, vehicle on a banked road)'],
+      'Chapter 6: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Notion of potential energy, potential energy of a spring, conservative forces: conservation of mechanical energy (kinetic and potential energies)', 'Non-conservative forces: motion in a vertical circle', 'Elastic and inelastic collisions in one and two dimensions'],
+      'Chapter 7: System of Particles and Rotational Motion': ['Centre of mass of a two-particle system, momentum conservation and centre of mass motion', 'Centre of mass of a rigid body; centre of mass of a uniform rod', 'Moment of a force, torque, angular momentum, conservation of angular momentum with some examples', 'Equilibrium of rigid bodies, rigid body rotation and equations of rotational motion, comparison of linear and rotational motions', 'Moment of inertia, radius of gyration', 'Values of M.I. for simple geometrical objects (no derivation)', 'Statement of parallel and perpendicular axes theorems and their applications'],
+      'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
     },
     'Chemistry': {
-      'Chapter 1: Some Basic Concepts of Chemistry': ['Importance of Chemistry', 'Laws of chemical combination', 'Dalton\'s atomic theory', 'Concept of elements, atoms and molecules'],
-      'Chapter 2: Structure of Atom': ['Discovery of electron, proton and neutron', 'Atomic number, isotopes and isobars', 'Thomson\'s model and its limitations', 'Rutherford\'s model and its limitations'],
-      'Chapter 3: Classification of Elements': ['Significance of classification', 'Brief history of the development of periodic table', 'Modern periodic law and the present form of periodic table'],
+      'Chapter 1: Some Basic Concepts of Chemistry': ['Importance of Chemistry', 'Laws of chemical combination', 'Dalton\'s atomic theory', 'Concept of elements, atoms and molecules', 'Atomic and molecular masses', 'Mole concept and molar mass', 'Percentage composition, empirical and molecular formula', 'Chemical reactions, stoichiometry and calculations based on stoichiometry'],
+      'Chapter 2: Structure of Atom': ['Discovery of electron, proton and neutron', 'Atomic number, isotopes and isobars', 'Thomson\'s model and its limitations', 'Rutherford\'s model and its limitations', 'Bohr\'s model and its limitations', 'Concept of shells and subshells, dual nature of matter and light, de Broglie\'s relationship, Heisenberg uncertainty principle', 'Concept of orbitals, quantum numbers, shapes of s, p and d orbitals', 'Rules for filling electrons in orbitals - Aufbau principle, Pauli\'s exclusion principle and Hund\'s rule', 'Electronic configuration of atoms, stability of half-filled and completely filled orbitals'],
+      'Chapter 3: Classification of Elements': ['Significance of classification', 'Brief history of the development of periodic table', 'Modern periodic law and the present form of periodic table', 'Periodic trends in properties of elements - atomic radii, ionic radii, inert gas radii, ionization enthalpy, electron gain enthalpy, electronegativity, valency'],
     },
     'Botany': {
-        'Chapter 1: The Living World (Botany Focus)': ['What is living?', 'Diversity in the living world', 'Taxonomic categories', 'Taxonomical aids'],
-        'Chapter 8: Cell The Unit of Life': ['Cell Theory', 'Prokaryotic Cells', 'Eukaryotic Cells'],
+        'Chapter 1: The Living World (Botany Focus)': ['What is living?', 'Diversity in the living world', 'Taxonomic categories', 'Taxonomical aids', 'Herbarium, Botanical gardens, Museum, Zoological parks, Key'],
+        'Chapter 8: Cell The Unit of Life': ['Cell Theory', 'Prokaryotic Cells', 'Eukaryotic Cells', 'Cell membrane, Cell wall, Endomembrane system (ER, Golgi, Lysosomes, Vacuoles)', 'Mitochondria, Plastids, Ribosomes', 'Cytoskeleton, Cilia, Flagella, Centrosome and Centrioles, Nucleus, Microbodies'],
     },
     'Zoology': {
-        'Chapter 1: Animal Kingdom (Zoology Focus)': ['Basis of Classification', 'Classification of Animals'],
-        'Chapter 7: Structural Organisation in Animals': ['Animal Tissues', 'Organ and Organ System'],
+        'Chapter 1: Animal Kingdom (Zoology Focus)': ['Basis of Classification', 'Levels of Organisation', 'Symmetry', 'Diploblastic and Triploblastic Organisation', 'Coelom', 'Segmentation', 'Notochord', 'Classification of Animals'],
+        'Chapter 7: Structural Organisation in Animals': ['Animal Tissues: Epithelial, Connective, Muscular, Neural', 'Organ and Organ System', 'Earthworm, Cockroach, Frog (Morphology and Anatomy - brief account only)'],
     }
   },
   '12': {
+    // Add more Class 12 data here similarly if needed for full dropdown population
     'Physics': {
-      'Chapter 1: Electric Charges and Fields': ['Electric Charge', 'Conductors and Insulators', 'Coulomb\'s Law', 'Electric Field'],
-      'Chapter 2: Electrostatic Potential and Capacitance': ['Electrostatic Potential', 'Potential due to a Point Charge', 'Capacitors and Capacitance'],
+      'Chapter 1: Electric Charges and Fields': ['Electric Charge', 'Conductors and Insulators', 'Basic properties of electric charge: additivity, quantisation, conservation', 'Coulomb\'s Law', 'Forces between multiple charges', 'Superposition principle', 'Continuous charge distribution', 'Electric Field', 'Electric field due to a point charge', 'Electric field lines', 'Electric dipole, electric field due to a dipole', 'Torque on a dipole in uniform electric field', 'Electric flux', 'Statement of Gauss\'s theorem and its applications to find field due to infinitely long straight wire, uniformly charged infinite plane sheet and uniformly charged thin spherical shell (field inside and outside)'],
+      'Chapter 2: Electrostatic Potential and Capacitance': ['Electrostatic Potential', 'Potential due to a Point Charge, a dipole and system of charges', 'Equipotential surfaces', 'Electrical potential energy of a system of two point charges and of electric dipoles in an external field', 'Conductors and insulators, free charges and bound charges inside a conductor', 'Dielectrics and electric polarisation, capacitors and capacitance, combination of capacitors in series and in parallel', 'Capacitance of a parallel plate capacitor with and without dielectric medium between the plates, energy stored in a capacitor'],
     },
     'Chemistry': {
-        'Chapter 1: The Solid State': ['Classification of solids', 'Crystal lattices and unit cells', 'Packing in solids'],
-        'Chapter 2: Solutions': ['Types of solutions', 'Expression of concentration of solutions of solids in liquids', 'Solubility of gases in liquids'],
+        'Chapter 1: The Solid State': ['Classification of solids based on different binding forces: molecular, ionic, covalent and metallic solids, amorphous and crystalline solids (elementary idea)', 'Unit cell in two dimensional and three dimensional lattices, calculation of density of unit cell, packing in solids, packing efficiency, voids, number of atoms per unit cell in a cubic unit cell, point defects, electrical and magnetic properties', 'Band theory of metals, conductors, semiconductors and insulators and n and p type semiconductors'],
+        'Chapter 2: Solutions': ['Types of solutions, expression of concentration of solutions of solids in liquids, solubility of gases in liquids, solid solutions, colligative properties - relative lowering of vapour pressure, Raoult\'s law', 'Elevation of boiling point, depression of freezing point, osmotic pressure, determination of molecular masses using colligative properties, abnormal molecular mass, Van\'t Hoff factor'],
     },
     'Botany': {
-        'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Asexual Reproduction', 'Sexual Reproduction'],
-        'Chapter 2: Sexual Reproduction in Flowering Plants': ['Flower - A Fascinating Organ of Angiosperms', 'Pollination'],
+        'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Asexual Reproduction: Binary fission, Sporulation, Budding, Gemmule, Fragmentation, Vegetative propagation', 'Sexual Reproduction'],
+        'Chapter 2: Sexual Reproduction in Flowering Plants': ['Flower - A Fascinating Organ of Angiosperms', 'Pre-fertilisation: Structures and Events', 'Double Fertilisation', 'Post-fertilisation: Structures and Events', 'Apomixis and Polyembryony'],
     },
     'Zoology': {
-         'Chapter 1: Human Reproduction (Zoology Focus)': ['The Male Reproductive System', 'The Female Reproductive System', 'Gametogenesis'],
-         'Chapter 3: Human Health and Disease': ['Common Diseases in Humans', 'Immunity'],
+         'Chapter 1: Human Reproduction (Zoology Focus)': ['The Male Reproductive System', 'The Female Reproductive System', 'Gametogenesis', 'Menstrual Cycle', 'Fertilisation and Implantation', 'Pregnancy and Embryonic Development', 'Parturition and Lactation'],
+         'Chapter 3: Human Health and Disease': ['Common Diseases in Humans', 'Immunity', 'AIDS, Cancer, Drugs and Alcohol Abuse'],
     }
   }
 };
@@ -225,11 +229,11 @@ export default function QuizzesPage() {
             user_id: userId,
             class_level: values.class_level,
             subject: values.subject,
-            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null,
+            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null, // This is an array for the DB
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            display_topic: displayTopicString,
+            display_topic: displayTopicString, // For UI, not directly for quiz.topic
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -241,9 +245,9 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            // topic: allTopicsForDB.length > 0 ? allTopicsForDB.join('; ') : values.subject || null, // This line is removed/commented out
+            // No singular 'topic' field here as per schema discussion
             source: values.question_source || null,
-            neet_syllabus_year: 2026,
+            neet_syllabus_year: 2026, // Example, could be dynamic
             created_at: new Date().toISOString(),
         }));
 
@@ -275,7 +279,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex(prev => prev - 1); // Corrected to decrement
     }
   };
 
@@ -284,18 +288,21 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
-        const { display_topic, ...quizDataForDb } = currentGeneratedQuiz.quizData;
+        const { display_topic, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
         
         const quizToInsert: TablesInsert<'quizzes'> = {
-            ...quizDataForDb, 
+            ...quizDataForDbBase, 
             user_id: userId,
+            // 'topic' (singular text field) is intentionally omitted here based on prior discussions
+            // 'topics' (text array) is already correctly included in quizDataForDbBase
         };
         
         console.log("Attempting to insert quiz:", JSON.stringify(quizToInsert, null, 2));
         const { error: quizError } = await supabase.from('quizzes').insert(quizToInsert);
         if (quizError) {
             console.error("Supabase error inserting quiz:", JSON.stringify(quizError, null, 2));
-            throw quizError;
+            toast({ variant: 'destructive', title: 'DB Error: Quiz Save', description: `Code: ${quizError.code}. ${quizError.message}` });
+            return; // Stop further execution if quiz insert fails
         }
         console.log("Quiz inserted successfully.");
 
@@ -309,7 +316,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            // topic: q.topic, // Ensure this matches your DB schema or is omitted
+            // 'topic' (singular) is omitted here
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
@@ -318,7 +325,8 @@ export default function QuizzesPage() {
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
         if (questionsError) {
              console.error("Supabase error inserting questions:", JSON.stringify(questionsError, null, 2));
-            throw questionsError;
+             toast({ variant: 'destructive', title: 'DB Error: Question Save', description: `Code: ${questionsError.code}. ${questionsError.message}` });
+             return; 
         }
         console.log("Questions inserted successfully.");
 
@@ -345,7 +353,8 @@ export default function QuizzesPage() {
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
         if (attemptError) {
             console.error("Supabase error inserting quiz attempt:", JSON.stringify(attemptError, null, 2));
-            throw attemptError;
+            toast({ variant: 'destructive', title: 'DB Error: Attempt Save', description: `Code: ${attemptError.code}. ${attemptError.message}` });
+            return;
         }
         console.log("Quiz attempt inserted successfully.");
         
@@ -412,22 +421,22 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id, // This ID must exist in the 'questions' table
+                question_id: question.id, 
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                // topic: question.topic, // If 'topic' column exists in saved_questions
+                // 'topic' (singular) is omitted here
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') { // unique constraint violation
+              if (error.code === '23505') { 
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
-              } else if (error.code === '23503') { // foreign key violation
-                toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save: Question data integrity issue. The original question might not have been saved correctly. Please try submitting the quiz again."});
+              } else if (error.code === '23503') { 
+                toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save question. The original question might not have been saved to the database correctly. Please try submitting the quiz again or ensure quiz data is properly saved first."});
                 console.error("FK violation saving question:", error);
               }
               else {
@@ -459,7 +468,7 @@ export default function QuizzesPage() {
       <Card className="w-full max-w-2xl mx-auto interactive-card shadow-xl shadow-primary/10">
         <CardHeader>
           <CardTitle className="text-2xl font-headline glow-text-primary flex justify-between items-center">
-            <span>{currentGeneratedQuiz.quizData.subject} Quiz ({currentGeneratedQuiz.quizData.difficulty})</span>
+            <span>{currentGeneratedQuiz.quizData.display_topic || currentGeneratedQuiz.quizData.subject} Quiz ({currentGeneratedQuiz.quizData.difficulty})</span>
             <span className="text-sm font-normal text-muted-foreground">Question {currentQuestionIndex + 1} of {currentGeneratedQuiz.questions.length}</span>
           </CardTitle>
           <Progress value={((currentQuestionIndex + 1) / currentGeneratedQuiz.questions.length) * 100} className="w-full h-2 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent" />
@@ -489,14 +498,7 @@ export default function QuizzesPage() {
           <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0} className="glow-button">
             <ChevronLeft className="mr-2" /> Previous
           </Button>
-          <div className="flex items-center gap-2">
-             <Button variant="ghost" size="sm" onClick={() => handleSaveQuestion(question)} disabled={isSavingQuestion} className="text-accent hover:text-accent/80">
-                {isSavingQuestion ? <Loader2 className="animate-spin" /> : <Save className="w-5 h-5"/>}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigator.clipboard.writeText(question.question_text + "\nOptions:\n" + (question.options as string[]).map((opt, i) => `${String.fromCharCode(65+i)}. ${opt}`).join("\n"))} className="text-accent hover:text-accent/80">
-                Copy
-            </Button>
-          </div>
+          {/* Save button removed from here as requested */}
           {currentQuestionIndex < currentGeneratedQuiz.questions.length - 1 ? (
             <Button onClick={handleNextQuestion} className="glow-button bg-primary hover:bg-primary/90">
               Next <ChevronRight className="ml-2" />
@@ -603,6 +605,7 @@ export default function QuizzesPage() {
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
           Forge your knowledge! Configure a quiz, test your skills, and get AI-powered insights.
+          {/* Developer Note: Syllabus data below is a sample. For a full app, this data should be comprehensive and ideally from a database. */}
         </p>
       </header>
 
@@ -613,7 +616,7 @@ export default function QuizzesPage() {
               <Wand2 className="mr-3 h-8 w-8 text-primary" /> Configure Your Challenge
             </CardTitle>
             <CardDescription>
-              Set the parameters for your personalized quiz (NEET 2026 Syllabus based on example data).
+              Set the parameters for your personalized quiz.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -704,7 +707,7 @@ export default function QuizzesPage() {
                        <FormMessage />
                     </FormItem>
                 )} />
-                <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isGenerating}>
+                <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isGenerating || !configForm.formState.isValid}>
                   {isGenerating ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <Wand2 className="mr-2 h-6 w-6" />}
                   Generate Quiz
                 </Button>
@@ -727,4 +730,3 @@ export default function QuizzesPage() {
     </div>
   );
 }
-

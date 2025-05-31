@@ -1,3 +1,4 @@
+
 // src/app/dashboard/smart-notes-generator/page.tsx
 'use client';
 
@@ -17,7 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 
 const notesGeneratorSchema = z.object({
-  content: z.string().min(50, { message: 'Content must be at least 50 characters.' }).max(30000, { message: 'Content is too long for optimal processing. Try a smaller chunk.'}),
+  content: z.string().min(10, { message: 'Content must be at least 10 characters.' }).max(30000, { message: 'Content is too long for optimal processing. Try a smaller chunk.'}),
   contentType: z.enum(['test_review', 'chapter_summary', 'concept_clarification'], { required_error: 'Please select content type.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Biology', 'General']).optional(),
   noteFormatPreferences: z.array(z.enum(['summary', 'key_formulas', 'mnemonics', 'bullet_points', 'flowchart_points'])).optional()

@@ -15,7 +15,7 @@ import {z} from 'genkit';
 const GenerateSmartNotesInputSchema = z.object({
   content: z
     .string()
-    .min(100, {message: "Content should be at least 100 characters for effective note generation."})
+    .min(10, {message: "Content should be at least 10 characters for effective note generation."})
     .describe(
       'The content (e.g., text from an NCERT chapter, a set of solved quiz questions with answers, or a student own study material) from which to generate smart notes.'
     ),
@@ -51,7 +51,8 @@ You MUST return a JSON object that strictly adheres to the following schema:
   "notes": "string (The generated smart notes. This could be a combination of summarized text, bullet points, identified key formulas (if applicable), or mnemonic suggestions, tailored for NEET aspirants.)",
   "titleSuggestion": "string (Optional: A suggested title for these notes, e.g., 'Key Concepts: Newton's Laws' or 'Chapter 5 Biology Summary'.)"
 }
-DO NOT include any other keys or nested structures. DO NOT attempt to call any tools or functions.
+Strictly return a JSON object containing ONLY two keys: 'notes' (a string with the generated notes) and 'titleSuggestion' (an optional string for the title).
+Do NOT include any other keys or nested structures. Do NOT attempt to call any tools or functions.
 
 Content Type: "{{contentType}}"
 {{#if subject}}Subject: "{{subject}}"{{/if}}
@@ -99,4 +100,3 @@ const generateSmartNotesFlow = ai.defineFlow(
     return output;
   }
 );
-

@@ -44,6 +44,7 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert NEET (Indian medical entrance exam) question setter.
 Generate a quiz with {{numQuestions}} multiple-choice questions on the topic "{{topic}}" with "{{difficulty}}" difficulty.
 The topic string might include subject, class level, chapter, specific sub-topics, and desired question source (NCERT, PYQ, Mixed). Use all provided details to make the questions highly relevant.
+Ensure 'hard' questions truly test deep conceptual understanding and application, suitable for top-ranking aspirants. For 'easy' questions, focus on fundamental concepts and definitions. 'Medium' questions should bridge this gap.
 
 Each question must adhere to the NEET pattern:
 - Clear and unambiguous question text.
@@ -92,7 +93,7 @@ const generateQuizFlow = ai.defineFlow(
     // Ensure explanationPrompt is robustly added if model misses it
     const questionsWithGuaranteedExplanation = output.questions.map(q => ({
       ...q,
-      explanationPrompt: q.explanationPrompt || `Question: ${q.question_text}\nOptions:\n${q.options.map((opt, i) => `${String.fromCharCode(65+i)}) ${opt}`).join('\n')}\nCorrect Answer: ${q.options[q.correct_option_index]}\nExplain why this is the correct answer and why the other options are incorrect for a NEET aspirant, covering relevant concepts.`,
+      explanationPrompt: q.explanationPrompt || `Question: ${q.questionText}\nOptions:\n${q.options.map((opt, i) => `${String.fromCharCode(65+i)}) ${opt}`).join('\n')}\nCorrect Answer: ${q.options[q.correctOptionIndex]}\nExplain why this is the correct answer and why the other options are incorrect for a NEET aspirant, covering relevant concepts.`,
     }));
 
     return { questions: questionsWithGuaranteedExplanation };
