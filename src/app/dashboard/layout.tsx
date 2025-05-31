@@ -17,7 +17,7 @@ import {
   SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// Separator was removed from here, but SidebarSeparator from sidebar.tsx is used.
+import { cn } from '@/lib/utils'; // Ensure cn is imported
 
 export const metadata: Metadata = {
   title: 'Dashboard - NEET Prep+',
@@ -76,19 +76,20 @@ export default async function DashboardLayout({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/login');
-  }
+  // Middleware should handle this if auth is enabled
+  // if (!user) {
+  //   redirect('/login');
+  // }
 
-  const { data: profile } = await supabase
+  const profile = user ? (await supabase
     .from('profiles')
     .select('full_name, avatar_url, email')
     .eq('id', user.id)
-    .single();
+    .single()).data : null;
 
-  const userDisplayName = profile?.full_name || user.email?.split('@')[0] || 'User';
+  const userDisplayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userAvatarUrl = profile?.avatar_url;
-  const userEmail = profile?.email || user.email;
+  const userEmail = profile?.email || user?.email;
 
   const bottomNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -183,22 +184,34 @@ export default async function DashboardLayout({
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-2 group-data-[collapsible=icon]:hidden">
-             <Avatar className="h-9 w-9">
-                <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar"/>
-                <AvatarFallback>{userDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-                <p className="text-sm font-medium text-sidebar-foreground truncate">{userDisplayName}</p>
-                <p className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</p>
+          {user && (
+            <>
+            <div className="flex items-center gap-3 mb-2 group-data-[collapsible=icon]:hidden">
+              <Avatar className="h-9 w-9">
+                  <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar"/>
+                  <AvatarFallback>{userDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">{userDisplayName}</p>
+                  <p className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</p>
+              </div>
             </div>
-          </div>
-          <form action={logout} className="w-full">
-            <Button variant="outline" size="sm" className="w-full font-medium border-destructive/50 text-destructive/90 hover:bg-destructive/20 hover:text-destructive glow-button group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
-              <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
-              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-            </Button>
-          </form>
+            <form action={logout} className="w-full">
+              <Button variant="outline" size="sm" className="w-full font-medium border-destructive/50 text-destructive/90 hover:bg-destructive/20 hover:text-destructive glow-button group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
+                <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
+                <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+              </Button>
+            </form>
+            </>
+          )}
+          {!user && (
+             <Button variant="outline" size="sm" className="w-full font-medium" asChild>
+                <Link href="/login">
+                    <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">Login</span>
+                </Link>
+             </Button>
+          )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -235,7 +248,7 @@ export default async function DashboardLayout({
             })}
           </div>
         </nav>
-        <div className="h-16 md:hidden"></div>
+        <div className="h-16 md:hidden"></div> {/* Spacer for bottom nav */}
 
 
         <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
