@@ -1,7 +1,7 @@
 // src/app/dashboard/calculator/page.tsx
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
 import { calculateExpression, type CalculatorInput, type CalculatorOutput } from '@/ai/flows/calculator-flow';
-import { Calculator, Loader2, History, Trash2, Equal } from 'lucide-react';
+import { Calculator, Loader2, History, Trash2, Equal, ClipboardCopy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, parseISO } from 'date-fns';
 
@@ -44,7 +44,7 @@ export default function CalculatorPage() {
     getCurrentUser();
   }, [supabase]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!userId) return;
     startTransition(async () => {
         const { data, error } = await supabase
@@ -56,14 +56,17 @@ export default function CalculatorPage() {
         if (error) toast({ variant: 'destructive', title: 'Error fetching history', description: error.message });
         else setHistory(data || []);
     });
-  };
+  }, [userId, supabase, toast]);
   
   useEffect(() => {
     if(userId) fetchHistory();
-  }, [userId]); // Basic fetch
+  }, [userId, fetchHistory]);
 
   async function onSubmit(values: CalculatorFormData) {
-    if(!userId) return;
+    if(!userId) {
+        toast({variant: 'destructive', title: 'Error', description: 'User not authenticated.'});
+        return;
+    }
     setAiResponse(null);
     startTransition(async () => {
       try {
@@ -96,10 +99,15 @@ export default function CalculatorPage() {
         }
     });
   };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({title: "Copied to clipboard!"});
+  };
+
 
   return (
     <div className="grid md:grid-cols-3 gap-6 h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] pb-16 md:pb-0">
-        {/* Main Calculator Area */}
         <div className="md:col-span-2 space-y-6 flex flex-col">
             <header className="text-center md:text-left">
                 <h1 className="text-3xl md:text-4xl font-headline font-bold glow-text-primary mb-2 flex items-center">
@@ -134,7 +142,12 @@ export default function CalculatorPage() {
                 </CardContent>
                 {aiResponse && (
                     <CardFooter className="border-t pt-4 flex-col items-start space-y-2">
-                        <h3 className="text-xl font-semibold glow-text-accent">Result:</h3>
+                        <div className="w-full flex justify-between items-center">
+                            <h3 className="text-xl font-semibold glow-text-accent">Result:</h3>
+                            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(aiResponse.result)} className="text-muted-foreground hover:text-primary">
+                                <ClipboardCopy className="h-5 w-5"/>
+                            </Button>
+                        </div>
                         <div className="w-full p-3 bg-muted/50 rounded-md min-h-[60px] whitespace-pre-wrap text-2xl font-mono text-foreground input-glow">
                            {aiResponse.result}
                         </div>
@@ -149,7 +162,6 @@ export default function CalculatorPage() {
             </Card>
         </div>
         
-        {/* History Sidebar */}
         <Card className="interactive-card shadow-md shadow-secondary/10 flex flex-col min-h-0">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-xl glow-text-secondary flex items-center"><History className="mr-2"/> Calculation History</CardTitle>
@@ -160,7 +172,7 @@ export default function CalculatorPage() {
                     {!isPending && history.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No calculation history yet.</p>}
                     {history.map(item => (
                         <div key={item.id} className="group relative p-2 mb-1 rounded hover:bg-muted/50 transition-colors">
-                            <p className="font-medium text-foreground text-sm truncate cursor-pointer" onClick={() => {form.setValue('expression', item.expression); setAiResponse({result: item.result, explanation: null}); }}>
+                            <p className="font-medium text-foreground text-sm truncate cursor-pointer" onClick={() => {form.setValue('expression', item.expression); setAiResponse({result: item.result }); }}>
                                 {item.expression} = {item.result}
                             </p>
                             <p className="text-xs text-muted-foreground/70">{format(parseISO(item.calculated_at), "PPp")}</p>

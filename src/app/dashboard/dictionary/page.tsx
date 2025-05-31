@@ -1,7 +1,7 @@
 // src/app/dashboard/dictionary/page.tsx
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
 import { getDictionaryEntry, type DictionaryInput, type DictionaryOutput } from '@/ai/flows/dictionary-flow';
-import { SpellCheck, Loader2, Search, History, Trash2 } from 'lucide-react';
+import { SpellCheck, Loader2, Search, History, Trash2, ClipboardCopy } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, parseISO } from 'date-fns';
 
@@ -45,7 +45,7 @@ export default function DictionaryPage() {
     getCurrentUser();
   }, [supabase]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!userId) return;
     startTransition(async () => {
         const { data, error } = await supabase
@@ -57,14 +57,17 @@ export default function DictionaryPage() {
         if (error) toast({ variant: 'destructive', title: 'Error fetching history', description: error.message });
         else setHistory(data || []);
     });
-  };
+  }, [userId, supabase, toast]);
   
   useEffect(() => {
     if(userId) fetchHistory();
-  }, [userId]); // Basic fetch, no useCallback
+  }, [userId, fetchHistory]);
 
   async function onSubmit(values: DictionaryFormData) {
-    if(!userId) return;
+    if(!userId) {
+        toast({variant: "destructive", title: "Error", description: "User not authenticated."})
+        return;
+    }
     setAiResponse(null);
     startTransition(async () => {
       try {
@@ -78,7 +81,7 @@ export default function DictionaryPage() {
             definition: result.definition,
         };
         await supabase.from('dictionary_history').insert(logEntry);
-        fetchHistory(); // Refresh history
+        fetchHistory(); 
 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error fetching definition', description: error.message });
@@ -96,6 +99,11 @@ export default function DictionaryPage() {
             fetchHistory();
         }
     });
+  };
+  
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({title: "Copied to clipboard!"});
   };
 
 
@@ -145,8 +153,8 @@ export default function DictionaryPage() {
                     <CardTitle className="text-2xl font-headline glow-text-accent">{aiResponse.word}</CardTitle>
                     {aiResponse.phonetic && <CardDescription className="text-base">[{aiResponse.phonetic}]</CardDescription>}
                 </CardHeader>
-                <ScrollArea className="h-[calc(100%-100px)]"> {/* Adjust height as needed */}
-                    <CardContent className="space-y-4">
+                <ScrollArea className="h-[calc(100%-100px)]"> 
+                    <CardContent className="space-y-4 p-4">
                         <div>
                             <h3 className="font-semibold text-lg text-primary">Definition:</h3>
                             <p className="whitespace-pre-wrap">{aiResponse.definition}</p>
@@ -165,6 +173,11 @@ export default function DictionaryPage() {
                         )}
                     </CardContent>
                 </ScrollArea>
+                <CardFooter className="border-t p-2">
+                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(aiResponse.definition)} className="ml-auto text-muted-foreground hover:text-primary">
+                        <ClipboardCopy className="h-4 w-4 mr-1"/> Copy Definition
+                    </Button>
+                </CardFooter>
                 </Card>
             )}
         </div>

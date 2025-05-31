@@ -1,7 +1,7 @@
 // src/app/dashboard/translator/page.tsx
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -18,22 +18,21 @@ import { Languages, Loader2, ArrowRightLeft, History, Trash2, ClipboardCopy } fr
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format, parseISO } from 'date-fns';
 
-// Supported languages (can be expanded)
 const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'es', label: 'Spanish' },
-  { value: 'fr', label: 'French' },
-  { value: 'de', label: 'German' },
-  { value: 'bn', label: 'Bengali' },
-  { value: 'te', label: 'Telugu' },
-  { value: 'mr', label: 'Marathi' },
-  { value: 'ta', label: 'Tamil' },
+  { value: 'en', label: 'English' }, { value: 'hi', label: 'Hindi' },
+  { value: 'es', label: 'Spanish' }, { value: 'fr', label: 'French' },
+  { value: 'de', label: 'German' }, { value: 'bn', label: 'Bengali' },
+  { value: 'te', label: 'Telugu' }, { value: 'mr', label: 'Marathi' },
+  { value: 'ta', label: 'Tamil' }, { value: 'gu', label: 'Gujarati' },
+  { value: 'kn', label: 'Kannada' }, { value: 'ml', label: 'Malayalam' },
+  { value: 'pa', label: 'Punjabi' }, { value: 'ur', label: 'Urdu' },
+  { value: 'ja', label: 'Japanese' }, { value: 'ko', label: 'Korean' },
+  { value: 'zh', label: 'Chinese (Simplified)'}
 ];
 
 const translationSchema = z.object({
   textToTranslate: z.string().min(1, { message: 'Please enter text to translate.' }),
-  sourceLanguage: z.string().min(2, {message: 'Source language required.'}).optional(), // Optional, AI can detect
+  sourceLanguage: z.string().min(2, {message: 'Source language required.'}).optional(), 
   targetLanguage: z.string().min(2, {message: 'Target language required.'}),
 });
 type TranslationFormData = z.infer<typeof translationSchema>;
@@ -49,7 +48,7 @@ export default function TranslatorPage() {
 
   const form = useForm<TranslationFormData>({
     resolver: zodResolver(translationSchema),
-    defaultValues: { textToTranslate: '', targetLanguage: 'hi' },
+    defaultValues: { textToTranslate: '', targetLanguage: 'hi', sourceLanguage: '' },
   });
   
   useEffect(() => {
@@ -60,7 +59,7 @@ export default function TranslatorPage() {
     getCurrentUser();
   }, [supabase]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!userId) return;
     startTransition(async () => {
         const { data, error } = await supabase
@@ -72,18 +71,25 @@ export default function TranslatorPage() {
         if (error) toast({ variant: 'destructive', title: 'Error fetching history', description: error.message });
         else setHistory(data || []);
     });
-  };
+  },[userId, supabase, toast]);
   
   useEffect(() => {
     if(userId) fetchHistory();
-  }, [userId]); // Basic fetch
+  }, [userId, fetchHistory]);
 
   async function onSubmit(values: TranslationFormData) {
-    if(!userId) return;
+    if(!userId) {
+        toast({variant: "destructive", title: "Error", description: "User not authenticated."})
+        return;
+    }
     setAiResponse(null);
     startTransition(async () => {
       try {
-        const input: TranslationInput = values;
+        const input: TranslationInput = {
+            textToTranslate: values.textToTranslate,
+            targetLanguage: values.targetLanguage,
+            sourceLanguage: values.sourceLanguage || undefined, // Pass undefined if empty for auto-detect
+        };
         const result = await translateText(input);
         setAiResponse(result);
         
@@ -122,7 +128,6 @@ export default function TranslatorPage() {
 
   return (
     <div className="grid md:grid-cols-3 gap-6 h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] pb-16 md:pb-0">
-        {/* Main Translator Area */}
         <div className="md:col-span-2 space-y-6 flex flex-col">
             <header className="text-center md:text-left">
                 <h1 className="text-3xl md:text-4xl font-headline font-bold glow-text-primary mb-2 flex items-center">
@@ -153,7 +158,7 @@ export default function TranslatorPage() {
                                 <FormField control={form.control} name="sourceLanguage" render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>From (Optional - AI auto-detects)</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
                                         <FormControl><SelectTrigger className="input-glow h-11"><SelectValue placeholder="Auto-detect" /></SelectTrigger></FormControl>
                                         <SelectContent>{languageOptions.map(lang => <SelectItem key={lang.value} value={lang.value}>{lang.label}</SelectItem>)}</SelectContent>
                                     </Select>
@@ -192,7 +197,6 @@ export default function TranslatorPage() {
             </Card>
         </div>
         
-        {/* History Sidebar */}
         <Card className="interactive-card shadow-md shadow-secondary/10 flex flex-col min-h-0">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-xl glow-text-secondary flex items-center"><History className="mr-2"/> Translation History</CardTitle>
@@ -203,7 +207,7 @@ export default function TranslatorPage() {
                     {!isPending && history.length === 0 && <p className="text-sm text-muted-foreground p-4 text-center">No translation history yet.</p>}
                     {history.map(item => (
                         <div key={item.id} className="group relative p-2 mb-1 rounded hover:bg-muted/50 transition-colors">
-                            <p className="font-medium text-foreground text-sm truncate cursor-pointer" onClick={() => {form.setValue('textToTranslate', item.original_text); form.setValue('targetLanguage',item.target_language); setAiResponse({translated_text: item.translated_text, detected_source_language: item.source_language})}}>
+                            <p className="font-medium text-foreground text-sm truncate cursor-pointer" onClick={() => {form.setValue('textToTranslate', item.original_text); form.setValue('sourceLanguage', item.source_language === 'auto' ? '' : item.source_language); form.setValue('targetLanguage',item.target_language); setAiResponse({translated_text: item.translated_text, detected_source_language: item.source_language})}}>
                                 {item.original_text.substring(0,30)}... &rarr; {item.translated_text.substring(0,30)}...
                             </p>
                             <p className="text-xs text-muted-foreground">

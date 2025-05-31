@@ -1,7 +1,7 @@
 // src/app/dashboard/quizzes/page.tsx
 'use client';
 
-import { useState, useTransition, type ReactNode, useEffect } from 'react';
+import { useState, useTransition, type ReactNode, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -26,9 +26,9 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
-import type { Database, Tables, TablesInsert, QuizAttemptWithQuizTopic } from '@/lib/database.types';
+import type { Database, Tables, TablesInsert, QuizAttemptWithQuizTopic, Question } from '@/lib/database.types'; // Question type imported
 
-import { generateQuiz, type GenerateQuizInput, type QuizQuestion } from '@/ai/flows/quiz-generator';
+import { generateQuiz, type GenerateQuizInput, type QuizQuestion as AIQuizQuestion } from '@/ai/flows/quiz-generator'; // Renamed AIQuizQuestion
 import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/customizable-quiz-explanation';
 
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
@@ -46,8 +46,8 @@ const quizConfigSchema = z.object({
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
 
 type CurrentGeneratedQuiz = {
-  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at'> & { id: string, user_id: string };
-  questions: (Omit<TablesInsert<'questions'>, 'id' | 'quiz_id' | 'created_at'> & { id: string, quiz_id: string })[];
+  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at'> & { id: string, user_id: string, topics: string[] | null }; // ensure topics is string[] | null
+  questions: Question[]; // Use DB Question type
 };
 
 type UserAnswer = {
@@ -60,7 +60,7 @@ type QuizResult = {
   totalQuestions: number;
   attemptId: string;
   quizId: string;
-  questionsWithUserAnswers: (Tables<'questions'> & { userAnswerIndex: number | null })[];
+  questionsWithUserAnswers: (Question & { userAnswerIndex: number | null })[];
 };
 
 
@@ -85,6 +85,9 @@ export default function QuizzesPage() {
     defaultValues: {
       difficulty: 'medium',
       numQuestions: 5,
+      class_level: undefined,
+      subject: undefined,
+      question_source: undefined,
     },
   });
   
@@ -134,7 +137,7 @@ export default function QuizzesPage() {
             num_questions: generatedQuizOutput.questions.length,
         };
 
-        const questionsForState: CurrentGeneratedQuiz['questions'] = generatedQuizOutput.questions.map(q => ({
+        const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
             id: uuidv4(),
             quiz_id: quizId,
             question_text: q.questionText,
@@ -143,9 +146,10 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.topics?.split(',').map(t => t.trim()).filter(t => t).join(', ') || null, // Simplified topic string
+            topic: values.topics?.split(',').map(t => t.trim()).filter(t => t).join(', ') || values.subject || null,
             source: values.question_source || null,
-            neet_syllabus_year: 2026, // As per requirement
+            neet_syllabus_year: 2026,
+            created_at: new Date().toISOString(),
         }));
         
         setCurrentGeneratedQuiz({ quizData: quizDataForState, questions: questionsForState });
@@ -185,14 +189,15 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
-        // 1. Save Quiz to DB
-        const { error: quizError } = await supabase.from('quizzes').insert(currentGeneratedQuiz.quizData);
+        const quizToInsert = {
+            ...currentGeneratedQuiz.quizData,
+            user_id: userId, // Ensure user_id is always set for quiz owner
+        }
+        const { error: quizError } = await supabase.from('quizzes').insert(quizToInsert);
         if (quizError) throw quizError;
 
-        // 2. Save Questions to DB
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
-            ...q, // id, quiz_id, text, options, correct_option_index, explanation_prompt
-            // Ensure all required fields for 'questions' table are present from q
+            ...q,
         }));
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
         if (questionsError) throw questionsError;
@@ -240,13 +245,15 @@ export default function QuizzesPage() {
     });
   }
 
-  async function handleGetExplanation(question: Tables<'questions'>, studentAnswerIndex: number | null) {
+  async function handleGetExplanation(question: Question, studentAnswerIndex: number | null) {
     startExplainingTransition(async () => {
       try {
-        const studentAnswerText = studentAnswerIndex !== null ? question.options[studentAnswerIndex] as string : "Not Answered";
+        const studentAnswerText = studentAnswerIndex !== null && question.options ? (question.options as string[])[studentAnswerIndex] : "Not Answered";
+        const correctAnswerText = question.options ? (question.options as string[])[question.correct_option_index] : "N/A";
+        
         const input: ExplainQuizQuestionInput = {
           question: question.question_text,
-          answer: question.options[question.correct_option_index] as string,
+          answer: correctAnswerText,
           studentAnswer: studentAnswerText,
           topic: currentGeneratedQuiz?.quizData.subject || 'general', 
         };
@@ -261,13 +268,13 @@ export default function QuizzesPage() {
     });
   }
 
-  async function handleSaveQuestion(question: Tables<'questions'>) {
+  async function handleSaveQuestion(question: Question) {
     if (!userId) return;
     startSavingQuestionTransition(async () => {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id, // Link to original question if it's in DB
+                question_id: question.id, 
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
@@ -278,8 +285,16 @@ export default function QuizzesPage() {
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
-            if (error) throw error;
-            toast({ title: "Question Saved!", description: "You can find it in your 'Saved Questions' dashboard."});
+            if (error) {
+              // Check for unique constraint violation (question_id + user_id)
+              if (error.code === '23505') { // PostgreSQL unique violation error code
+                toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
+              } else {
+                throw error;
+              }
+            } else {
+               toast({ title: "Question Saved!", description: "You can find it in your 'Saved Questions' dashboard."});
+            }
         } catch(error: any) {
             toast({ variant: 'destructive', title: "Error Saving Question", description: error.message});
         }
@@ -349,7 +364,7 @@ export default function QuizzesPage() {
   const renderResults = () => {
     if (!quizResults || !currentGeneratedQuiz) return null;
     
-    const percentage = (quizResults.score / quizResults.totalQuestions) * 100;
+    const percentage = quizResults.totalQuestions > 0 ? (quizResults.score / quizResults.totalQuestions) * 100 : 0;
     let feedbackMessage: ReactNode;
     let feedbackColor = "text-red-500";
 
@@ -357,7 +372,7 @@ export default function QuizzesPage() {
       feedbackMessage = <><CheckCircle2 className="inline mr-2"/>Excellent work! You've mastered this topic.</>;
       feedbackColor = "text-green-400";
     } else if (percentage >= 60) {
-      feedbackMessage = <><ThumbsUp className="inline mr-2"/>Good job! A little more practice and you'll ace it.</>; // Using custom ThumbsUp
+      feedbackMessage = <><ThumbsUp className="inline mr-2"/>Good job! A little more practice and you'll ace it.</>;
       feedbackColor = "text-yellow-400";
     } else {
       feedbackMessage = <><RotateCcw className="inline mr-2"/>Keep practicing! Review the explanations to improve.</>;
@@ -370,7 +385,7 @@ export default function QuizzesPage() {
           <CardTitle className="text-3xl font-headline glow-text-accent">Quiz Results!</CardTitle>
           <CardDescription className={`text-xl font-semibold ${feedbackColor}`}>{feedbackMessage}</CardDescription>
           <p className="text-4xl font-bold glow-text-primary py-4">
-            {quizResults.score} / {quizResults.totalQuestions}
+            {quizResults.score} / {quizResults.totalQuestions} ({percentage.toFixed(0)}%)
           </p>
           <Progress value={percentage} className="w-full h-4 [&>div]:bg-gradient-to-r [&>div]:from-secondary [&>div]:to-accent" />
         </CardHeader>
@@ -379,6 +394,8 @@ export default function QuizzesPage() {
           <Accordion type="single" collapsible className="w-full">
             {quizResults.questionsWithUserAnswers.map((q, index) => {
               const isCorrect = q.userAnswerIndex === q.correct_option_index;
+              const explanation = explanations[q.id];
+              const isExplanationLoading = isExplaining && explanations[q.id] === undefined;
               return (
                 <AccordionItem value={q.id} key={q.id} className="border-b-border/30">
                   <AccordionTrigger className={`text-left hover:no-underline ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
@@ -388,26 +405,26 @@ export default function QuizzesPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-3 pt-3">
-                    <p><strong>Your Answer:</strong> {q.userAnswerIndex !== null && q.userAnswerIndex !== undefined ? String.fromCharCode(65 + q.userAnswerIndex) + '. ' + (q.options as string[])[q.userAnswerIndex] : 'Not Answered'}</p>
-                    <p className="text-green-400"><strong>Correct Answer:</strong> {String.fromCharCode(65 + q.correct_option_index)}. {(q.options as string[])[q.correct_option_index]}</p>
+                    <p><strong>Your Answer:</strong> {q.userAnswerIndex !== null && q.userAnswerIndex !== undefined && q.options ? String.fromCharCode(65 + q.userAnswerIndex) + '. ' + (q.options as string[])[q.userAnswerIndex] : 'Not Answered'}</p>
+                    <p className="text-green-400"><strong>Correct Answer:</strong> {q.options ? String.fromCharCode(65 + q.correct_option_index) + '. ' + (q.options as string[])[q.correct_option_index] : 'N/A'}</p>
                     <Button variant="ghost" size="sm" onClick={() => handleSaveQuestion(q)} disabled={isSavingQuestion} className="text-accent hover:text-accent/80 mr-2">
                          {isSavingQuestion ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4 mr-1"/>} Save Question
                     </Button>
-                    {explanations[q.id] ? (
+                    {explanation ? (
                       <Alert variant="default" className="bg-card-foreground/5 border-accent/30">
                         <Lightbulb className="h-5 w-5 text-accent" />
                         <AlertTitle className="text-accent">AI Explanation</AlertTitle>
-                        <AlertDescription className="text-sm whitespace-pre-wrap">{explanations[q.id]}</AlertDescription>
+                        <AlertDescription className="text-sm whitespace-pre-wrap">{explanation}</AlertDescription>
                       </Alert>
                     ) : (
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleGetExplanation(q, q.userAnswerIndex)}
-                        disabled={isExplaining && explanations[q.id] === undefined}
+                        disabled={isExplanationLoading}
                         className="glow-button border-accent text-accent hover:bg-accent/10 hover:text-accent"
                       >
-                        {isExplaining && explanations[q.id] === undefined ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HelpCircle className="mr-2 h-4 w-4" />}
+                        {isExplanationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HelpCircle className="mr-2 h-4 w-4" />}
                         Get AI Explanation
                       </Button>
                     )}
@@ -418,7 +435,7 @@ export default function QuizzesPage() {
           </Accordion>
         </CardContent>
         <CardFooter className="flex justify-center">
-           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset(); }} className="glow-button">
+           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset({ difficulty: 'medium', numQuestions: 5}); }} className="glow-button">
             <RotateCcw className="mr-2"/> Take Another Quiz
           </Button>
         </CardFooter>
@@ -454,7 +471,7 @@ export default function QuizzesPage() {
                 <FormField control={configForm.control} name="class_level" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-base font-medium">Class</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select class..." /></SelectTrigger></FormControl>
                             <SelectContent><SelectItem value="11">Class 11</SelectItem><SelectItem value="12">Class 12</SelectItem></SelectContent>
                         </Select>
@@ -464,7 +481,7 @@ export default function QuizzesPage() {
                  <FormField control={configForm.control} name="subject" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-base font-medium">Subject</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select subject..." /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="Physics">Physics</SelectItem>
@@ -486,7 +503,7 @@ export default function QuizzesPage() {
                 <FormField control={configForm.control} name="question_source" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-base font-medium">Question Source (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select source..." /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="NCERT">NCERT-based</SelectItem>

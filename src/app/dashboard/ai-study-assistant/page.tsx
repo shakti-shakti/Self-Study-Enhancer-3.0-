@@ -72,7 +72,7 @@ export default function AiStudyAssistantPage() {
     setIsLoadingSessions(true);
     const { data, error } = await supabase
         .from('study_assistant_logs')
-        .select('session_id, content, created_at')
+        .select('session_id, content, created_at, query') // query to get first user message
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -84,17 +84,22 @@ export default function AiStudyAssistantPage() {
     
     const sessionsMap = new Map<string, ChatSession>();
     data?.forEach(log => {
-        if (!sessionsMap.has(log.session_id)) {
+        const existingSession = sessionsMap.get(log.session_id);
+        const firstMessage = log.role === 'user' ? log.content : log.query; // Prioritize direct user content
+        const preview = (firstMessage || 'Chat').substring(0, 50) + ((firstMessage || '').length > 50 ? '...' : '');
+
+        if (!existingSession) {
             sessionsMap.set(log.session_id, {
                 session_id: log.session_id,
                 last_message_at: log.created_at,
-                first_message_preview: log.content.substring(0, 50) + (log.content.length > 50 ? '...' : ''),
+                first_message_preview: preview,
             });
         } else {
-            // Update last_message_at if this log is newer
-            const existingSession = sessionsMap.get(log.session_id)!;
             if (new Date(log.created_at) > new Date(existingSession.last_message_at)) {
-                sessionsMap.set(log.session_id, { ...existingSession, last_message_at: log.created_at });
+                sessionsMap.set(log.session_id, { ...existingSession, last_message_at: log.created_at, first_message_preview: preview });
+            } else if (new Date(log.created_at) < new Date(existingSession.last_message_at) && existingSession.first_message_preview === 'Chat...' && preview !== 'Chat...') {
+                // if the current log is older, but provides a better preview (the actual first user message)
+                sessionsMap.set(log.session_id, { ...existingSession, first_message_preview: preview });
             }
         }
     });
@@ -104,7 +109,7 @@ export default function AiStudyAssistantPage() {
   }, [userId, supabase, toast]);
 
   useEffect(() => {
-    fetchChatSessions();
+    if (userId) fetchChatSessions();
   }, [userId, fetchChatSessions]);
 
 
@@ -122,38 +127,36 @@ export default function AiStudyAssistantPage() {
     if (error) {
         toast({ variant: 'destructive', title: 'Error loading chat history', description: error.message });
     } else {
-        const formattedMessages: ChatMessage[] = data.map(log => {
-            let role: ChatMessage['role'] = 'ai'; // Default
-            let content: ChatMessage['content'] = log.ai_answer || log.content;
-
+        const formattedMessages: ChatMessage[] = [];
+        data.forEach(log => {
             if (log.role === 'user') {
-                role = 'user';
-                content = log.content;
-            } else if (log.ai_study_tips && (log.ai_study_tips as string[]).length > 0) {
-                // This logic might need adjustment based on how tips are stored/identified
-                // If a message has tips, it's an 'ai-tips' message.
-                // If an AI message is split into answer and tips, need two separate entries.
-                // For now, assume if tips exist, it's a tips-focused message OR tips are part of a general AI response.
-                // For simplicity, we'll use the main content for 'ai' and show tips separately if they exist as a distinct field.
-                // The current `study_assistant_logs` schema has `ai_answer` and `ai_study_tips` separate.
-                // So, one user query might result in one `user` log, one `ai` (answer) log, and one `ai` (tips) log in the DB.
-                // This formatting needs to reflect that.
-                // Let's adjust to use the `role` from the DB if present, and content based on that.
-                role = log.role as ChatMessage['role']; // User 'user' or 'ai' from DB
-                 if (log.ai_study_tips && (log.ai_study_tips as string[]).length > 0 && !log.ai_answer) { // If it's purely a tips message
-                    role = 'ai-tips';
-                    content = log.ai_study_tips as string[];
-                } else if (log.ai_answer) {
-                    content = log.ai_answer;
+                 formattedMessages.push({
+                    id: log.id,
+                    session_id: log.session_id,
+                    role: 'user',
+                    content: log.content, // user's query is in content
+                    timestamp: log.created_at,
+                });
+            } else if (log.role === 'ai') {
+                if (log.ai_answer) {
+                    formattedMessages.push({
+                        id: log.id + '_answer', // Ensure unique ID if splitting
+                        session_id: log.session_id,
+                        role: 'ai',
+                        content: log.ai_answer,
+                        timestamp: log.created_at,
+                    });
+                }
+                if (log.ai_study_tips && (log.ai_study_tips as string[]).length > 0) {
+                     formattedMessages.push({
+                        id: log.id + '_tips', // Ensure unique ID
+                        session_id: log.session_id,
+                        role: 'ai-tips',
+                        content: log.ai_study_tips as string[],
+                        timestamp: log.created_at, // Can slightly adjust if needed
+                    });
                 }
             }
-            return {
-                id: log.id,
-                session_id: log.session_id,
-                role: role,
-                content: content,
-                timestamp: log.created_at,
-            };
         });
         setChatHistory(formattedMessages);
     }
@@ -164,7 +167,7 @@ export default function AiStudyAssistantPage() {
     if (currentSessionId) {
         loadChatHistory(currentSessionId);
     } else {
-        setChatHistory([]); // Clear history if no session is selected
+        setChatHistory([]); 
     }
   }, [currentSessionId, loadChatHistory]);
 
@@ -177,7 +180,6 @@ export default function AiStudyAssistantPage() {
     const activeSessionId = currentSessionId || uuidv4();
     if (!currentSessionId) {
         setCurrentSessionId(activeSessionId);
-        // Add to sessions list optimistically or refetch
         const newOptimisticSession: ChatSession = {
             session_id: activeSessionId,
             last_message_at: new Date().toISOString(),
@@ -186,70 +188,69 @@ export default function AiStudyAssistantPage() {
         setChatSessions(prev => [newOptimisticSession, ...prev]);
     }
 
-
+    const userTimestamp = new Date().toISOString();
     const userMessageLog: TablesInsert<'study_assistant_logs'> = {
         user_id: userId,
         session_id: activeSessionId,
         role: 'user',
-        query: values.query,
-        content: values.query, // User's query is the content for user role
+        query: values.query, 
+        content: values.query,
         context: values.context,
         preferences: values.studyTipsPreferences,
-        created_at: new Date().toISOString(),
+        created_at: userTimestamp,
     };
-    // Optimistically add user message to UI
+    
     setChatHistory(prev => [...prev, {
         id: uuidv4(), 
         session_id: activeSessionId, 
         role: 'user', 
         content: values.query, 
-        timestamp: userMessageLog.created_at!
+        timestamp: userTimestamp
     }]);
     
     form.resetField('query');
 
     startTransition(async () => {
       try {
-        // Log user message to DB
         const { error: userLogError } = await supabase.from('study_assistant_logs').insert(userMessageLog);
         if (userLogError) throw userLogError;
 
         const result = await studyAssistant(values);
         
-        const aiAnswerLog: TablesInsert<'study_assistant_logs'> = {
+        const aiTimestamp = new Date().toISOString();
+        // Log a single AI response, containing both answer and tips
+        const aiResponseLog: TablesInsert<'study_assistant_logs'> = {
             user_id: userId,
             session_id: activeSessionId,
             role: 'ai',
             query: values.query, // Link to original query
-            content: result.answer, // AI's answer is content for AI role
+            content: result.answer + (result.studyTips.length > 0 ? "\nStudy Tips:\n" + result.studyTips.join("\n- ") : ""), // Combined content
             ai_answer: result.answer,
             ai_study_tips: result.studyTips,
-            created_at: new Date().toISOString(),
+            created_at: aiTimestamp,
         };
-        // Log AI answer to DB
-        const { error: aiLogError } = await supabase.from('study_assistant_logs').insert(aiAnswerLog);
+        const { error: aiLogError } = await supabase.from('study_assistant_logs').insert(aiResponseLog);
         if (aiLogError) throw aiLogError;
 
-        // Optimistically add AI answer to UI
-         setChatHistory(prev => [...prev, {
-            id: uuidv4(), 
-            session_id: activeSessionId, 
-            role: 'ai', 
-            content: result.answer, 
-            timestamp: aiAnswerLog.created_at!
-        }]);
-
-        if (result.studyTips && result.studyTips.length > 0) {
-            // Optimistically add AI tips to UI
+        if (result.answer) {
             setChatHistory(prev => [...prev, {
-                id: uuidv4(), 
+                id: uuidv4() + '_answer', 
+                session_id: activeSessionId, 
+                role: 'ai', 
+                content: result.answer, 
+                timestamp: aiTimestamp
+            }]);
+        }
+        if (result.studyTips && result.studyTips.length > 0) {
+            setChatHistory(prev => [...prev, {
+                id: uuidv4() + '_tips', 
                 session_id: activeSessionId, 
                 role: 'ai-tips', 
                 content: result.studyTips, 
-                timestamp: aiAnswerLog.created_at! // Same timestamp as answer for simplicity
+                timestamp: aiTimestamp 
             }]);
         }
-        fetchChatSessions(); // Refresh session list to update last message time
+        fetchChatSessions(); 
 
       } catch (error: any) {
         const errorMessageContent = `Sorry, I encountered an error: ${error.message || 'Please try again.'}`;

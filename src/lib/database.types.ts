@@ -194,7 +194,7 @@ export type Database = {
         Row: {
             id: string
             user_id: string
-            question_id: string // FK to original question if applicable, or stores the question data directly
+            question_id: string | null // FK to original question if applicable, or stores the question data directly
             question_text: string
             options: Json
             correct_option_index: number
@@ -208,7 +208,7 @@ export type Database = {
         Insert: {
             id?: string
             user_id: string
-            question_id?: string
+            question_id?: string | null
             question_text: string
             options: Json
             correct_option_index: number
@@ -222,7 +222,7 @@ export type Database = {
         Update: {
             id?: string
             user_id?: string
-            question_id?: string
+            question_id?: string | null
             question_text?: string
             options?: Json
             correct_option_index?: number
@@ -294,21 +294,21 @@ export type Database = {
           }
         ]
       }
-      study_plans: { // For Day, Month, Year planners
+      study_plans: { 
         Row: {
           id: string
           user_id: string
-          title: string // Task name
+          title: string 
           description: string | null
-          start_time: string | null // TIMESTAMPTZ for Day Planner specific tasks
-          duration_minutes: number | null // For Day Planner
-          due_date: string // TIMESTAMPTZ - general due date, applicable for all planner types
+          start_time: string | null 
+          duration_minutes: number | null 
+          due_date: string 
           completed: boolean
           subject: string | null
-          class_level: string | null // "11" or "12" for Month Planner
-          plan_type: string // 'day_task', 'month_subject_task', 'year_goal', 'revision' etc.
+          class_level: string | null 
+          plan_type: string 
           created_at: string
-          alarm_set_at: string | null // TIMESTAMPTZ if alarm is set for this task
+          alarm_set_at: string | null 
         }
         Insert: {
           id?: string
@@ -354,7 +354,7 @@ export type Database = {
           id: string
           user_id: string
           tab_name: string
-          content: string // Markdown or rich text
+          content: string 
           created_at: string
           updated_at: string
         }
@@ -386,9 +386,9 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          activity_type: string // e.g., 'task_completed', 'test_solved', 'content_viewed', 'ai_query'
-          description: string // e.g., "Completed Physics Chapter 5 MCQs"
-          details: Json | null // additional context, e.g. {"quiz_id": "uuid", "score": 80}
+          activity_type: string 
+          description: string 
+          details: Json | null 
           created_at: string
         }
         Insert: {
@@ -416,7 +416,7 @@ export type Database = {
           }
         ]
       }
-      custom_tasks: { // For the Custom Task Dashboard
+      custom_tasks: { 
         Row: {
           id: string
           user_id: string
@@ -453,13 +453,13 @@ export type Database = {
           }
         ]
       }
-      user_files: { // For File & Image Uploads
+      user_files: { 
         Row: {
           id: string
           user_id: string
           file_name: string
-          file_path: string // Path in Supabase Storage
-          file_type: string // e.g., 'pdf', 'png', 'docx'
+          file_path: string 
+          file_type: string 
           size_bytes: number
           description: string | null
           uploaded_at: string
@@ -725,32 +725,44 @@ export type Database = {
           }
         ]
       }
-      study_assistant_logs: { // For AI Assistant Chat History
+      study_assistant_logs: {
         Row: {
           id: string
           user_id: string
-          session_id: string // To group messages into conversations
-          role: "user" | "ai" // To distinguish between user query and AI response
-          content: string // The actual message text
-          ai_study_tips: Json | null // If AI provided tips as part of response
+          session_id: string 
+          role: "user" | "ai" | "ai-tips" 
+          query: string | null // The user's initial query for this exchange, if applicable
+          content: string // The actual message text (user's query or AI's full response)
+          ai_answer: string | null // Specific part of AI response that is the direct answer
+          ai_study_tips: Json | null // Specific part of AI response that are tips
+          context: string | null // User-provided context for the query
+          preferences: string | null // User-provided preferences for tips
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           session_id: string
-          role: "user" | "ai"
+          role: "user" | "ai" | "ai-tips"
+          query?: string | null
           content: string
+          ai_answer?: string | null
           ai_study_tips?: Json | null
+          context?: string | null
+          preferences?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           session_id?: string
-          role?: "user" | "ai"
+          role?: "user" | "ai" | "ai-tips"
+          query?: string | null
           content?: string
+          ai_answer?: string | null
           ai_study_tips?: Json | null
+          context?: string | null
+          preferences?: string | null
           created_at?: string
         }
         Relationships: [
@@ -803,11 +815,11 @@ export type Database = {
           description: string;
           mission_type: "daily" | "weekly";
           reward_points: number;
-          badge_id_reward: string | null; // Foreign key to badges table
+          badge_id_reward: string | null; 
           is_active: boolean;
           created_at: string;
-          target_value: number; // e.g. solve 10 questions, study 2 hours (in minutes)
-          criteria_type: string; // e.g. 'quiz_attempts', 'study_hours_logged'
+          target_value: number; 
+          criteria_type: string; 
         };
         Insert: {
           id?: string;
@@ -848,7 +860,7 @@ export type Database = {
           user_id: string;
           mission_id: string;
           status: "locked" | "active" | "completed" | "failed";
-          current_progress: number; // User's current progress
+          current_progress: number; 
           completed_at: string | null;
           started_at: string;
         };
@@ -890,7 +902,7 @@ export type Database = {
           id: string;
           name: string;
           description: string;
-          icon_name_or_url: string; // Can be Lucide icon name or direct URL
+          icon_name_or_url: string; 
           criteria: string; 
           created_at: string;
         };
@@ -975,18 +987,18 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "users"; // Assuming you have a 'profiles' table or join with auth.users
+            referencedRelation: "users"; 
             referencedColumns: ["id"];
           }
         ];
       }
-       ncert_books_metadata: { // For NCERT Book Viewer
+       ncert_books_metadata: { 
         Row: {
           id: string
-          class_level: string // "11" or "12"
-          subject: string // "Physics", "Chemistry", "Maths", "Biology"
-          book_name: string // e.g., "Physics Part 1"
-          chapters: Json // JSON array of chapter names: [{"name": "Chapter 1: ...", "pdf_filename": "chapter1.pdf"}, ...]
+          class_level: string 
+          subject: string 
+          book_name: string 
+          chapters: Json 
           cover_image_url: string | null
         }
         Insert: {
@@ -1007,14 +1019,14 @@ export type Database = {
         }
         Relationships: []
       }
-      user_ncert_notes: { // For notes on NCERT books
+      user_ncert_notes: { 
         Row: {
           id: string
           user_id: string
-          book_id: string // FK to ncert_books_metadata
-          chapter_name: string // Specific chapter
-          page_number: number | null // Optional, if notes are page-specific
-          note_content: string // Could be markdown, rich text, or JSON for annotations
+          book_id: string 
+          chapter_name: string 
+          page_number: number | null 
+          note_content: string 
           created_at: string
           updated_at: string
         }
@@ -1158,4 +1170,6 @@ export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
   profiles: { email: string | null; full_name: string | null; avatar_url: string | null } | null;
 };
 
-export type StudyPlanWithAlarm = Tables<'study_plans'>; // Already includes alarm_set_at
+export type StudyPlanWithAlarm = Tables<'study_plans'>; 
+
+```

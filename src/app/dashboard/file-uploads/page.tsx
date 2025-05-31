@@ -15,7 +15,7 @@ import Link from 'next/link';
 
 type UserFile = Tables<'user_files'>;
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit for example
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB limit
 const ACCEPTED_FILE_TYPES = [
   "application/pdf", 
   "image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif",
@@ -27,8 +27,7 @@ export default function FileUploadsPage() {
   const [userFiles, setUserFiles] = useState<UserFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
-  const [isUploading, setIsUploading] = useTransition()[1]; // Using the setter from useTransition for loading state
-  const [isFetching, startFetchingTransition] = useTransition();
+  const [isProcessing, startProcessingTransition] = useTransition(); // General pending state for uploads/deletes/fetches
   
   const { toast } = useToast();
   const supabase = createClient();
@@ -47,9 +46,9 @@ export default function FileUploadsPage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  const fetchUserFiles = async () => {
+  const fetchUserFiles = useCallback(async () => {
     if (!userId) return;
-    startFetchingTransition(async () => {
+    startProcessingTransition(async () => {
       const { data, error } = await supabase
         .from('user_files')
         .select('*')
@@ -61,11 +60,11 @@ export default function FileUploadsPage() {
         setUserFiles(data || []);
       }
     });
-  };
+  }, [userId, supabase, toast]);
 
   useEffect(() => {
     if (userId) fetchUserFiles();
-  }, [userId]); // Basic fetch, no useCallback for brevity
+  }, [userId, fetchUserFiles]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -73,13 +72,13 @@ export default function FileUploadsPage() {
       if (file.size > MAX_FILE_SIZE_BYTES) {
         toast({ variant: 'destructive', title: 'File too large', description: `Maximum file size is ${MAX_FILE_SIZE_BYTES / (1024*1024)}MB.` });
         setSelectedFile(null);
-        if(fileInputRef.current) fileInputRef.current.value = ""; // Reset input
+        if(fileInputRef.current) fileInputRef.current.value = ""; 
         return;
       }
       if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
         toast({ variant: 'destructive', title: 'Invalid file type', description: 'Allowed types: PDF, Images (JPEG, PNG, WEBP, GIF), DOC, DOCX, TXT.' });
         setSelectedFile(null);
-        if(fileInputRef.current) fileInputRef.current.value = ""; // Reset input
+        if(fileInputRef.current) fileInputRef.current.value = ""; 
         return;
       }
       setSelectedFile(file);
@@ -93,10 +92,10 @@ export default function FileUploadsPage() {
       toast({ variant: 'destructive', title: 'No file selected or not authenticated' });
       return;
     }
-    setIsUploading(async () => {
+    startProcessingTransition(async () => {
       const filePath = `${userId}/${Date.now()}_${selectedFile.name}`;
       const { error: uploadError } = await supabase.storage
-        .from('user_uploads') // Ensure this bucket exists and has correct policies
+        .from('user_uploads') 
         .upload(filePath, selectedFile);
 
       if (uploadError) {
@@ -116,29 +115,26 @@ export default function FileUploadsPage() {
       const { error: dbError } = await supabase.from('user_files').insert(fileMetadata);
       if (dbError) {
         toast({ variant: 'destructive', title: 'Failed to save file metadata', description: dbError.message });
-        // Consider deleting the uploaded file from storage if DB insert fails
         await supabase.storage.from('user_uploads').remove([filePath]);
       } else {
         toast({ title: 'File Uploaded Successfully!', className: 'bg-primary/10 border-primary text-primary-foreground' });
         setSelectedFile(null);
         setDescription('');
         if(fileInputRef.current) fileInputRef.current.value = "";
-        fetchUserFiles(); // Refresh the list
+        fetchUserFiles(); 
       }
     });
   };
 
   const handleDeleteFile = async (file: UserFile) => {
     if (!userId) return;
-    // Add confirmation dialog ideally
-    setIsUploading(async () => { // Re-use uploading state for delete operation
+    startProcessingTransition(async () => { 
       const { error: storageError } = await supabase.storage
         .from('user_uploads')
         .remove([file.file_path]);
       
-      if (storageError && storageError.message !== 'The resource was not found') { // Ignore "not found" as it might have been deleted already
+      if (storageError && storageError.message !== 'The resource was not found') { 
         toast({ variant: 'destructive', title: 'Storage deletion failed', description: storageError.message });
-        // Don't proceed if storage deletion fails, unless it's a "not found" error
         return;
       }
 
@@ -152,7 +148,7 @@ export default function FileUploadsPage() {
         toast({ variant: 'destructive', title: 'Metadata deletion failed', description: dbError.message });
       } else {
         toast({ title: 'File Deleted Successfully' });
-        fetchUserFiles(); // Refresh the list
+        fetchUserFiles(); 
       }
     });
   };
@@ -193,6 +189,7 @@ export default function FileUploadsPage() {
               ref={fileInputRef}
               onChange={handleFileChange} 
               className="mt-1 input-glow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+              disabled={isProcessing}
             />
             <p className="text-xs text-muted-foreground mt-1">Max {MAX_FILE_SIZE_BYTES / (1024*1024)}MB. Allowed: PDF, Images, DOC, TXT.</p>
           </div>
@@ -204,10 +201,11 @@ export default function FileUploadsPage() {
               onChange={(e) => setDescription(e.target.value)} 
               placeholder="Briefly describe the file content..."
               className="mt-1 input-glow"
+              disabled={isProcessing}
             />
           </div>
-          <Button onClick={handleUpload} disabled={!selectedFile || isUploading} className="w-full glow-button text-lg py-3">
-            {isUploading ? <Loader2 className="animate-spin mr-2" /> : <UploadCloud className="mr-2" />}
+          <Button onClick={handleUpload} disabled={!selectedFile || isProcessing} className="w-full glow-button text-lg py-3">
+            {isProcessing && selectedFile ? <Loader2 className="animate-spin mr-2" /> : <UploadCloud className="mr-2" />}
             Upload File
           </Button>
         </CardContent>
@@ -219,8 +217,8 @@ export default function FileUploadsPage() {
           <CardDescription>Access and manage your uploaded resources.</CardDescription>
         </CardHeader>
         <CardContent>
-          {isFetching && userFiles.length === 0 && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /></div>}
-          {!isFetching && userFiles.length === 0 && (
+          {isProcessing && userFiles.length === 0 && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /></div>}
+          {!isProcessing && userFiles.length === 0 && (
             <div className="text-center py-10">
                 <UploadCloud className="mx-auto h-16 w-16 text-muted-foreground/50 my-4" />
                 <p className="text-xl text-muted-foreground">No files uploaded yet.</p>
@@ -242,12 +240,12 @@ export default function FileUploadsPage() {
                 </CardContent>
                 <CardFooter className="p-3 bg-muted/10 flex justify-end gap-2">
                    <Link href={getFilePublicUrl(file.file_path)} target="_blank" rel="noopener noreferrer" passHref legacyBehavior>
-                        <Button variant="outline" size="sm" className="glow-button"><Eye className="mr-1 h-4 w-4"/> View</Button>
+                        <Button asChild variant="outline" size="sm" className="glow-button"><a href={getFilePublicUrl(file.file_path)} target="_blank" rel="noopener noreferrer"><Eye className="mr-1 h-4 w-4"/> View</a></Button>
                    </Link>
                    <Link href={getFilePublicUrl(file.file_path)} download={file.file_name} passHref legacyBehavior>
-                        <Button variant="outline" size="sm" className="glow-button border-primary text-primary hover:bg-primary/10"><Download className="mr-1 h-4 w-4"/> Download</Button>
+                        <Button asChild variant="outline" size="sm" className="glow-button border-primary text-primary hover:bg-primary/10"><a href={getFilePublicUrl(file.file_path)} download={file.file_name}><Download className="mr-1 h-4 w-4"/> Download</a></Button>
                    </Link>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteFile(file)} disabled={isUploading} className="glow-button">
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteFile(file)} disabled={isProcessing} className="glow-button">
                     <Trash2 className="mr-1 h-4 w-4"/> Delete
                   </Button>
                 </CardFooter>
@@ -259,13 +257,3 @@ export default function FileUploadsPage() {
     </div>
   );
 }
-
-// Bucket 'user_uploads' needs to be created in Supabase Storage with appropriate policies.
-// Example public read policy for user_uploads bucket:
-// For reading: (bucket_id = 'user_uploads' AND (storage.foldername(name))[1] = auth.uid()::text)
-// OR make files public if needed based on security requirements. For user-specific files, RLS on `user_files` table is key.
-// For insert/update/delete to storage from client: (bucket_id = 'user_uploads' AND (storage.foldername(name))[1] = auth.uid()::text)
-// And ensure users have 'insert', 'update', 'delete' permissions on storage.objects for paths matching their UID.
-// For an easier setup, you might make the bucket public for reads if links are unguessable, and restrict writes with policies.
-// Best practice is to use signed URLs or server-side access for downloads if files are sensitive.
-// For this example, assuming public URLs are acceptable for simplicity via getPublicUrl.

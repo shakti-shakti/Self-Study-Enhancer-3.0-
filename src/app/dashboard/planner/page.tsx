@@ -19,20 +19,30 @@ import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert, TablesUpdate, StudyPlanWithAlarm } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, setHours, setMinutes, isValid } from 'date-fns';
 
 const planFormSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100),
   description: z.string().optional(),
-  due_date: z.date({ required_error: 'Due date is required.' }),
-  start_time: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"), // HH:MM format for time input
+  due_date_date_part: z.date({ required_error: 'Due date is required.' }),
+  due_date_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
+  start_time_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"), // HH:MM format for time input
   duration_minutes: z.coerce.number().int().min(0).optional(),
   subject: z.string().optional(),
   class_level: z.enum(['11', '12']).optional(),
   plan_type: z.enum(['day_task', 'month_subject_task', 'year_goal', 'revision', 'exam']).default('day_task'),
   completed: z.boolean().default(false),
-  alarm_set_at: z.date().optional(), // For setting alarm
+  alarm_set_at_date_part: z.date().optional(),
+  alarm_set_at_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
+}).refine(data => {
+    if (data.alarm_set_at_date_part && !data.alarm_set_at_time_part) return false;
+    if (!data.alarm_set_at_date_part && data.alarm_set_at_time_part) return false;
+    return true;
+}, {
+    message: "Both date and time are required for alarm, or neither.",
+    path: ["alarm_set_at_time_part"],
 });
+
 
 type PlanFormData = z.infer<typeof planFormSchema>;
 type StudyPlan = StudyPlanWithAlarm;
@@ -51,11 +61,13 @@ export default function PlannerPage() {
     defaultValues: {
       title: '',
       description: '',
-      start_time: '',
+      due_date_time_part: '',
+      start_time_time_part: '',
       duration_minutes: 0,
       subject: '',
       plan_type: 'day_task',
       completed: false,
+      alarm_set_at_time_part: '',
     },
   });
 
@@ -94,13 +106,20 @@ export default function PlannerPage() {
     if(userId) fetchPlans();
   }, [userId, fetchPlans]);
 
-  // Combine date and time into a full ISO string for due_date or alarm_set_at
-  const combineDateAndTime = (date: Date, timeString?: string): string => {
-    const datePart = format(date, 'yyyy-MM-dd');
-    if (timeString) {
-      return `${datePart}T${timeString}:00`; // Assumes timeString is HH:MM
+  const combineDateAndTime = (datePart: Date, timePart?: string): string | null => {
+    if (!isValid(datePart)) return null;
+    let combinedDate = datePart;
+    if (timePart) {
+        const [hours, minutes] = timePart.split(':').map(Number);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+            combinedDate = setHours(setMinutes(datePart, minutes), hours);
+        } else { // If time part is invalid, just use the date part at midnight
+             combinedDate = setHours(setMinutes(datePart, 0), 0);
+        }
+    } else { // Default to midnight if no time part
+         combinedDate = setHours(setMinutes(datePart, 0), 0);
     }
-    return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX"); // Default to current time if not specified
+    return combinedDate.toISOString();
   };
 
 
@@ -110,19 +129,31 @@ export default function PlannerPage() {
       return;
     }
 
+    const fullDueDate = combineDateAndTime(values.due_date_date_part, values.due_date_time_part);
+    if (!fullDueDate) {
+        toast({ variant: 'destructive', title: 'Invalid Due Date' });
+        return;
+    }
+
+    const fullStartTime = values.start_time_time_part ? combineDateAndTime(values.due_date_date_part, values.start_time_time_part) : null;
+    const fullAlarmTime = values.alarm_set_at_date_part && values.alarm_set_at_time_part 
+        ? combineDateAndTime(values.alarm_set_at_date_part, values.alarm_set_at_time_part) 
+        : null;
+
+
     startTransition(async () => {
-      const planData: Omit<TablesInsert<'study_plans'>, 'id' | 'created_at' | 'user_id'> & { user_id: string } = {
+      const planData = {
         user_id: userId,
         title: values.title,
         description: values.description || null,
-        due_date: combineDateAndTime(values.due_date, values.start_time), // Full datetime
-        start_time: values.start_time ? combineDateAndTime(values.due_date, values.start_time) : null, // Store as full datetime if time is provided
+        due_date: fullDueDate,
+        start_time: fullStartTime,
         duration_minutes: values.duration_minutes || null,
         subject: values.subject || null,
         class_level: values.class_level || null,
         plan_type: values.plan_type,
         completed: values.completed,
-        alarm_set_at: values.alarm_set_at ? combineDateAndTime(values.alarm_set_at, format(values.alarm_set_at, 'HH:mm')) : null,
+        alarm_set_at: fullAlarmTime,
       };
       
       let error;
@@ -134,7 +165,7 @@ export default function PlannerPage() {
           .eq('user_id', userId);
         error = updateError;
       } else { // Insert
-        const { error: insertError } = await supabase.from('study_plans').insert(planData);
+        const { error: insertError } = await supabase.from('study_plans').insert(planData as TablesInsert<'study_plans'>);
         error = insertError;
       }
 
@@ -166,7 +197,7 @@ export default function PlannerPage() {
     startTransition(async () => {
       const { error } = await supabase
         .from('study_plans')
-        .update({ completed: !plan.completed })
+        .update({ completed: !plan.completed, ...(plan.completed && {alarm_set_at: null}) }) // Also clear alarm if marking incomplete
         .eq('id', plan.id)
         .eq('user_id', userId);
       if (error) {
@@ -184,24 +215,32 @@ export default function PlannerPage() {
     if (plan) {
       const dueDate = parseISO(plan.due_date);
       form.reset({
-        ...plan,
-        due_date: dueDate,
-        start_time: plan.start_time ? format(parseISO(plan.start_time), 'HH:mm') : '',
+        title: plan.title,
+        description: plan.description || '',
+        due_date_date_part: dueDate,
+        due_date_time_part: format(dueDate, 'HH:mm'),
+        start_time_time_part: plan.start_time ? format(parseISO(plan.start_time), 'HH:mm') : '',
         duration_minutes: plan.duration_minutes || 0,
-        alarm_set_at: plan.alarm_set_at ? parseISO(plan.alarm_set_at) : undefined,
+        subject: plan.subject || '',
         class_level: plan.class_level as '11' | '12' || undefined,
+        plan_type: plan.plan_type as PlanFormData['plan_type'],
+        completed: plan.completed,
+        alarm_set_at_date_part: plan.alarm_set_at ? parseISO(plan.alarm_set_at) : undefined,
+        alarm_set_at_time_part: plan.alarm_set_at ? format(parseISO(plan.alarm_set_at), 'HH:mm') : '',
       });
     } else {
       form.reset({
         title: '',
         description: '',
-        due_date: new Date(),
-        start_time: '',
+        due_date_date_part: new Date(),
+        due_date_time_part: '',
+        start_time_time_part: '',
         duration_minutes: 0,
         subject: '',
         plan_type: 'day_task',
         completed: false,
-        alarm_set_at: undefined,
+        alarm_set_at_date_part: undefined,
+        alarm_set_at_time_part: '',
         class_level: undefined,
       });
     }
@@ -265,9 +304,9 @@ export default function PlannerPage() {
                   </FormItem>
               )} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField control={form.control} name="due_date" render={({ field }) => (
+                <FormField control={form.control} name="due_date_date_part" render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel>Date</FormLabel>
+                        <FormLabel>Due Date</FormLabel>
                         <Popover><PopoverTrigger asChild>
                             <FormControl>
                             <Button variant={"outline"} className={cn("justify-start text-left font-normal input-glow h-11",!field.value && "text-muted-foreground")}>
@@ -282,21 +321,30 @@ export default function PlannerPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={form.control} name="start_time" render={({ field }) => (
+                <FormField control={form.control} name="due_date_time_part" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Due Time (Optional)</FormLabel>
+                        <FormControl><Input type="time" {...field} className="input-glow h-11" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField control={form.control} name="start_time_time_part" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Start Time (Optional)</FormLabel>
                         <FormControl><Input type="time" {...field} className="input-glow h-11" /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
+                <FormField control={form.control} name="duration_minutes" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Duration (Minutes, Optional)</FormLabel>
+                        <FormControl><Input type="number" placeholder="e.g., 60" {...field} className="input-glow h-11" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
               </div>
-              <FormField control={form.control} name="duration_minutes" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Duration (Minutes, Optional)</FormLabel>
-                    <FormControl><Input type="number" placeholder="e.g., 60" {...field} className="input-glow h-11" /></FormControl>
-                    <FormMessage />
-                </FormItem>
-              )} />
               <FormField control={form.control} name="subject" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Subject (Optional)</FormLabel>
@@ -307,7 +355,7 @@ export default function PlannerPage() {
                <FormField control={form.control} name="class_level" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Class (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
                             <FormControl><SelectTrigger className="input-glow h-11"><SelectValue placeholder="Select class" /></SelectTrigger></FormControl>
                             <SelectContent><SelectItem value="11">Class 11</SelectItem><SelectItem value="12">Class 12</SelectItem></SelectContent>
                         </Select>
@@ -330,35 +378,28 @@ export default function PlannerPage() {
                     <FormMessage />
                   </FormItem>
               )} />
-               <FormField control={form.control} name="alarm_set_at" render={({ field }) => (
+               <FormField control={form.control} name="alarm_set_at_date_part" render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="flex items-center"><AlarmClockPlus className="mr-2 h-5 w-5 text-accent"/>Set Alarm Time (Optional)</FormLabel>
+                    <FormLabel className="flex items-center"><AlarmClockPlus className="mr-2 h-5 w-5 text-accent"/>Alarm Date (Optional)</FormLabel>
                     <Popover><PopoverTrigger asChild>
                         <FormControl>
                         <Button variant={"outline"} className={cn("justify-start text-left font-normal input-glow h-11",!field.value && "text-muted-foreground")}>
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP HH:mm") : <span>Pick date & time for alarm</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Pick alarm date</span>}
                         </Button>
                         </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
-                        <Calendar mode="single" selected={field.value} onSelect={(date) => {
-                            // Combine with current time input or default to a time
-                            const currentTime = field.value ? format(field.value, 'HH:mm') : '09:00';
-                            const newDateTime = date ? parseISO(combineDateAndTime(date, currentTime)) : undefined;
-                            field.onChange(newDateTime);
-                        }} initialFocus/>
-                        {/* Consider adding a time picker here as well */}
-                         <Input type="time" className="input-glow mt-2" 
-                            defaultValue={field.value ? format(field.value, 'HH:mm') : '09:00'}
-                            onChange={(e) => {
-                                const datePart = field.value || new Date();
-                                const newDateTime = parseISO(combineDateAndTime(datePart, e.target.value));
-                                field.onChange(newDateTime);
-                            }}
-                         />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
                     </PopoverContent></Popover>
                     <FormMessage />
+                  </FormItem>
+              )} />
+              <FormField control={form.control} name="alarm_set_at_time_part" render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Alarm Time (If date set)</FormLabel>
+                      <FormControl><Input type="time" {...field} className="input-glow h-11" /></FormControl>
+                      <FormMessage />
                   </FormItem>
               )} />
                <FormField control={form.control} name="completed" render={({ field }) => (
