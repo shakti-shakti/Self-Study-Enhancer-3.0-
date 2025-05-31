@@ -25,21 +25,21 @@ export default async function DashboardPage() {
   if (user) {
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(*)')
+      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(*)') // Fetch all from quizzes
       .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
       .limit(3);
     if (error) {
       console.error("[ Server ] Error fetching recent quiz attempts:", error.message);
     } else {
-      // Manually cast as QuizAttemptWithQuizTopic might not perfectly match if quizzes!inner(*) is used
-      // This is a simplification; ideally, type generation would handle this better or select specific columns.
       recentQuizAttempts = (data as any[] || []).map(attempt => ({
         ...attempt,
-        quizzes: attempt.quizzes ? { // Ensure quizzes object is not null
-            topic: attempt.quizzes.topic, 
-            class_level: attempt.quizzes.class_level, 
-            subject: attempt.quizzes.subject 
+        quizzes: attempt.quizzes ? { 
+            // Explicitly pick what's needed and available.
+            // If 'topic' column is missing in DB, attempt.quizzes.topic will be undefined.
+            topic: attempt.quizzes.topic || null, 
+            class_level: attempt.quizzes.class_level || null, 
+            subject: attempt.quizzes.subject || null
         } : null
       })) as QuizAttemptWithQuizTopic[];
     }
@@ -49,10 +49,10 @@ export default async function DashboardPage() {
     if (user) {
     const { data: rawMessages, error: messagesError } = await supabase
       .from('study_assistant_logs')
-      .select('session_id, content, created_at, user_id, role') 
+      .select('session_id, content, created_at, user_id, role')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }) 
-      .limit(30); 
+      .order('created_at', { ascending: false })
+      .limit(30);
 
     if (messagesError) {
       console.error("[ Server ] Error fetching recent chat messages for dashboard:", messagesError.message);
@@ -60,11 +60,11 @@ export default async function DashboardPage() {
       const sessionsMap = new Map<string, ChatSessionPreview>();
       for (let i = rawMessages.length - 1; i >= 0; i--) {
         const msg = rawMessages[i];
-        if (msg.role === 'user' && !sessionsMap.has(msg.session_id) && sessionsMap.size < 3) { 
+        if (msg.role === 'user' && !sessionsMap.has(msg.session_id) && sessionsMap.size < 3) {
           sessionsMap.set(msg.session_id, {
             session_id: msg.session_id,
             first_message_preview: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
-            last_message_at: msg.created_at, 
+            last_message_at: msg.created_at,
             user_id: msg.user_id,
           });
         }
