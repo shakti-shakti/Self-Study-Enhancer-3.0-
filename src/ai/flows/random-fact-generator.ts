@@ -29,6 +29,7 @@ export async function generateSyllabusFact(input: GenerateSyllabusFactInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'generateSyllabusFactPrompt',
+  model: 'googleai/gemini-1.5-flash-latest', // Added model property
   input: {schema: GenerateSyllabusFactInputSchema},
   output: {schema: GenerateSyllabusFactOutputSchema},
   prompt: `You are an expert in the NEET syllabus for Class 11 and 12 (covering Physics, Chemistry, Botany, and Zoology).
@@ -74,3 +75,4 @@ const generateSyllabusFactFlow = ai.defineFlow(
     return output;
   }
 );
+
