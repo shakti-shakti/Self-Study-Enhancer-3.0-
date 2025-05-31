@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,7 +42,7 @@ type AuthFormProps = {
 };
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter();
+  const router = useRouter(); // Keep router for potential other uses or signup redirect
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -64,15 +65,19 @@ export function AuthForm({ mode }: AuthFormProps) {
       try {
         if (mode === 'login') {
           const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
+          // If loginWithEmail now redirects, this part might not be reached on success.
+          // The error will still be returned if Supabase auth fails.
           if (result?.error) {
             setError(result.error);
             toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
           } else {
-            toast({ title: 'Login Successful!', description: 'Redirecting to your command center...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-            router.push('/dashboard');
-            router.refresh(); 
+            // This else block might not be hit if server action redirects.
+            // The toast for success could be shown optimistically before the action fully completes,
+            // or removed if the redirect is fast enough. For now, let's keep it.
+            toast({ title: 'Login Initiated...', description: 'Attempting to log you in...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+            // No client-side redirect needed here anymore for login
           }
-        } else {
+        } else { // Signup logic remains the same
           const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
            if (result?.error) {
             setError(result.error);
@@ -83,9 +88,13 @@ export function AuthForm({ mode }: AuthFormProps) {
           }
         }
       } catch (e: any) {
+        // This catch block handles errors from the action if it doesn't redirect
+        // or if the redirect itself fails (though less likely for `redirect()`).
         const errorMessage = e.message || 'An unexpected error occurred.';
-        setError(errorMessage);
-        toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+        if (!e.message?.includes('NEXT_REDIRECT')) { // Don't show error for intentional redirects
+          setError(errorMessage);
+          toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+        }
       }
     });
   }

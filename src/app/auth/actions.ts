@@ -1,3 +1,4 @@
+
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
@@ -34,10 +35,9 @@ export async function loginWithEmail(formData: z.infer<typeof loginSchema>) {
     return { error: error.message };
   }
   
-  // Successful login, redirect handled by middleware or client-side router.refresh()
-  // For server action initiated redirect uncomment below:
-  // redirect('/dashboard');
-  return { error: null };
+  // Successful login, redirect from server action
+  redirect('/dashboard');
+  // The return { error: null } is no longer needed as redirect will terminate the action.
 }
 
 export async function signupWithEmail(formData: z.infer<typeof signupSchema>) {
