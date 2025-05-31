@@ -1,3 +1,4 @@
+
 // src/app/dashboard/study-store/page.tsx
 'use client';
 
@@ -33,7 +34,7 @@ export default function StudyStorePage() {
           <Card key={item.id} className="interactive-card shadow-lg overflow-hidden">
             <CardHeader className="p-0">
               <div className="relative h-40 w-full">
-                <Image src={item.image} alt={item.name} layout="fill" objectFit="cover" data-ai-hint={item.dataAiHint} />
+                <Image src={item.image} alt={item.name} layout="fill" objectFit="cover" data-ai-hint={item.dataAiHint || 'store item'} />
               </div>
             </CardHeader>
             <CardContent className="p-4 space-y-2 text-center">

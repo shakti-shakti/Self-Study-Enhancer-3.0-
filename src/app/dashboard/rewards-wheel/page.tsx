@@ -1,3 +1,4 @@
+
 // src/app/dashboard/rewards-wheel/page.tsx
 'use client';
 
@@ -10,12 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 
 // Sample rewards
 const rewards = [
-  { name: "+10 Focus Coins", color: "gold", weight: 5 },
-  { name: "AI Help Token", color: "cyan", weight: 2 },
-  { name: "New Avatar Frame", color: "lime", weight: 3 },
-  { name: "Study Theme Unlock", color: "violet", weight: 1 },
-  { name: "Try Again!", color: "silver", weight: 6 },
-  { name: "+5 Focus Coins", color: "orange", weight: 4 },
+  { name: "+10 Focus Coins", color: "gold", weight: 5, dataAiHint: "gold coins" },
+  { name: "AI Help Token", color: "cyan", weight: 2, dataAiHint: "token bright" },
+  { name: "New Avatar Frame", color: "lime", weight: 3, dataAiHint: "avatar frame" },
+  { name: "Study Theme Unlock", color: "violet", weight: 1, dataAiHint: "theme abstract" },
+  { name: "Try Again!", color: "silver", weight: 6, dataAiHint: "question mark" },
+  { name: "+5 Focus Coins", color: "orange", weight: 4, dataAiHint: "coins stack" },
 ];
 
 // Create a weighted list for easier random selection
@@ -126,7 +127,7 @@ export default function RewardsWheelPage() {
           </Button>
 
           {finalReward && !isSpinning && (
-            <Card className={`p-4 text-center bg-${finalReward.color}-500/20 border-${finalReward.color}-500 text-${finalReward.color}-700 dark:text-${finalReward.color}-300`}>
+            <Card className={`p-4 text-center bg-${finalReward.color}-500/20 border-${finalReward.color}-500 text-${finalReward.color}-700 dark:text-${finalReward.color}-300`} data-ai-hint={finalReward.dataAiHint}>
               <CardTitle className="text-xl">You Won: {finalReward.name}</CardTitle>
             </Card>
           )}
@@ -138,3 +139,4 @@ export default function RewardsWheelPage() {
     </div>
   );
 }
+

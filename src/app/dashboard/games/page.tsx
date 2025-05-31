@@ -51,7 +51,7 @@ export default function GamesHubPage() {
                 layout="fill" 
                 objectFit="cover" 
                 className="transition-transform duration-500 group-hover:scale-110"
-                data-ai-hint={game.dataAiHint}
+                data-ai-hint={game.dataAiHint || 'game banner'}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
               <div className="absolute bottom-4 left-4">

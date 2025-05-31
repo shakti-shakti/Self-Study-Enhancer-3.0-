@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, Loader2, FileText, ImageIcon, Trash2, Download, Eye } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { UploadCloud, Loader2, FileText, ImageIcon, Trash2, Download, Eye, Info, Wand2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import Link from 'next/link';
 
@@ -191,7 +192,7 @@ export default function FileUploadsPage() {
           <UploadCloud className="mr-4 h-10 w-10" /> File & Image Uploads
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Upload and manage your study notes, diagrams, and other helpful resources.
+          Upload and manage your study notes, diagrams, and other helpful resources. Max 10MB per file.
         </p>
       </header>
 
@@ -229,6 +230,16 @@ export default function FileUploadsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <Alert variant="default" className="max-w-3xl mx-auto bg-primary/5 border-primary/20">
+        <Info className="h-5 w-5 text-primary" />
+        <AlertTitle className="text-primary font-semibold">Note Analysis (Future Feature)</AlertTitle>
+        <AlertDescription>
+            Currently, this page allows you to store your files. For AI-powered analysis of text-based notes (like summaries or key points), please copy the text from your document and paste it into the{" "}
+            <Link href="/dashboard/smart-notes-generator" className="font-medium text-primary hover:underline">Smart Notes Generator <Wand2 className="inline h-4 w-4 ml-1"/></Link>.
+            Automatic analysis of uploaded PDFs or DOCs via OCR is a planned future enhancement.
+        </AlertDescription>
+      </Alert>
 
       <Card className="interactive-card shadow-xl mt-8 p-4 md:p-6">
         <CardHeader>

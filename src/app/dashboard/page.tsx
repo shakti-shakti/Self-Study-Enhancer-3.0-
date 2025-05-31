@@ -1,11 +1,13 @@
+
 // src/app/dashboard/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact } from '@/ai/flows/random-fact-generator';
-import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow'; // Added Daily Challenge
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award } from 'lucide-react'; // Added Award for challenge
+import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow';
+import { generateDailyMotivation, type GenerateDailyMotivationOutput } from '@/ai/flows/daily-motivation-flow';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap } from 'lucide-react';
 import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
@@ -15,7 +17,7 @@ export default async function DashboardPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  let randomFact = { fact: "Loading your daily fact...", source_hint: "" };
+  let dailyMotivation: GenerateDailyMotivationOutput = { quote: "Loading your daily motivation..." };
   let dailyChallenge: GenerateDailyChallengeOutput = { 
     challengeTitle: "Loading Daily Challenge...", 
     challengeDescription: "Stay tuned for today's mission!", 
@@ -23,14 +25,13 @@ export default async function DashboardPage() {
   };
 
   try {
-    randomFact = await generateSyllabusFact({ class_level: "11/12" });
+    dailyMotivation = await generateDailyMotivation({});
   } catch (error: any) {
-    console.error("[ Server ] Error fetching random fact for dashboard:", error.message || JSON.stringify(error));
-    randomFact = { fact: "Could not load a random fact at this moment. Please ensure your Google AI API key is correctly set up.", source_hint: "Error" };
+    console.error("[ Server ] Error fetching daily motivation for dashboard:", error.message || JSON.stringify(error));
+    dailyMotivation = { quote: "Could not load daily motivation. Keep pushing towards your goals!" };
   }
 
   try {
-    // Pass user focus area or difficulty if available from profile later
     dailyChallenge = await generateDailyChallenge({}); 
   } catch (error: any) {
     console.error("[ Server ] Error fetching daily challenge:", error.message || JSON.stringify(error));
@@ -71,7 +72,7 @@ export default async function DashboardPage() {
       .eq('id', user.id)
       .single();
     
-    if (profileError && profileError.code !== 'PGRST116') { // PGRST116: no rows found
+    if (profileError && profileError.code !== 'PGRST116') { 
       console.error("[ Server ] Error fetching profile for dashboard:", profileError.message);
     } else {
       profileData = fetchedProfileData;
@@ -157,31 +158,29 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <Card className="bg-accent/10 border border-accent/30 p-4 rounded-lg shadow-inner mb-8">
+          <Card className="bg-accent/10 border border-accent/30 p-4 rounded-lg shadow-inner mb-6">
             <div className="flex items-start">
               <Award className="h-8 w-8 text-accent mr-3 mt-1 shrink-0" />
               <div>
-                <h3 className="text-lg font-semibold text-accent mb-1">{dailyChallenge.challengeTitle}</h3>
+                <h3 className="text-lg font-semibold text-accent mb-1">AI Daily Challenge: {dailyChallenge.challengeTitle}</h3>
                 <p className="text-foreground">{dailyChallenge.challengeDescription}</p>
                 {dailyChallenge.subjectHint && (
-                  <p className="text-xs text-muted-foreground mt-1">Hint: {dailyChallenge.subjectHint}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Subject Hint: {dailyChallenge.subjectHint}</p>
                 )}
               </div>
             </div>
           </Card>
 
-          <div className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-8">
+          <Card className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-8">
             <div className="flex items-start">
               <Lightbulb className="h-8 w-8 text-primary mr-3 mt-1 shrink-0" />
               <div>
-                <h3 className="text-lg font-semibold text-primary mb-1">Syllabus Spark:</h3>
-                <p className="text-foreground">{randomFact.fact}</p>
-                {randomFact.source_hint && randomFact.source_hint !== "Error" && (
-                  <p className="text-xs text-muted-foreground mt-1">Hint: {randomFact.source_hint}</p>
-                )}
+                <h3 className="text-lg font-semibold text-primary mb-1">Daily Motivation:</h3>
+                <p className="text-foreground italic">"{dailyMotivation.quote}"</p>
               </div>
             </div>
-          </div>
+          </Card>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/planner">Access Planner</Link></Button>
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/quizzes">Take a Quiz</Link></Button>
@@ -251,3 +250,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

@@ -11,11 +11,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-// import { Textarea } from '@/components/ui/textarea'; // Not used in this simplified version
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from '@/lib/database.types'; // Use refined type
-import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info } from 'lucide-react';
+import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from '@/lib/database.types';
+import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info, ShieldCheck } from 'lucide-react';
 import { moderateStudyRoom, type ModerateStudyRoomInput, type ModerateStudyRoomOutput } from '@/ai/flows/ai-moderated-study-rooms';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
@@ -33,7 +33,6 @@ const messageSchema = z.object({
 type MessageFormData = z.infer<typeof messageSchema>;
 
 type StudyRoom = Tables<'study_rooms'>;
-// StudyRoomMessageWithProfile is imported from database.types.ts
 
 export default function StudyRoomsPage() {
   const [isPending, startTransition] = useTransition();
@@ -88,6 +87,9 @@ export default function StudyRoomsPage() {
               .select('email, full_name, avatar_url')
               .eq('id', newMessage.user_id)
               .single();
+            
+            console.log(`New message received, profile for ${newMessage.user_id}:`, profileData, "Error:", profileError);
+
 
             const newMessageWithProfile: StudyRoomMessageWithProfile = {
                 ...newMessage,
@@ -120,7 +122,7 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles!inner!user_id(email, full_name, avatar_url)') // Explicit inner join hint
+        .select('*, profiles!inner!user_id(email, full_name, avatar_url)') 
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100); 
@@ -182,6 +184,7 @@ export default function StudyRoomsPage() {
                 setAiModeration(modResult); 
             } catch (aiError: any) {
                 console.warn("AI Moderation Error:", aiError.message);
+                 setAiModeration({ clarificationOrAnswer: "AI Moderator is currently taking a short break. Please continue your discussion!"});
             }
         }
       }
@@ -202,7 +205,7 @@ export default function StudyRoomsPage() {
             <Users className="mr-4 h-10 w-10" /> AI-Moderated Study Rooms
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Join a room to collaborate, discuss topics, or create your own study group.
+            Join a room to collaborate, discuss topics, or create your own study group. Remember to be respectful and constructive!
           </p>
         </header>
         <div className="text-center mb-8">
@@ -229,7 +232,7 @@ export default function StudyRoomsPage() {
                   <FormField control={createRoomForm.control} name="topic" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Topic (Optional)</FormLabel>
-                      <FormControl><Input placeholder="E.g., Cell Structure" {...field} className="input-glow" /></FormControl>
+                      <FormControl><Input placeholder="E.g., Cell Structure (for AI moderation)" {...field} className="input-glow" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
@@ -340,6 +343,13 @@ export default function StudyRoomsPage() {
                  {!aiModeration && (
                     <p className="text-muted-foreground">AI moderator is active. Relevant suggestions will appear based on chat activity.</p>
                 )}
+                 <Alert variant="default" className="mt-4 bg-muted/20 border-border/30">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    <AlertTitle className="font-semibold text-primary">Community Guidelines</AlertTitle>
+                    <AlertDescription>
+                        Be respectful, stay on topic, and help each other learn. No spam or inappropriate content. Let's make this a great study environment!
+                    </AlertDescription>
+                </Alert>
             </CardContent>
             <CardFooter>
                 <p className="text-xs text-muted-foreground flex items-center"><Info className="w-3 h-3 mr-1.5"/>AI suggestions appear based on chat in rooms with a topic.</p>

@@ -1,3 +1,4 @@
+
 // src/app/dashboard/achievements/page.tsx
 'use client';
 
@@ -19,17 +20,18 @@ interface Achievement {
   progress?: number; // Optional: 0-100 for progress bar
   xpReward?: number;
   badgeImageUrl?: string; // For specific badge images
+  dataAiHint?: string; // Hint for AI image generation
 }
 
 const sampleAchievements: Achievement[] = [
-  { id: 'quiz_master_1', title: 'Quiz Novice', description: 'Complete your first quiz.', icon: Star, isUnlocked: true, xpReward: 50 },
-  { id: 'quiz_master_2', title: 'Quiz Adept', description: 'Score 80%+ on 3 quizzes in a row.', icon: ShieldCheck, isUnlocked: false, progress: 33, xpReward: 100 },
-  { id: 'study_streak_7', title: 'Weekly Warrior', description: 'Maintain a 7-day study streak.', icon: Zap, isUnlocked: false, progress: 60, xpReward: 150 },
+  { id: 'quiz_master_1', title: 'Quiz Novice', description: 'Complete your first quiz.', icon: Star, isUnlocked: true, xpReward: 50, dataAiHint: 'star quiz' },
+  { id: 'quiz_master_2', title: 'Quiz Adept', description: 'Score 80%+ on 3 quizzes in a row.', icon: ShieldCheck, isUnlocked: false, progress: 33, xpReward: 100, dataAiHint: 'shield check' },
+  { id: 'study_streak_7', title: 'Weekly Warrior', description: 'Maintain a 7-day study streak.', icon: Zap, isUnlocked: false, progress: 60, xpReward: 150, dataAiHint: 'zap lightning' },
   { id: 'physics_champ', title: 'Physics Phenom', description: 'Complete all Physics chapter challenges.', icon: Zap, isUnlocked: true, badgeImageUrl: 'https://placehold.co/64x64/FFFF00/000000.png?text=P⚡' , dataAiHint: 'physics award'},
   { id: 'chemistry_guru', title: 'Chemistry Catalyst', description: 'Unlock 10 Chemistry concept notes.', icon: Trophy, isUnlocked: false, progress: 20, badgeImageUrl: 'https://placehold.co/64x64/00FFFF/000000.png?text=C⚛️', dataAiHint: 'chemistry award' },
   { id: 'biology_expert', title: 'Biology Buff', description: 'Identify 50 specimens in Botany & Zoology.', icon: Award, isUnlocked: false, progress: 0, badgeImageUrl: 'https://placehold.co/64x64/00FF00/000000.png?text=B🌿', dataAiHint: 'biology award' },
-  { id: 'perfect_score', title: 'Flawless Victory', description: 'Get a perfect score on any hard quiz.', icon: Star, isUnlocked: false, xpReward: 200 },
-  { id: 'ai_ally', title: 'AI Collaborator', description: 'Use the AI Study Assistant 20 times.', icon: ShieldCheck, isUnlocked: true, xpReward: 75 },
+  { id: 'perfect_score', title: 'Flawless Victory', description: 'Get a perfect score on any hard quiz.', icon: Star, isUnlocked: false, xpReward: 200, dataAiHint: 'trophy star' },
+  { id: 'ai_ally', title: 'AI Collaborator', description: 'Use the AI Study Assistant 20 times.', icon: ShieldCheck, isUnlocked: true, xpReward: 75, dataAiHint: 'robot handshake' },
 ];
 
 
@@ -102,3 +104,4 @@ export default function AchievementsPage() {
     </div>
   );
 }
+

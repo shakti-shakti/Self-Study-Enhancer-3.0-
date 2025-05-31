@@ -1,3 +1,4 @@
+
 // src/app/dashboard/story-syllabus/page.tsx
 'use client';
 
@@ -64,7 +65,7 @@ export default function StorySyllabusPage() {
         {syllabusRealms.map(realm => (
           <Card key={realm.id} className="interactive-card shadow-xl overflow-hidden">
             <div className="relative h-48 md:h-64 w-full">
-                <Image src={realm.imageUrl} alt={realm.name} layout="fill" objectFit="cover" data-ai-hint={realm.dataAiHint}/>
+                <Image src={realm.imageUrl} alt={realm.name} layout="fill" objectFit="cover" data-ai-hint={realm.dataAiHint || 'realm image'}/>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex flex-col justify-end p-6">
                     <div className="flex items-center mb-2">
                         {realm.icon}
@@ -104,3 +105,4 @@ export default function StorySyllabusPage() {
     </div>
   );
 }
+
