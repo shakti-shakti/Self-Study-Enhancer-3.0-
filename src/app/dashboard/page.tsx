@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact } from '@/ai/flows/random-fact-generator';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight } from 'lucide-react';
-import type { QuizAttemptWithQuizTopic, ChatSessionPreview } from '@/lib/database.types';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit } from 'lucide-react';
+import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import ClockWidget from '@/components/dashboard/ClockWidget';
+import CountdownWidget from '@/components/dashboard/CountdownWidget';
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -22,26 +24,38 @@ export default async function DashboardPage() {
   }
 
   let recentQuizAttempts: QuizAttemptWithQuizTopic[] = [];
+  let profileData: Tables<'profiles'> | null = null;
+
   if (user) {
-    const { data, error } = await supabase
+    const { data: attemptsData, error: attemptsError } = await supabase
       .from('quiz_attempts')
-      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(*)') // Fetch all from quizzes
+      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(*)')
       .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
       .limit(3);
-    if (error) {
-      console.error("[ Server ] Error fetching recent quiz attempts:", error.message);
+    if (attemptsError) {
+      console.error("[ Server ] Error fetching recent quiz attempts:", attemptsError.message);
     } else {
-      recentQuizAttempts = (data as any[] || []).map(attempt => ({
+      recentQuizAttempts = (attemptsData as any[] || []).map(attempt => ({
         ...attempt,
         quizzes: attempt.quizzes ? { 
-            // Explicitly pick what's needed and available.
-            // If 'topic' column is missing in DB, attempt.quizzes.topic will be undefined.
             topic: attempt.quizzes.topic || null, 
             class_level: attempt.quizzes.class_level || null, 
             subject: attempt.quizzes.subject || null
         } : null
       })) as QuizAttemptWithQuizTopic[];
+    }
+
+    const { data: fetchedProfileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('custom_countdown_event_name, custom_countdown_target_date')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError && profileError.code !== 'PGRST116') { // PGRST116: no rows found
+      console.error("[ Server ] Error fetching profile for dashboard:", profileError.message);
+    } else {
+      profileData = fetchedProfileData;
     }
   }
   
@@ -80,6 +94,7 @@ export default async function DashboardPage() {
     }
   }
 
+  const currentDate = format(new Date(), "EEEE, MMMM d, yyyy");
 
   return (
     <div className="space-y-8">
@@ -93,6 +108,36 @@ export default async function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <Card className="bg-muted/30 border-border/50 shadow-inner">
+              <CardHeader>
+                <CardTitle className="text-xl font-headline glow-text-accent flex items-center"><CalendarDays className="mr-2"/>Today's Date</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-semibold text-foreground">{currentDate}</p>
+                <ClockWidget />
+              </CardContent>
+            </Card>
+            {profileData?.custom_countdown_event_name && profileData?.custom_countdown_target_date && (
+              <Card className="bg-muted/30 border-border/50 shadow-inner">
+                <CardHeader>
+                  <CardTitle className="text-xl font-headline glow-text-accent flex items-center justify-between">
+                    <span>{profileData.custom_countdown_event_name}</span>
+                     <Button variant="ghost" size="icon" asChild className="text-primary hover:text-primary/80 -mr-2 -mt-2">
+                        <Link href="/dashboard/profile"><Edit className="h-4 w-4"/></Link>
+                     </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CountdownWidget 
+                    targetDate={profileData.custom_countdown_target_date} 
+                    eventName={profileData.custom_countdown_event_name} 
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
           <div className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-8">
             <div className="flex items-start">
               <Lightbulb className="h-8 w-8 text-primary mr-3 mt-1 shrink-0" />
@@ -130,7 +175,7 @@ export default async function DashboardPage() {
                       </span>
                       <span className="font-bold text-primary">{attempt.score}/{attempt.total_questions}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{format(parseISO(attempt.completed_at), "MMM d, yyyy - p")}</p>
+                    <p className="text-xs text-muted-foreground">{format(parseISO(attempt.created_at), "MMM d, yyyy - p")}</p>
                   </li>
                 ))}
               </ul>
@@ -174,4 +219,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
