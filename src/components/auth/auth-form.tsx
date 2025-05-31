@@ -42,7 +42,7 @@ type AuthFormProps = {
 };
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter(); // Keep router for potential other uses or signup redirect
+  const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -62,38 +62,30 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function onSubmit(values: FormData) {
     setError(null);
     startTransition(async () => {
-      try {
-        if (mode === 'login') {
-          const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
-          // If loginWithEmail now redirects, this part might not be reached on success.
-          // The error will still be returned if Supabase auth fails.
-          if (result?.error) {
-            setError(result.error);
-            toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
-          } else {
-            // This else block might not be hit if server action redirects.
-            // The toast for success could be shown optimistically before the action fully completes,
-            // or removed if the redirect is fast enough. For now, let's keep it.
-            toast({ title: 'Login Initiated...', description: 'Attempting to log you in...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-            // No client-side redirect needed here anymore for login
-          }
-        } else { // Signup logic remains the same
-          const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
-           if (result?.error) {
-            setError(result.error);
-            toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
-          } else {
-            toast({ title: 'Account Created!', description: 'Welcome, warrior! Please check your email to verify your account.', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-            form.reset();
-          }
+      if (mode === 'login') {
+        toast({ title: 'Logging in...', description: 'Please wait a moment.' });
+        const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
+        if (result.error) {
+          setError(result.error);
+          toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
+        } else if (result.success) {
+          toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+          router.push('/dashboard');
+          router.refresh(); // Ensure layout re-renders with user session
+        } else {
+          // This case should not be reached if the server action returns success or error
+          setError("An unexpected issue occurred with login. Please try again.");
+          toast({variant: 'destructive', title: 'Login Issue', description: "Unexpected response from server."})
         }
-      } catch (e: any) {
-        // This catch block handles errors from the action if it doesn't redirect
-        // or if the redirect itself fails (though less likely for `redirect()`).
-        const errorMessage = e.message || 'An unexpected error occurred.';
-        if (!e.message?.includes('NEXT_REDIRECT')) { // Don't show error for intentional redirects
-          setError(errorMessage);
-          toast({ variant: 'destructive', title: 'Error', description: errorMessage });
+      } else { // Signup logic
+        toast({ title: 'Creating account...', description: 'Please wait a moment.' });
+        const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
+         if (result?.error) {
+          setError(result.error);
+          toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
+        } else {
+          toast({ title: 'Account Created!', description: 'Welcome! Please check your email to verify your account.', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+          form.reset();
         }
       }
     });

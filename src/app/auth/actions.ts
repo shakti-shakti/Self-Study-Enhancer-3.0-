@@ -16,15 +16,18 @@ const signupSchema = z.object({
   password: z.string().min(6),
 });
 
-export async function loginWithEmail(formData: z.infer<typeof loginSchema>) {
+export async function loginWithEmail(formData: z.infer<typeof loginSchema>): Promise<{ error: string; success?: never } | { success: true; error?: never }> {
+  console.log("loginWithEmail server action started");
   const supabase = createClient();
   const validatedFields = loginSchema.safeParse(formData);
 
   if (!validatedFields.success) {
+    console.error("Login validation failed:", validatedFields.error.flatten());
     return { error: 'Invalid fields.' };
   }
 
   const { email, password } = validatedFields.data;
+  console.log("Attempting Supabase sign-in for:", email);
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -32,12 +35,13 @@ export async function loginWithEmail(formData: z.infer<typeof loginSchema>) {
   });
 
   if (error) {
+    console.error("Supabase signInWithPassword error:", error.message);
     return { error: error.message };
   }
   
-  // Successful login, redirect from server action
-  redirect('/dashboard');
-  // The return { error: null } is no longer needed as redirect will terminate the action.
+  console.log("Supabase signInWithPassword successful for:", email);
+  return { success: true };
+  // redirect('/dashboard'); // Temporarily removed for client-side redirect test
 }
 
 export async function signupWithEmail(formData: z.infer<typeof signupSchema>) {
@@ -65,7 +69,6 @@ export async function signupWithEmail(formData: z.infer<typeof signupSchema>) {
   if (data.user && data.user.identities && data.user.identities.length === 0) {
      return { error: "User already exists with this email. Try logging in." };
   }
-
 
   return { error: null };
 }
