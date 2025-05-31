@@ -1,3 +1,4 @@
+
 // src/app/dashboard/planner/page.tsx
 'use client';
 
@@ -25,15 +26,15 @@ const planFormSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100),
   description: z.string().optional(),
   due_date_date_part: z.date({ required_error: 'Due date is required.' }),
-  due_date_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
-  start_time_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"), // HH:MM format for time input
+  due_date_time_part: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)").optional(),
+  start_time_time_part: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)").optional(), // HH:MM format for time input
   duration_minutes: z.coerce.number().int().min(0).optional(),
   subject: z.string().optional(),
   class_level: z.enum(['11', '12']).optional(),
   plan_type: z.enum(['day_task', 'month_subject_task', 'year_goal', 'revision', 'exam']).default('day_task'),
   completed: z.boolean().default(false),
   alarm_set_at_date_part: z.date().optional(),
-  alarm_set_at_time_part: z.string().optional().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)"),
+  alarm_set_at_time_part: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM)").optional(),
 }).refine(data => {
     if (data.alarm_set_at_date_part && !data.alarm_set_at_time_part) return false;
     if (!data.alarm_set_at_date_part && data.alarm_set_at_time_part) return false;
