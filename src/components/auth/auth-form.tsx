@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // useRouter is not strictly needed if server redirects
+import { useRouter } from 'next/navigation'; 
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,10 +42,10 @@ type AuthFormProps = {
 };
 
 export function AuthForm({ mode }: AuthFormProps) {
-  const router = useRouter(); // Keep for signup or potential future client-side fallbacks
+  const router = useRouter(); 
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null); // Renamed to avoid conflict with form.error
 
   const formSchema = mode === 'login' ? loginSchema : signupSchema;
   type FormData = z.infer<typeof formSchema>;
@@ -60,28 +60,37 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
 
   async function onSubmit(values: FormData) {
-    setError(null);
+    setActionError(null);
     startTransition(async () => {
       if (mode === 'login') {
         toast({ title: 'Logging in...', description: 'Please wait a moment.' });
         const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
-        // If loginWithEmail returns, it means an error occurred, as success causes a redirect.
+        
         if (result?.error) {
-          setError(result.error);
+          setActionError(result.error);
           toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
+        } else if (result?.success) {
+          toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+          router.push('/dashboard');
+          router.refresh(); // Crucial for updating client session state
+        } else {
+          setActionError('An unexpected error occurred during login.');
+          toast({ variant: 'destructive', title: 'Login Failed', description: 'An unexpected error occurred.' });
         }
-        // No explicit success handling here for login, as the server action redirects.
       } else { // Signup logic
         toast({ title: 'Creating account...', description: 'Please wait a moment.' });
         const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
          if (result?.error) {
-          setError(result.error);
+          setActionError(result.error);
           toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
-        } else {
+        } else if (result?.success) { // Assuming signup action also returns success
           toast({ title: 'Account Created!', description: 'Welcome! Please check your email to verify your account.', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
           form.reset();
           // Optionally, redirect to a "please verify email" page or login page
           // router.push('/login?message=verification_sent');
+        } else {
+            setActionError('An unexpected error occurred during signup.');
+            toast({ variant: 'destructive', title: 'Signup Failed', description: 'An unexpected error occurred.' });
         }
       }
     });
@@ -142,8 +151,8 @@ export function AuthForm({ mode }: AuthFormProps) {
                 )}
               />
             )}
-            {error && (
-                <p className="text-sm font-semibold text-destructive text-center py-2 bg-destructive/10 rounded-md">{error}</p>
+            {actionError && ( // Display actionError here
+                <p className="text-sm font-semibold text-destructive text-center py-2 bg-destructive/10 rounded-md">{actionError}</p>
             )}
             <Button type="submit" className="w-full font-headline font-semibold text-xl py-7 glow-button tracking-wider" disabled={isPending}>
               {isPending ? (
