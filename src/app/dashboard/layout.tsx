@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -17,7 +17,8 @@ import {
   SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils'; // Ensure cn is imported
+import { cn } from '@/lib/utils'; 
+import ThemeProvider from '@/components/ui/theme-provider'; // Added ThemeProvider
 
 export const metadata: Metadata = {
   title: 'Dashboard - NEET Prep+',
@@ -41,6 +42,7 @@ const toolsNavItems = [
   { name: 'Translator', href: '/dashboard/translator', icon: <Languages /> },
   { name: 'Calculator', href: '/dashboard/calculator', icon: <Calculator /> },
   { name: 'Meditation Mentor', href: '/dashboard/meditation-mentor', icon: <BrainCog /> },
+  { name: 'Focus Timer', href: '/dashboard/focus-timer', icon: <Timer /> },
 ];
 
 const resourcesNavItems = [
@@ -59,6 +61,7 @@ const accountNavItems = [
   { name: 'Progress Tracker', href: '/dashboard/progress', icon: <BarChart3 /> },
   { name: 'Activity History', href: '/dashboard/activity-history', icon: <History /> },
   { name: 'Mind & Focus Hub', href: '/dashboard/mental-health', icon: <Brain /> },
+  { name: 'Mood Tracker', href: '/dashboard/mood-tracker', icon: <Smile /> },
   { name: 'Study Rooms', href: '/dashboard/study-rooms', icon: <Users /> },
   { name: 'Study Store', href: '/dashboard/study-store', icon: <ShoppingCart /> },
   { name: 'App Customization', href: '/dashboard/app-customization', icon: <SlidersHorizontal /> },
@@ -78,24 +81,17 @@ export default async function DashboardLayout({
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  // Middleware should handle this if auth is enabled
-  // if (!user) {
-  //   redirect('/login');
-  // }
   
-  // Fetch user profile data
-  // Note: Profile table has 'custom_countdown_event_name' and 'custom_countdown_target_date'
-  // Ensure any profile fetches select correct column names.
   const profile = user ? (await supabase
     .from('profiles')
-    .select('full_name, avatar_url, email') 
+    .select('full_name, avatar_url, email, theme') 
     .eq('id', user.id)
     .single()).data : null;
 
   const userDisplayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userAvatarUrl = profile?.avatar_url;
   const userEmail = profile?.email || user?.email;
+  const initialTheme = profile?.theme || 'dark'; // Get theme from profile or default to dark
 
   const bottomNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -107,160 +103,163 @@ export default async function DashboardLayout({
 
 
   return (
-    <SidebarProvider defaultOpen={true} collapsible="icon">
-      <SidebarRail />
-      <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-        <SidebarHeader className="p-3 border-b border-sidebar-border">
-          <Link href="/dashboard" className="flex items-center gap-2.5 text-primary hover:text-primary/90 transition-colors">
-            <BookHeadphones className="h-8 w-8 shrink-0" />
-            <span className="text-2xl font-headline font-bold glow-text-primary group-data-[collapsible=icon]:hidden">NEET Prep+</span>
-          </Link>
-        </SidebarHeader>
-        <SidebarContent className="p-2">
-          <SidebarMenu>
-            <SidebarGroupLabel>Main</SidebarGroupLabel>
-            {mainNavItems.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton 
-                  asChild 
-                  tooltip={{children: item.name, side: "right", align: "center"}}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                >
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
+    <ThemeProvider initialTheme={initialTheme}>
+      <SidebarProvider defaultOpen={true} collapsible="icon">
+        <SidebarRail />
+        <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+          <SidebarHeader className="p-3 border-b border-sidebar-border">
+            <Link href="/dashboard" className="flex items-center gap-2.5 text-primary hover:text-primary/90 transition-colors">
+              <BookHeadphones className="h-8 w-8 shrink-0" />
+              <span className="text-2xl font-headline font-bold glow-text-primary group-data-[collapsible=icon]:hidden">NEET Prep+</span>
+            </Link>
+          </SidebarHeader>
+          <SidebarContent className="p-2">
+            <SidebarMenu>
+              <SidebarGroupLabel>Main</SidebarGroupLabel>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={{children: item.name, side: "right", align: "center"}}
+                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  >
+                    <Link href={item.href}>
+                      {item.icon}
+                      <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <SidebarSeparator className="my-3"/>
+            <SidebarMenu>
+              <SidebarGroupLabel>Tools</SidebarGroupLabel>
+              {toolsNavItems.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={{children: item.name, side: "right", align: "center"}}
+                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  >
+                    <Link href={item.href}>
+                      {item.icon}
+                      <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <SidebarSeparator className="my-3"/>
+            <SidebarMenu>
+              <SidebarGroupLabel>Resources</SidebarGroupLabel>
+              {resourcesNavItems.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={{children: item.name, side: "right", align: "center"}}
+                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  >
+                    <Link href={item.href}>
+                      {item.icon}
+                      <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+            <SidebarSeparator className="my-3"/>
+            <SidebarMenu>
+              <SidebarGroupLabel>Account</SidebarGroupLabel>
+              {accountNavItems.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton 
+                    asChild 
+                    tooltip={{children: item.name, side: "right", align: "center"}}
+                    className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
+                  >
+                    <Link href={item.href}>
+                      {item.icon}
+                      <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="p-3 border-t border-sidebar-border">
+            {user && (
+              <>
+              <div className="flex items-center gap-3 mb-2 group-data-[collapsible=icon]:hidden">
+                <Avatar className="h-9 w-9">
+                    <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar"/>
+                    <AvatarFallback>{userDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">{userDisplayName}</p>
+                    <p className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</p>
+                </div>
+              </div>
+              <form action={logout} className="w-full">
+                <Button variant="outline" size="sm" className="w-full font-medium border-destructive/50 text-destructive/90 hover:bg-destructive/20 hover:text-destructive glow-button group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
+                  <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
+                  <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                </Button>
+              </form>
+              </>
+            )}
+            {!user && (
+              <Button variant="outline" size="sm" className="w-full font-medium" asChild>
+                  <Link href="/login">
+                      <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">Login</span>
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarSeparator className="my-3"/>
-          <SidebarMenu>
-            <SidebarGroupLabel>Tools</SidebarGroupLabel>
-            {toolsNavItems.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton 
-                  asChild 
-                  tooltip={{children: item.name, side: "right", align: "center"}}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                >
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarSeparator className="my-3"/>
-           <SidebarMenu>
-            <SidebarGroupLabel>Resources</SidebarGroupLabel>
-            {resourcesNavItems.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton 
-                  asChild 
-                  tooltip={{children: item.name, side: "right", align: "center"}}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                >
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-          <SidebarSeparator className="my-3"/>
-          <SidebarMenu>
-             <SidebarGroupLabel>Account</SidebarGroupLabel>
-            {accountNavItems.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton 
-                  asChild 
-                  tooltip={{children: item.name, side: "right", align: "center"}}
-                  className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground"
-                >
-                  <Link href={item.href}>
-                    {item.icon}
-                    <span className="group-data-[collapsible=icon]:hidden">{item.name}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter className="p-3 border-t border-sidebar-border">
-          {user && (
-            <>
-            <div className="flex items-center gap-3 mb-2 group-data-[collapsible=icon]:hidden">
-              <Avatar className="h-9 w-9">
-                  <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar"/>
-                  <AvatarFallback>{userDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div>
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">{userDisplayName}</p>
-                  <p className="text-xs text-sidebar-foreground/70 truncate">{userEmail}</p>
+              </Button>
+            )}
+          </SidebarFooter>
+        </Sidebar>
+        <SidebarInset>
+          <header className="sticky top-0 z-30 w-full border-b border-border/30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
+            <div className="container flex h-16 items-center justify-between">
+              <Link href="/dashboard" className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors">
+                <BookHeadphones className="h-7 w-7" />
+                <span className="text-2xl font-headline font-bold glow-text-primary">NEET Prep+</span>
+              </Link>
+              <div className="flex items-center gap-2">
+                <SidebarTrigger className="md:hidden" />
               </div>
             </div>
-            <form action={logout} className="w-full">
-              <Button variant="outline" size="sm" className="w-full font-medium border-destructive/50 text-destructive/90 hover:bg-destructive/20 hover:text-destructive glow-button group-data-[collapsible=icon]:aspect-square group-data-[collapsible=icon]:p-0">
-                <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
-                <span className="group-data-[collapsible=icon]:hidden">Logout</span>
-              </Button>
-            </form>
-            </>
-          )}
-          {!user && (
-             <Button variant="outline" size="sm" className="w-full font-medium" asChild>
-                <Link href="/login">
-                    <RadioTower className="mr-2 group-data-[collapsible=icon]:mr-0" />
-                    <span className="group-data-[collapsible=icon]:hidden">Login</span>
-                </Link>
-             </Button>
-          )}
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-30 w-full border-b border-border/30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
-          <div className="container flex h-16 items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors">
-              <BookHeadphones className="h-7 w-7" />
-              <span className="text-2xl font-headline font-bold glow-text-primary">NEET Prep+</span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="md:hidden" />
+          </header>
+          <header className="sticky top-0 z-30 w-full border-b border-border/30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
+            <div className="container flex h-16 items-center justify-start">
+              <SidebarTrigger />
             </div>
-          </div>
-        </header>
-        <header className="sticky top-0 z-30 w-full border-b border-border/30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
-          <div className="container flex h-16 items-center justify-start">
-             <SidebarTrigger />
-          </div>
-        </header>
-        <main className="flex-1 container py-6 md:py-8 relative">
-            {children}
-        </main>
-        
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border shadow-t-lg z-40">
-          <div className="flex justify-around items-center h-16">
-            {bottomNavItems.map(item => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center text-sidebar-foreground/70 hover:text-primary transition-colors p-2 flex-1">
-                  <Icon className="h-6 w-6 mb-0.5" />
-                  <span className="text-xs font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-        <div className="h-16 md:hidden"></div> {/* Spacer for bottom nav */}
+          </header>
+          <main className="flex-1 container py-6 md:py-8 relative">
+              {children}
+          </main>
+          
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border shadow-t-lg z-40">
+            <div className="flex justify-around items-center h-16">
+              {bottomNavItems.map(item => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center text-sidebar-foreground/70 hover:text-primary transition-colors p-2 flex-1">
+                    <Icon className="h-6 w-6 mb-0.5" />
+                    <span className="text-xs font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+          <div className="h-16 md:hidden"></div> {/* Spacer for bottom nav */}
 
-
-        <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
-          Developed by POWER⚡⚡⚡ | NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
-        </footer>
-      </SidebarInset>
-    </SidebarProvider>
+          <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
+            Developed by POWER⚡⚡⚡ | NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
+          </footer>
+        </SidebarInset>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }
+
+    

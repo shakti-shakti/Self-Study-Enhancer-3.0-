@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { studyAssistant, type StudyAssistantInput, type StudyAssistantOutput } from '@/ai/flows/ai-study-assistant';
-import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft, Trash2, Paperclip } from 'lucide-react';
+import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft, Trash2, Paperclip, Mic, MicOff } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
@@ -67,6 +67,13 @@ interface ChatSession {
     first_message_preview: string;
 }
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function AiStudyAssistantPage() {
   const [isPending, startTransition] = useTransition();
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -76,6 +83,9 @@ export default function AiStudyAssistantPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isListening, setIsListening] = useState(false);
+  const speechRecognitionRef = useRef<any>(null);
 
 
   const { toast } = useToast();
@@ -214,6 +224,54 @@ export default function AiStudyAssistantPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
+
+  // Speech Recognition Setup
+  useEffect(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      console.warn("Speech Recognition API not supported in this browser.");
+      return;
+    }
+    speechRecognitionRef.current = new SpeechRecognitionAPI();
+    const recognition = speechRecognitionRef.current;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      form.setValue('query', form.getValues('query') + transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      toast({ variant: "destructive", title: "Speech Error", description: event.error });
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+  }, [form, toast]);
+
+  const toggleListening = () => {
+    if (!speechRecognitionRef.current) {
+      toast({ title: "Voice Input Not Supported", description: "Your browser doesn't support speech recognition." });
+      return;
+    }
+    if (isListening) {
+      speechRecognitionRef.current.stop();
+    } else {
+      try {
+        speechRecognitionRef.current.start();
+        setIsListening(true);
+        toast({ title: "Listening...", description: "Start speaking your query."});
+      } catch (e) {
+        console.error("Error starting speech recognition:", e);
+        toast({ variant: "destructive", title: "Could not start voice input.", description: "Try again or check permissions." });
+      }
+    }
+  };
+
 
   const handleImageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -440,7 +498,7 @@ export default function AiStudyAssistantPage() {
             <Bot className="mr-3 h-8 w-8" /> AI Study Assistant
             </h1>
             <p className="text-md text-muted-foreground max-w-xl">
-            Your personal AI tutor. Ask questions, get explanations, and receive personalized study tips. Upload an image for context if needed.
+            Your personal AI tutor. Ask questions, get explanations, and receive personalized study tips. Upload an image or use voice input.
             </p>
         </header>
 
@@ -498,13 +556,25 @@ export default function AiStudyAssistantPage() {
             <CardFooter className="border-t pt-4">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="w-full space-y-4">
-                <FormField control={form.control} name="query" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="sr-only">Your Question</FormLabel>
-                        <FormControl><Textarea placeholder="Ask a question or describe a concept..." {...field} className="input-glow min-h-[60px] resize-none" /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                  <div className="flex items-end gap-2">
+                    <FormField control={form.control} name="query" render={({ field }) => (
+                        <FormItem className="flex-1">
+                            <FormLabel className="sr-only">Your Question</FormLabel>
+                            <FormControl><Textarea placeholder="Ask a question or describe a concept..." {...field} className="input-glow min-h-[60px] resize-none" /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <Button 
+                      type="button" 
+                      variant={isListening ? "destructive" : "outline"} 
+                      size="icon" 
+                      onClick={toggleListening} 
+                      className="h-[60px] w-[60px] glow-button"
+                      title={isListening ? "Stop listening" : "Use voice input"}
+                    >
+                      {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                    </Button>
+                  </div>
                 {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 rounded-md max-h-32" />}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <FormField control={form.control} name="context" render={({ field }) => (
@@ -544,3 +614,4 @@ export default function AiStudyAssistantPage() {
   );
 }
 
+    
