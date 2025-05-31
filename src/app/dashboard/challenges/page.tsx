@@ -1,23 +1,24 @@
+
 // src/app/dashboard/challenges/page.tsx
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert } from '@/lib/database.types';
+import type { Tables, TablesInsert } from '@/lib/database.types'; // Removed UserGameProgress, GameSpecificState as they are not used here
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { ShieldCheck, Star, Trophy, Zap, Loader2, HelpCircle, Award, Target as TargetIcon, CalendarDays, CheckCircle, Clock } from 'lucide-react';
-import { Badge as ShadBadge } from '@/components/ui/badge'; // Renamed to avoid conflict
+import { Badge as ShadBadge } from '@/components/ui/badge'; 
 import Image from 'next/image';
 
 // Types for local data structure
 type Mission = Tables<'missions'> & {
-  current_progress: number; // User's current progress (fetched from user_missions)
-  status: "locked" | "active" | "completed" | "failed"; // User's status for this mission
-  icon?: React.ElementType; // For Lucide icons
+  current_progress: number; 
+  status: "locked" | "active" | "completed" | "failed"; 
+  icon?: React.ElementType; 
 };
 
 type Badge = Tables<'badges'> & {
@@ -30,19 +31,6 @@ type LeaderboardUser = Tables<'leaderboard_entries'> & {
 };
 
 
-const sampleMissions: Mission[] = [
-  // This will be replaced by fetched data
-];
-
-const sampleBadges: Badge[] = [
-  // This will be replaced by fetched data
-];
-
-const sampleLeaderboard: LeaderboardUser[] = [
-    // This will be replaced by fetched data
-];
-
-
 export default function ChallengesPage() {
   const [isPending, startTransition] = useTransition();
   const [userId, setUserId] = useState<string|null>(null);
@@ -50,6 +38,8 @@ export default function ChallengesPage() {
   const [userBadges, setUserBadges] = useState<Badge[]>([]);
   const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
 
   const { toast } = useToast();
   const supabase = createClient();
@@ -64,87 +54,90 @@ export default function ChallengesPage() {
 
 
   useEffect(() => {
-    if (!userId) return;
-
+    if (!userId) {
+        setIsLoadingData(false);
+        return;
+    }
+    
+    setIsLoadingData(true);
     const fetchData = async () => {
       startTransition(async () => {
-        // Fetch all active missions
-        const { data: missionsData, error: missionsError } = await supabase
-          .from('missions')
-          .select('*')
-          .eq('is_active', true);
-        if (missionsError) toast({ variant: 'destructive', title: 'Error fetching missions', description: missionsError.message });
+        try {
+            // Fetch all active missions
+            const { data: missionsData, error: missionsError } = await supabase
+            .from('missions')
+            .select('*')
+            .eq('is_active', true);
+            if (missionsError) throw missionsError;
 
-        // Fetch user's progress on these missions
-        const { data: userMissionsData, error: userMissionsError } = await supabase
-          .from('user_missions')
-          .select('*')
-          .eq('user_id', userId);
-        if (userMissionsError) toast({ variant: 'destructive', title: 'Error fetching user mission progress', description: userMissionsError.message });
+            // Fetch user's progress on these missions
+            const { data: userMissionsData, error: userMissionsError } = await supabase
+            .from('user_missions')
+            .select('*')
+            .eq('user_id', userId);
+            if (userMissionsError) throw userMissionsError;
 
-        if (missionsData) {
-          const combinedMissions = missionsData.map(mission => {
-            const userProgress = userMissionsData?.find(um => um.mission_id === mission.id);
-            let iconComponent = TargetIcon; // Default icon
-            if (mission.title.toLowerCase().includes("physics")) iconComponent = Zap;
-            else if (mission.title.toLowerCase().includes("quiz")) iconComponent = Trophy;
-            else if (mission.title.toLowerCase().includes("streak")) iconComponent = CalendarDays;
+            if (missionsData) {
+            const combinedMissions = missionsData.map(mission => {
+                const userProgress = userMissionsData?.find(um => um.mission_id === mission.id);
+                let iconComponent = TargetIcon; 
+                if (mission.title.toLowerCase().includes("physics")) iconComponent = Zap;
+                else if (mission.title.toLowerCase().includes("quiz")) iconComponent = Trophy;
+                else if (mission.title.toLowerCase().includes("streak")) iconComponent = CalendarDays;
 
-            return {
-              ...mission,
-              icon: iconComponent,
-              current_progress: userProgress?.current_progress || 0,
-              status: userProgress?.status || 'locked', 
-            };
-          });
-          setUserMissions(combinedMissions);
-        }
-
-        // Fetch all badges
-        const { data: allBadgesData, error: allBadgesError } = await supabase.from('badges').select('*');
-        if (allBadgesError) toast({ variant: 'destructive', title: 'Error fetching badges', description: allBadgesError.message });
-        
-        // Fetch user's earned badges
-        const { data: earnedUserBadgesData, error: userBadgesError } = await supabase
-          .from('user_badges')
-          .select('*, badges(*)')
-          .eq('user_id', userId);
-        if (userBadgesError) toast({ variant: 'destructive', title: 'Error fetching user badges', description: userBadgesError.message });
-        
-        if (earnedUserBadgesData && allBadgesData) {
-            const mappedUserBadges = earnedUserBadgesData.map(ub => {
-                const badgeDetails = ub.badges as Badge; 
-                let iconComp = Award; 
-                if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
-                else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
-                else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
-                return { ...badgeDetails, icon: iconComp };
+                return {
+                ...mission,
+                icon: iconComponent,
+                current_progress: userProgress?.current_progress || 0,
+                status: userProgress?.status || 'locked', 
+                };
             });
-            setUserBadges(mappedUserBadges);
+            setUserMissions(combinedMissions);
+            }
 
-            const available = allBadgesData.map(badge => {
-                 let iconComp = Award;
-                if(badge.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
-                else if(badge.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
-                else if(badge.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
-                return {...badge, icon: iconComp } as Badge;
-            });
-            setAvailableBadges(available.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)));
-        }
+            // Fetch all badges
+            const { data: allBadgesData, error: allBadgesError } = await supabase.from('badges').select('*');
+            if (allBadgesError) throw allBadgesError;
+            
+            // Fetch user's earned badges
+            const { data: earnedUserBadgesData, error: userBadgesDbError } = await supabase
+            .from('user_badges')
+            .select('*, badges(*)')
+            .eq('user_id', userId);
+            if (userBadgesDbError) throw userBadgesDbError;
+            
+            if (earnedUserBadgesData && allBadgesData) {
+                const mappedUserBadges = earnedUserBadgesData.map(ub => {
+                    const badgeDetails = ub.badges as Badge; 
+                    let iconComp = Award; 
+                    if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
+                    else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
+                    else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
+                    return { ...badgeDetails, icon: iconComp };
+                }).filter(b => b.id); // Ensure badge details exist
+                setUserBadges(mappedUserBadges);
+
+                const available = allBadgesData.map(badge => {
+                    let iconComp = Award;
+                    if(badge.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
+                    else if(badge.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
+                    else if(badge.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
+                    return {...badge, icon: iconComp } as Badge;
+                });
+                setAvailableBadges(available.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)));
+            }
 
 
-        // Fetch leaderboard
-        const { data: leaderboardData, error: leaderboardError } = await supabase
-          .from('leaderboard_entries')
-          .select('*, profiles!user_id(full_name, username, avatar_url)')
-          .eq('period', 'all_time')
-          .order('score', { ascending: false })
-          .limit(10);
+            // Fetch leaderboard
+            const { data: leaderboardData, error: leaderboardError } = await supabase
+            .from('leaderboard_entries')
+            .select('*, profiles!user_id(full_name, username, avatar_url)')
+            .eq('period', 'all_time')
+            .order('score', { ascending: false })
+            .limit(10);
 
-        if (leaderboardError) {
-            toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: leaderboardError.message });
-            console.error("Leaderboard fetch error:", leaderboardError);
-        } else {
+            if (leaderboardError) throw leaderboardError;
+            
             const processedLeaderboard = (leaderboardData as LeaderboardUser[] || []).map((entry, index) => {
                 if (!entry.profiles) {
                     console.warn(`Leaderboard entry for user ID ${entry.user_id} is missing profile data. Join might have failed or profile doesn't exist.`);
@@ -152,6 +145,12 @@ export default function ChallengesPage() {
                 return {...entry, rank: index + 1};
             });
             setLeaderboard(processedLeaderboard);
+
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Error fetching challenges data', description: error.message });
+             console.error("Challenges data fetch error:", error);
+        } finally {
+            setIsLoadingData(false);
         }
       });
     };
@@ -160,8 +159,8 @@ export default function ChallengesPage() {
 
   const handleCompleteMission = async (mission: Mission) => {
     if(!userId) return;
-    if (mission.status !== 'active') {
-        toast({title: "Mission not active", description: "This mission is either locked or already completed."});
+    if (mission.status !== 'active' || mission.current_progress < mission.target_value) {
+        toast({title: "Mission Requirement Not Met", description: "This mission is not yet ready to be claimed or is not active."});
         return;
     }
 
@@ -233,7 +232,7 @@ export default function ChallengesPage() {
             const { data: earnedUserBadgesData } = await supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId);
             const { data: allBadgesData } = await supabase.from('badges').select('*');
              if (earnedUserBadgesData && allBadgesData) {
-                 const mappedUserBadges = earnedUserBadgesData.map(ub => ({ ...(ub.badges as Badge), icon: Award })); 
+                 const mappedUserBadges = earnedUserBadgesData.map(ub => ({ ...(ub.badges as Badge), icon: Award })).filter(b => b.id); 
                  setUserBadges(mappedUserBadges);
                  setAvailableBadges(allBadgesData.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)).map(b => ({...b, icon: Award})));
              }
@@ -291,10 +290,10 @@ export default function ChallengesPage() {
           <Button 
             className="w-full glow-button" 
             onClick={() => handleCompleteMission(mission)}
-            disabled={isPending || mission.current_progress >= mission.target_value} 
+            disabled={isPending || mission.current_progress < mission.target_value} 
           >
             {isPending ? <Loader2 className="animate-spin mr-2"/> : <CheckCircle className="mr-2"/>}
-            {mission.current_progress >= mission.target_value ? 'Claim Reward' : 'Mark as Complete (Demo)'}
+            {mission.current_progress >= mission.target_value ? 'Claim Reward' : 'Complete Mission'}
           </Button>
         )}
         {mission.status === 'locked' && (
@@ -322,8 +321,8 @@ export default function ChallengesPage() {
     </Card>
   );
   
-  if (isPending && userMissions.length === 0 && leaderboard.length === 0) {
-     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  if (isLoadingData) {
+     return <div className="flex justify-center items-center min-h-[calc(100vh-20rem)]"><Loader2 className="h-16 w-16 animate-spin text-primary" /><p className="ml-4 text-lg text-muted-foreground">Loading Challenges Data...</p></div>;
   }
 
   return (
@@ -347,16 +346,20 @@ export default function ChallengesPage() {
         <TabsContent value="missions" className="mt-8">
           <div className="mb-8">
             <h2 className="text-2xl font-headline font-semibold mb-2 glow-text-accent text-center">Daily Missions</h2>
+            {userMissions.filter(m => m.mission_type === 'daily').length === 0 && !isPending && (
+                 <p className="text-muted-foreground col-span-full text-center py-4">No daily missions currently active or assigned. Check back soon!</p>
+            )}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userMissions.filter(m => m.mission_type === 'daily').map(mission => <MissionCard key={mission.id} mission={mission} />)}
-              {userMissions.filter(m => m.mission_type === 'daily').length === 0 && <p className="text-muted-foreground col-span-full text-center py-4">No daily missions currently active. Check back soon!</p>}
             </div>
           </div>
           <div>
             <h2 className="text-2xl font-headline font-semibold mb-2 glow-text-accent text-center">Weekly Missions</h2>
+            {userMissions.filter(m => m.mission_type === 'weekly').length === 0 && !isPending && (
+                 <p className="text-muted-foreground col-span-full text-center py-4">No weekly missions currently active or assigned. Check back soon!</p>
+            )}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userMissions.filter(m => m.mission_type === 'weekly').map(mission => <MissionCard key={mission.id} mission={mission} />)}
-              {userMissions.filter(m => m.mission_type === 'weekly').length === 0 && <p className="text-muted-foreground col-span-full text-center py-4">No weekly missions currently active. Check back soon!</p>}
             </div>
           </div>
         </TabsContent>
@@ -371,9 +374,13 @@ export default function ChallengesPage() {
             <p className="text-muted-foreground text-center py-10">You haven't earned any badges yet. Complete missions to unlock them!</p>
            )}
            <h2 className="text-2xl font-headline font-semibold mt-10 mb-4 glow-text-accent text-center">Available Badges to Earn</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-60">
-                {availableBadges.map(badge => <BadgeCard key={badge.id} badge={badge} />)}
-            </div>
+            {availableBadges.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-60">
+                    {availableBadges.map(badge => <BadgeCard key={badge.id} badge={badge} />)}
+                </div>
+            ) : (
+                <p className="text-muted-foreground text-center py-10">All available badges have been earned or none are defined!</p>
+            )}
         </TabsContent>
 
         <TabsContent value="leaderboard" className="mt-8">
@@ -397,7 +404,7 @@ export default function ChallengesPage() {
                     ))}
                 </ul>
                 ) : (
-                 <p className="text-muted-foreground text-center py-10">Leaderboard is currently empty. Start completing missions!</p>
+                 <p className="text-muted-foreground text-center py-10">Leaderboard is currently empty or data is loading. Start completing missions!</p>
                 )}
             </CardContent>
           </Card>
@@ -407,3 +414,4 @@ export default function ChallengesPage() {
   );
 }
     
+

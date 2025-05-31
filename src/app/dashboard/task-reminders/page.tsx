@@ -24,6 +24,7 @@ export default function TaskRemindersPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [profileAlarmToneUrl, setProfileAlarmToneUrl] = useState<string | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [defaultAlarmFileExists, setDefaultAlarmFileExists] = useState(true); // Assume it exists initially
 
 
   useEffect(() => {
@@ -49,6 +50,14 @@ export default function TaskRemindersPage() {
         
         const toneUrl = profile?.alarm_tone_url || '/alarms/default_alarm.mp3';
         setProfileAlarmToneUrl(toneUrl);
+
+        // Check if default alarm file exists if it's being used
+        if (toneUrl === '/alarms/default_alarm.mp3') {
+            fetch('/alarms/default_alarm.mp3')
+                .then(response => setDefaultAlarmFileExists(response.ok))
+                .catch(() => setDefaultAlarmFileExists(false));
+        }
+
 
         if (toneUrl && !audioRef.current) { 
             const newAudio = new Audio(toneUrl);
@@ -104,8 +113,11 @@ export default function TaskRemindersPage() {
         })
       );
       
-      if (anyRingingNow && audioRef.current && audioRef.current.paused) {
-        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+      if (anyRingingNow && audioRef.current && audioRef.current.paused && defaultAlarmFileExists) {
+        audioRef.current.play().catch(e => {
+            console.error("Error playing audio:", e);
+            toast({variant: "destructive", title: "Audio Playback Error", description: "Could not play alarm sound. Check console."});
+        });
         setIsAudioPlaying(true);
       } else if (!anyRingingNow && audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
@@ -116,7 +128,8 @@ export default function TaskRemindersPage() {
     }, 1000); 
 
     return () => clearInterval(interval);
-  }, []); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultAlarmFileExists]); // Add defaultAlarmFileExists to dependencies
 
   const stopAudioIfNeeded = () => {
     const stillRinging = alarmTasks.some(task => task.isRinging);
@@ -218,7 +231,9 @@ export default function TaskRemindersPage() {
             <CardTitle className="text-2xl font-headline glow-text-accent">Active & Upcoming Alarms</CardTitle>
             <CardDescription>
                 Tasks from your <Link href="/dashboard/planner" className="text-primary hover:underline">Planner</Link> with alarms set. 
-                {profileAlarmToneUrl === '/alarms/default_alarm.mp3' ? " Default alarm tone is set." : (profileAlarmToneUrl ? " Custom alarm tone is active." : " Loading alarm tone..." )}
+                {profileAlarmToneUrl === '/alarms/default_alarm.mp3' 
+                    ? (defaultAlarmFileExists ? " Default alarm tone is set." : " Default alarm tone file (/alarms/default_alarm.mp3) seems to be missing in 'public' folder.")
+                    : (profileAlarmToneUrl ? " Custom alarm tone is active." : " Loading alarm tone..." )}
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -238,7 +253,7 @@ export default function TaskRemindersPage() {
                                 <div>
                                     <h3 className="text-xl font-bold text-destructive-foreground glow-text-destructive">{task.title}</h3>
                                     <p className="text-sm text-destructive-foreground/80">
-                                        Alarm was at: {format(parseISO(task.alarm_set_at!), "PPP, p")}
+                                        Alarm was at: {task.alarm_set_at ? format(parseISO(task.alarm_set_at), "PPP, p") : "N/A"}
                                     </p>
                                     {task.subject && <p className="text-xs text-destructive-foreground/70">Subject: {task.subject}</p>}
                                 </div>
@@ -266,7 +281,7 @@ export default function TaskRemindersPage() {
                                     <div>
                                         <h3 className="text-lg font-semibold text-primary glow-text-primary">{task.title}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                            Alarm at: {format(parseISO(task.alarm_set_at!), "PPP, p")}
+                                            Alarm at: {task.alarm_set_at ? format(parseISO(task.alarm_set_at), "PPP, p") : "N/A"}
                                         </p>
                                         {task.subject && <p className="text-xs text-muted-foreground">Subject: {task.subject}</p>}
                                     </div>
@@ -287,6 +302,7 @@ export default function TaskRemindersPage() {
                 <AlertDescription>
                     This page provides visual and audio cues for your set alarms when it's open in your browser. For alarms to work when the app is closed or in the background, browser notification permissions would be required (future enhancement). Ensure your device volume is on. 
                     You can set a custom alarm tone in your <Link href="/dashboard/profile" className="font-medium text-primary hover:underline">Profile Settings</Link>.
+                    {!defaultAlarmFileExists && profileAlarmToneUrl === '/alarms/default_alarm.mp3' && <span className="font-semibold text-destructive"> The default alarm sound file ('/alarms/default_alarm.mp3') was not found in the public folder. Please add it for default alarms to play.</span>}
                 </AlertDescription>
             </Alert>
         </CardContent>

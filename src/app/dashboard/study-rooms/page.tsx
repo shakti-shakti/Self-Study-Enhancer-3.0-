@@ -66,10 +66,18 @@ export default function StudyRoomsPage() {
     getCurrentUser();
   }, [supabase]);
   
+  const fetchRooms = useCallback(async () => {
+    startRoomOperationTransition(async () => {
+      const { data, error } = await supabase.from('study_rooms').select('*').order('created_at', { ascending: false });
+      if (error) toast({ variant: 'destructive', title: 'Error fetching rooms', description: error.message });
+      else setRooms(data || []);
+    });
+  }, [supabase, toast]);
+
+
   useEffect(() => {
     if(userId) fetchRooms();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, fetchRooms]);
 
   useEffect(() => {
     if (selectedRoom && userId) {
@@ -88,7 +96,7 @@ export default function StudyRoomsPage() {
               .eq('id', newMessage.user_id)
               .single();
             
-            console.log(`New message received, profile for ${newMessage.user_id}:`, profileData, "Error:", profileError);
+            console.log(`[Realtime] New message for room ${selectedRoom.id}, profile for ${newMessage.user_id}:`, profileData, "Error:", profileError);
 
 
             const newMessageWithProfile: StudyRoomMessageWithProfile = {
@@ -103,26 +111,18 @@ export default function StudyRoomsPage() {
         supabase.removeChannel(channel);
       };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom, userId, supabase]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const fetchRooms = async () => {
-    startRoomOperationTransition(async () => {
-      const { data, error } = await supabase.from('study_rooms').select('*').order('created_at', { ascending: false });
-      if (error) toast({ variant: 'destructive', title: 'Error fetching rooms', description: error.message });
-      else setRooms(data || []);
-    });
-  };
 
   const fetchMessages = async (roomId: string) => {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles!inner!user_id(email, full_name, avatar_url)') 
+        .select('*, profiles!user_id(email, full_name, avatar_url)') // Corrected join syntax based on how profiles are usually linked
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100); 
@@ -177,14 +177,14 @@ export default function StudyRoomsPage() {
                 studentQuestion: values.message_text, 
                 currentActivity: 'Chatting / Discussion',
             };
-            console.log('AI Moderation Call Input:', aiInput);
+            console.log('[AI Moderation] Calling AI with input:', aiInput);
             try {
                 const modResult = await moderateStudyRoom(aiInput);
-                console.log('AI Moderation Result:', modResult);
+                console.log('[AI Moderation] Received result:', modResult);
                 setAiModeration(modResult); 
             } catch (aiError: any) {
-                console.warn("AI Moderation Error:", aiError.message);
-                 setAiModeration({ clarificationOrAnswer: "AI Moderator is currently taking a short break. Please continue your discussion!"});
+                console.warn("[AI Moderation] Error calling AI:", aiError.message);
+                 setAiModeration({ clarificationOrAnswer: "AI Moderator is currently experiencing some turbulence. Please continue your discussion!"});
             }
         }
       }
@@ -193,7 +193,17 @@ export default function StudyRoomsPage() {
   
   const handleSelectRoom = (room: StudyRoom) => {
     setSelectedRoom(room);
-    setAiModeration(null); 
+    setAiModeration(null); // Reset AI moderation on room change
+    // Set an initial informative message for the AI panel
+    if (room.topic) {
+        setAiModeration({
+            clarificationOrAnswer: "AI Moderator is listening. Suggestions related to the room topic will appear here based on the chat."
+        });
+    } else {
+        setAiModeration({
+            clarificationOrAnswer: "No specific topic set for this room, so AI moderation is general."
+        });
+    }
   };
 
 
@@ -318,7 +328,7 @@ export default function StudyRoomsPage() {
             <CardContent className="space-y-4 text-sm">
                 {aiModeration?.clarificationOrAnswer && (
                      <div>
-                        <h4 className="font-semibold text-accent mb-1">AI Clarification/Answer:</h4>
+                        <h4 className="font-semibold text-accent mb-1">AI Insight:</h4>
                         <p className="bg-muted/30 p-2 rounded-md">{aiModeration.clarificationOrAnswer}</p>
                     </div>
                 )}
@@ -339,9 +349,6 @@ export default function StudyRoomsPage() {
                         <h4 className="font-semibold text-accent mb-1">Next Topic Suggestion:</h4>
                         <p className="bg-muted/30 p-2 rounded-md">{aiModeration.nextTopicSuggestion}</p>
                     </div>
-                )}
-                 {!aiModeration && (
-                    <p className="text-muted-foreground">AI moderator is active. Relevant suggestions will appear based on chat activity.</p>
                 )}
                  <Alert variant="default" className="mt-4 bg-muted/20 border-border/30">
                     <ShieldCheck className="h-5 w-5 text-primary" />
