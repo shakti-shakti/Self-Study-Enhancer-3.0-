@@ -1,3 +1,4 @@
+
 // src/app/dashboard/smart-doubt-resolver/page.tsx
 'use client';
 
@@ -199,7 +200,7 @@ export default function SmartDoubtResolverPage() {
                             <SelectTrigger className="input-glow h-11"><SelectValue placeholder="Help AI by selecting subject..." /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">None / Unsure</SelectItem>
+                            <SelectItem value="none">None / Unsure</SelectItem>
                             <SelectItem value="Physics">Physics</SelectItem>
                             <SelectItem value="Chemistry">Chemistry</SelectItem>
                             <SelectItem value="Biology (Botany)">Biology (Botany)</SelectItem>
@@ -261,3 +262,4 @@ export default function SmartDoubtResolverPage() {
     </div>
   );
 }
+

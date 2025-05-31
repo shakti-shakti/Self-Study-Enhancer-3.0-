@@ -25,14 +25,23 @@ export default async function DashboardPage() {
   if (user) {
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(id, topic, subject, class_level)')
+      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(*)')
       .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
       .limit(3);
     if (error) {
       console.error("[ Server ] Error fetching recent quiz attempts:", error.message);
     } else {
-      recentQuizAttempts = data as QuizAttemptWithQuizTopic[];
+      // Manually cast as QuizAttemptWithQuizTopic might not perfectly match if quizzes!inner(*) is used
+      // This is a simplification; ideally, type generation would handle this better or select specific columns.
+      recentQuizAttempts = (data as any[] || []).map(attempt => ({
+        ...attempt,
+        quizzes: attempt.quizzes ? { // Ensure quizzes object is not null
+            topic: attempt.quizzes.topic, 
+            class_level: attempt.quizzes.class_level, 
+            subject: attempt.quizzes.subject 
+        } : null
+      })) as QuizAttemptWithQuizTopic[];
     }
   }
   

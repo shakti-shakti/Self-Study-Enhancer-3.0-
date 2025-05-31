@@ -197,10 +197,10 @@ export default function ActivityHistoryPage() {
                     <span className="mt-1">{getActivityIcon(activity.activity_type)}</span>
                     <div className="flex-1">
                         <p className="font-semibold text-foreground">{activity.description}</p>
-                        <p className="text-xs text-muted-foreground flex items-center">
+                        <div className="text-xs text-muted-foreground flex items-center">
                             <CalendarDays className="h-3 w-3 mr-1.5"/> {format(parseISO(activity.created_at), "PPP, p")} 
                             <Badge variant="outline" className="ml-2">{activity.activity_type.replace(/_/g, ' ')}</Badge>
-                        </p>
+                        </div>
                         {activity.details && typeof activity.details === 'object' && Object.keys(activity.details).length > 0 && (
                              <details className="mt-1 text-xs">
                                 <summary className="cursor-pointer text-accent hover:underline">View Details</summary>

@@ -1,3 +1,4 @@
+
 // src/app/dashboard/guidelines/page.tsx
 'use client';
 
@@ -16,6 +17,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
 
 type GuidelineTab = Tables<'neet_guidelines'>;
 
@@ -239,7 +242,8 @@ export default function GuidelinesPage() {
             <DialogTitle className="font-headline text-2xl glow-text-primary">{editingTab ? 'Edit Tab Name' : 'Create New Tab'}</DialogTitle>
             <DialogDescription>{editingTab ? 'Rename your custom guideline tab.' : 'Enter a name for your new guideline tab.'}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={tabForm.handleSubmit(handleAddOrEditTab)} className="space-y-4">
+          <Form {...tabForm}>
+            <form onSubmit={tabForm.handleSubmit(handleAddOrEditTab)} className="space-y-4">
             <FormField control={tabForm.control} name="tab_name" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Tab Name</FormLabel>
@@ -254,6 +258,7 @@ export default function GuidelinesPage() {
               </Button>
             </DialogFooter>
           </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -336,3 +341,4 @@ export default function GuidelinesPage() {
     </div>
   );
 }
+

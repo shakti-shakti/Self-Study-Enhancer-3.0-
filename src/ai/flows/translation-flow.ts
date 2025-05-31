@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Translates text between languages using an AI model.
@@ -10,14 +11,14 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const TranslationInputSchema = z.object({
+const TranslationInputSchema = z.object({
   textToTranslate: z.string().describe('The text content to be translated.'),
   targetLanguage: z.string().describe('The target language code (e.g., "hi" for Hindi, "fr" for French, "en" for English).'),
   sourceLanguage: z.string().optional().describe('The source language code (e.g., "en" for English, "hi" for Hindi). If not provided, the AI will attempt to auto-detect.'),
 });
 export type TranslationInput = z.infer<typeof TranslationInputSchema>;
 
-export const TranslationOutputSchema = z.object({
+const TranslationOutputSchema = z.object({
   translated_text: z.string().describe('The translated text.'),
   detected_source_language: z.string().optional().describe('The language code of the source text detected by the AI (e.g., "en", "hi"), if sourceLanguage was not provided or if detection differs.'),
 });
@@ -62,3 +63,4 @@ const translationFlow = ai.defineFlow(
     return output;
   }
 );
+

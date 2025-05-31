@@ -342,8 +342,8 @@ export default function QuizzesPage() {
         });
 
       } catch (error: any) {
-        console.error("Error submitting quiz and saving to DB:", error);
-        toast({ variant: 'destructive', title: 'Error Submitting Quiz', description: error.message || 'An unexpected error occurred.' });
+        console.error("Error submitting quiz and saving to DB:", error, JSON.stringify(error, null, 2));
+        toast({ variant: 'destructive', title: 'Error Submitting Quiz', description: error.message || 'An unexpected error occurred. Check console for details.' });
       }
     });
   }
@@ -688,3 +688,4 @@ export default function QuizzesPage() {
     </div>
   );
 }
+

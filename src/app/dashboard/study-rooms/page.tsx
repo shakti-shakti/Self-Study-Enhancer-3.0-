@@ -1,3 +1,4 @@
+
 // src/app/dashboard/study-rooms/page.tsx
 'use client';
 
@@ -17,7 +18,7 @@ import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from
 import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info } from 'lucide-react';
 import { moderateStudyRoom, type ModerateStudyRoomInput, type ModerateStudyRoomOutput } from '@/ai/flows/ai-moderated-study-rooms';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO, format } from 'date-fns';
 
 
 const createRoomSchema = z.object({
@@ -343,3 +344,4 @@ export default function StudyRoomsPage() {
     </div>
   );
 }
+
