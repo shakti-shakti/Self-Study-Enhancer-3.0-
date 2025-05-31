@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates quiz questions based on topic, difficulty, and number of questions for NEET aspirants.
@@ -20,7 +21,7 @@ const QuizQuestionSchema = z.object({
 export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
 const GenerateQuizInputSchema = z.object({
-  topic: z.string().describe('The specific topic for the quiz (e.g., "Cell Biology - Mitochondria", "Physics - Laws of Motion", "Organic Chemistry - Alcohols"). Be as specific as possible for better quality.'),
+  topic: z.string().describe('The specific topic for the quiz (e.g., "Cell Biology - Mitochondria", "Physics - Laws of Motion", "Organic Chemistry - Alcohols"). This can include class, subject, chapter, and specific topics for better quality.'),
   difficulty: z.enum(['easy', 'medium', 'hard']).describe('The difficulty level of the quiz (easy, medium, hard).'),
   numQuestions: z.number().int().min(1).max(10).describe('The number of questions to generate for the quiz (between 1 and 10).'),
 });
@@ -40,7 +41,10 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `You are an expert NEET (Indian medical entrance exam) question setter. Generate a quiz with {{numQuestions}} multiple-choice questions on the topic "{{topic}}" with "{{difficulty}}" difficulty.
+  prompt: `You are an expert NEET (Indian medical entrance exam) question setter.
+Generate a quiz with {{numQuestions}} multiple-choice questions on the topic "{{topic}}" with "{{difficulty}}" difficulty.
+The topic string might include subject, class level, chapter, specific sub-topics, and desired question source (NCERT, PYQ, Mixed). Use all provided details to make the questions highly relevant.
+
 Each question must adhere to the NEET pattern:
 - Clear and unambiguous question text.
 - Exactly 4 plausible options (A, B, C, D).
@@ -88,7 +92,7 @@ const generateQuizFlow = ai.defineFlow(
     // Ensure explanationPrompt is robustly added if model misses it
     const questionsWithGuaranteedExplanation = output.questions.map(q => ({
       ...q,
-      explanationPrompt: q.explanationPrompt || `Question: ${q.questionText}\nOptions:\n${q.options.map((opt, i) => `${String.fromCharCode(65+i)}) ${opt}`).join('\n')}\nCorrect Answer: ${q.options[q.correctOptionIndex]}\nExplain why this is the correct answer and why the other options are incorrect for a NEET aspirant, covering relevant concepts.`,
+      explanationPrompt: q.explanationPrompt || `Question: ${q.question_text}\nOptions:\n${q.options.map((opt, i) => `${String.fromCharCode(65+i)}) ${opt}`).join('\n')}\nCorrect Answer: ${q.options[q.correct_option_index]}\nExplain why this is the correct answer and why the other options are incorrect for a NEET aspirant, covering relevant concepts.`,
     }));
 
     return { questions: questionsWithGuaranteedExplanation };

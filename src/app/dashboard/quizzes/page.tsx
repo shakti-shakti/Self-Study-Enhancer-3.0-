@@ -1,3 +1,4 @@
+
 // src/app/dashboard/quizzes/page.tsx
 'use client';
 
@@ -37,10 +38,11 @@ import { cn } from '@/lib/utils';
 const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Botany', 'Zoology'], { required_error: 'Please select a subject.' }),
+  chapter: z.string().optional(), // Added chapter field
   topics: z.string().optional(), // comma-separated topics
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  numQuestions: z.coerce.number().int().min(1).max(10), 
+  numQuestions: z.coerce.number().int().min(1).max(10),
 });
 
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
@@ -87,10 +89,12 @@ export default function QuizzesPage() {
       numQuestions: 5,
       class_level: undefined,
       subject: undefined,
+      chapter: '',
+      topics: '',
       question_source: undefined,
     },
   });
-  
+
   useEffect(() => {
     const getCurrentUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -113,8 +117,9 @@ export default function QuizzesPage() {
       setCurrentQuestionIndex(0);
 
       try {
+        const topicForAI = `${values.subject} - Class ${values.class_level}${values.chapter ? ` - Chapter: ${values.chapter}` : ''}${values.topics ? ` - Topics: ${values.topics}` : ''} ${values.question_source ? `- Source: ${values.question_source}` : ''}`;
         const aiInput: GenerateQuizInput = {
-          topic: `${values.subject} - ${values.class_level} ${values.topics ? `- ${values.topics}` : ''} ${values.question_source ? `- Source: ${values.question_source}` : ''}`,
+          topic: topicForAI,
           difficulty: values.difficulty,
           numQuestions: values.numQuestions,
         };
@@ -124,14 +129,18 @@ export default function QuizzesPage() {
           toast({ variant: 'destructive', title: 'Quiz Generation Failed', description: 'The AI could not generate questions for this topic. Please try again.' });
           return;
         }
-        
+
         const quizId = uuidv4();
+        const allTopicsForDB: string[] = [];
+        if (values.chapter) allTopicsForDB.push(`Chapter: ${values.chapter.trim()}`);
+        if (values.topics) allTopicsForDB.push(...values.topics.split(',').map(t => t.trim()).filter(t => t));
+
         const quizDataForState: CurrentGeneratedQuiz['quizData'] = {
             id: quizId,
             user_id: userId,
             class_level: values.class_level,
             subject: values.subject,
-            topics: values.topics?.split(',').map(t => t.trim()).filter(t => t) || null,
+            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null,
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
@@ -146,12 +155,12 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.topics?.split(',').map(t => t.trim()).filter(t => t).join(', ') || values.subject || null,
+            topic: allTopicsForDB.length > 0 ? allTopicsForDB.join('; ') : values.subject || null,
             source: values.question_source || null,
-            neet_syllabus_year: 2026,
+            neet_syllabus_year: 2026, // Assuming a default, can be made configurable
             created_at: new Date().toISOString(),
         }));
-        
+
         setCurrentGeneratedQuiz({ quizData: quizDataForState, questions: questionsForState });
         setUserAnswers(questionsForState.map(q => ({ questionId: q.id, selectedOptionIndex: null })));
 
@@ -167,7 +176,7 @@ export default function QuizzesPage() {
       }
     });
   }
-  
+
   const handleAnswerChange = (questionId: string, selectedOptionIndex: number) => {
     setUserAnswers(prevAnswers => prevAnswers.map(ans => ans.questionId === questionId ? { ...ans, selectedOptionIndex } : ans));
   };
@@ -180,7 +189,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -191,7 +200,7 @@ export default function QuizzesPage() {
       try {
         const quizToInsert = {
             ...currentGeneratedQuiz.quizData,
-            user_id: userId, // Ensure user_id is always set for quiz owner
+            user_id: userId, 
         }
         const { error: quizError } = await supabase.from('quizzes').insert(quizToInsert);
         if (quizError) throw quizError;
@@ -201,7 +210,7 @@ export default function QuizzesPage() {
         }));
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
         if (questionsError) throw questionsError;
-        
+
         let score = 0;
         const questionsWithUserAnswers = currentGeneratedQuiz.questions.map(q => {
             const userAnswer = userAnswers.find(ans => ans.questionId === q.id);
@@ -221,14 +230,14 @@ export default function QuizzesPage() {
           answers_submitted: userAnswers.map(ua => ({q: ua.questionId, a: ua.selectedOptionIndex})),
           completed_at: new Date().toISOString(),
         };
-        
+
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
         if (attemptError) throw attemptError;
 
-        setQuizResults({ 
-            score, 
-            totalQuestions: currentGeneratedQuiz.questions.length, 
-            attemptId, 
+        setQuizResults({
+            score,
+            totalQuestions: currentGeneratedQuiz.questions.length,
+            attemptId,
             quizId: currentGeneratedQuiz.quizData.id,
             questionsWithUserAnswers
         });
@@ -250,14 +259,14 @@ export default function QuizzesPage() {
       try {
         const studentAnswerText = studentAnswerIndex !== null && question.options ? (question.options as string[])[studentAnswerIndex] : "Not Answered";
         const correctAnswerText = question.options ? (question.options as string[])[question.correct_option_index] : "N/A";
-        
+
         const input: ExplainQuizQuestionInput = {
           question: question.question_text,
           answer: correctAnswerText,
           studentAnswer: studentAnswerText,
-          topic: currentGeneratedQuiz?.quizData.subject || 'general', 
+          topic: currentGeneratedQuiz?.quizData.subject || 'general',
         };
-        
+
         const result = await explainQuizQuestion(input);
         setExplanations(prev => ({ ...prev, [question.id]: result.explanation }));
       } catch (error: any) {
@@ -274,7 +283,7 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id, 
+                question_id: question.id,
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
@@ -286,8 +295,7 @@ export default function QuizzesPage() {
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              // Check for unique constraint violation (question_id + user_id)
-              if (error.code === '23505') { // PostgreSQL unique violation error code
+              if (error.code === '23505') { 
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
               } else {
                 throw error;
@@ -300,7 +308,7 @@ export default function QuizzesPage() {
         }
     });
   }
-  
+
   const renderQuizTaker = () => {
     if (!currentGeneratedQuiz) return null;
     const question = currentGeneratedQuiz.questions[currentQuestionIndex];
@@ -363,7 +371,7 @@ export default function QuizzesPage() {
 
   const renderResults = () => {
     if (!quizResults || !currentGeneratedQuiz) return null;
-    
+
     const percentage = quizResults.totalQuestions > 0 ? (quizResults.score / quizResults.totalQuestions) * 100 : 0;
     let feedbackMessage: ReactNode;
     let feedbackColor = "text-red-500";
@@ -435,14 +443,14 @@ export default function QuizzesPage() {
           </Accordion>
         </CardContent>
         <CardFooter className="flex justify-center">
-           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset({ difficulty: 'medium', numQuestions: 5}); }} className="glow-button">
+           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset({ difficulty: 'medium', numQuestions: 5, chapter: '', topics: ''}); }} className="glow-button">
             <RotateCcw className="mr-2"/> Take Another Quiz
           </Button>
         </CardFooter>
       </Card>
     );
   };
-  
+
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
@@ -493,10 +501,17 @@ export default function QuizzesPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
+                 <FormField control={configForm.control} name="chapter" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Chapter (Optional)</FormLabel>
+                      <FormControl><Input placeholder="E.g., Cell - The Unit of Life" {...field} className="h-11 text-base input-glow"/></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                )} />
                 <FormField control={configForm.control} name="topics" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium">Topics (Optional, comma-separated)</FormLabel>
-                      <FormControl><Input placeholder="E.g., Thermodynamics, Cell Cycle" {...field} className="h-11 text-base input-glow"/></FormControl>
+                      <FormLabel className="text-base font-medium">Specific Topics (Optional, comma-separated)</FormLabel>
+                      <FormControl><Input placeholder="E.g., Mitochondria, Ribosomes" {...field} className="h-11 text-base input-glow"/></FormControl>
                       <FormMessage />
                     </FormItem>
                 )} />
@@ -544,7 +559,7 @@ export default function QuizzesPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {(isGenerating && !currentGeneratedQuiz) && (
         <div className="text-center py-10">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
