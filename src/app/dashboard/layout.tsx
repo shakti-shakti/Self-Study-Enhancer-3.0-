@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera // Added Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils'; 
-import ThemeProvider from '@/components/ui/theme-provider'; // Added ThemeProvider
+import ThemeProvider from '@/components/ui/theme-provider';
 
 export const metadata: Metadata = {
   title: 'Dashboard - NEET Prep+',
@@ -62,6 +62,7 @@ const accountNavItems = [
   { name: 'Activity History', href: '/dashboard/activity-history', icon: <History /> },
   { name: 'Mind & Focus Hub', href: '/dashboard/mental-health', icon: <Brain /> },
   { name: 'Mood Tracker', href: '/dashboard/mood-tracker', icon: <Smile /> },
+  { name: 'Selfie Attendance', href: '/dashboard/selfie-attendance', icon: <Camera /> },
   { name: 'Study Rooms', href: '/dashboard/study-rooms', icon: <Users /> },
   { name: 'Study Store', href: '/dashboard/study-store', icon: <ShoppingCart /> },
   { name: 'App Customization', href: '/dashboard/app-customization', icon: <SlidersHorizontal /> },
@@ -82,6 +83,9 @@ export default async function DashboardLayout({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
+  // Fetch user profile data
+  // Note: Profile table has 'custom_countdown_event_name' and 'custom_countdown_target_date'
+  // Ensure any profile fetches select correct column names.
   const profile = user ? (await supabase
     .from('profiles')
     .select('full_name, avatar_url, email, theme') 
@@ -261,5 +265,3 @@ export default async function DashboardLayout({
     </ThemeProvider>
   );
 }
-
-    
