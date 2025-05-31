@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Generates a random syllabus-related fact for class 11/12 students preparing for NEET.
@@ -10,13 +11,13 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateSyllabusFactInputSchema = z.object({
+const GenerateSyllabusFactInputSchema = z.object({
   class_level: z.string().describe('The class level, e.g., "11", "12", or "11/12" for general NEET syllabus. This helps contextualize the fact.'),
   subject: z.enum(['Physics', 'Chemistry', 'Botany', 'Zoology', 'General Science']).optional().describe('Optional subject to narrow down the fact (Physics, Chemistry, Botany, Zoology). If "General Science", pick from any.'),
 });
 export type GenerateSyllabusFactInput = z.infer<typeof GenerateSyllabusFactInputSchema>;
 
-export const GenerateSyllabusFactOutputSchema = z.object({
+const GenerateSyllabusFactOutputSchema = z.object({
   fact: z.string().describe('A random, engaging, concise, and syllabus-related fact relevant to NEET (India) for the specified class level and subject.'),
   source_hint: z.string().optional().describe('A brief hint to the source, chapter, or specific topic of the fact (e.g., "NCERT Class 11 Biology, Chapter 8: Cell Structure", "Concept from Kinematics").'),
 });
