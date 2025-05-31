@@ -5,13 +5,13 @@
  * - generateQuiz - A function that generates a quiz.
  * - GenerateQuizInput - The input type for the generateQuiz function.
  * - GenerateQuizOutput - The return type for the generateQuiz function.
- * - QuizQuestionSchema - The Zod schema for a single quiz question.
+ * - QuizQuestion - The TypeScript type for a single quiz question.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const QuizQuestionSchema = z.object({
+const QuizQuestionSchema = z.object({
   questionText: z.string().describe('The text of the quiz question, clearly formulated.'),
   options: z.array(z.string()).length(4).describe('An array of exactly 4 possible answer options (A, B, C, D).'),
   correctOptionIndex: z.number().int().min(0).max(3).describe('The 0-based index of the correct option in the options array.'),
