@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Performs calculations or answers math queries using an AI model.
@@ -10,12 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const CalculatorInputSchema = z.object({
+const CalculatorInputSchema = z.object({
   expression: z.string().describe('The mathematical expression to calculate, an equation to solve, or a math-related question (e.g., "25 * 4 + 100/2", "solve 2x + 5 = 15 for x", "What is the integral of x^2?").'),
 });
 export type CalculatorInput = z.infer<typeof CalculatorInputSchema>;
 
-export const CalculatorOutputSchema = z.object({
+const CalculatorOutputSchema = z.object({
   result: z.string().describe('The numerical result of the calculation, the solution to the equation, or the answer to the math query.'),
   explanation: z.string().optional().describe('A step-by-step explanation or clarification if the input was complex or a query rather than a simple calculation.'),
 });
