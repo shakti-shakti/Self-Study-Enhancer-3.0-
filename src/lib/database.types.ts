@@ -9,6 +9,58 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          full_name: string | null
+          avatar_url: string | null
+          updated_at: string | null
+          username: string | null
+          class_level: string | null // e.g., "11", "12"
+          target_year: number | null // e.g., 2026
+          theme: string | null // e.g., "dark", "light"
+          alarm_tone_url: string | null
+          custom_countdown_event_name: string | null
+          custom_countdown_target_date: string | null
+        }
+        Insert: {
+          id: string // user_id from auth.users
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+          username?: string | null
+          class_level?: string | null
+          target_year?: number | null
+          theme?: string | null
+          alarm_tone_url?: string | null
+          custom_countdown_event_name?: string | null
+          custom_countdown_target_date?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          updated_at?: string | null
+          username?: string | null
+          class_level?: string | null
+          target_year?: number | null
+          theme?: string | null
+          alarm_tone_url?: string | null
+          custom_countdown_event_name?: string | null
+          custom_countdown_target_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       mood_logs: {
         Row: {
           id: string
@@ -47,7 +99,10 @@ export type Database = {
         Row: {
           id: string
           user_id: string | null 
-          topic: string
+          class_level: string | null // "11" or "12"
+          subject: string | null // Physics, Chemistry, Botany, Zoology
+          topics: string[] | null // Array of topics
+          question_source: string | null // NCERT, PYQ, Mixed
           difficulty: string
           num_questions: number
           created_at: string
@@ -55,7 +110,10 @@ export type Database = {
         Insert: {
           id?: string
           user_id?: string | null 
-          topic: string
+          class_level?: string | null
+          subject?: string | null
+          topics?: string[] | null
+          question_source?: string | null
           difficulty: string
           num_questions: number
           created_at?: string
@@ -63,7 +121,10 @@ export type Database = {
         Update: {
           id?: string
           user_id?: string | null
-          topic?: string
+          class_level?: string | null
+          subject?: string | null
+          topics?: string[] | null
+          question_source?: string | null
           difficulty?: string
           num_questions?: number
           created_at?: string
@@ -80,30 +141,45 @@ export type Database = {
       questions: {
         Row: {
           id: string
-          quiz_id: string
+          quiz_id: string | null // Can be null if saved independently
           question_text: string
           options: Json 
           correct_option_index: number 
           explanation_prompt: string | null 
           created_at: string
+          class_level: string | null
+          subject: string | null
+          topic: string | null
+          source: string | null // NCERT, PYQ etc.
+          neet_syllabus_year: number | null // e.g. 2026
         }
         Insert: {
           id?: string
-          quiz_id: string
+          quiz_id?: string | null
           question_text: string
           options: Json 
           correct_option_index: number
           explanation_prompt?: string | null
           created_at?: string
+          class_level?: string | null
+          subject?: string | null
+          topic?: string | null
+          source?: string | null
+          neet_syllabus_year?: number | null
         }
         Update: {
           id?: string
-          quiz_id?: string
+          quiz_id?: string | null
           question_text?: string
           options?: Json
           correct_option_index?: number
           explanation_prompt?: string | null
           created_at?: string
+          class_level?: string | null
+          subject?: string | null
+          topic?: string | null
+          source?: string | null
+          neet_syllabus_year?: number | null
         }
         Relationships: [
           {
@@ -114,12 +190,71 @@ export type Database = {
           }
         ]
       }
+      saved_questions: {
+        Row: {
+            id: string
+            user_id: string
+            question_id: string // FK to original question if applicable, or stores the question data directly
+            question_text: string
+            options: Json
+            correct_option_index: number
+            explanation_prompt: string | null
+            class_level: string | null
+            subject: string | null
+            topic: string | null
+            source: string | null
+            saved_at: string
+        }
+        Insert: {
+            id?: string
+            user_id: string
+            question_id?: string
+            question_text: string
+            options: Json
+            correct_option_index: number
+            explanation_prompt?: string | null
+            class_level?: string | null
+            subject?: string | null
+            topic?: string | null
+            source?: string | null
+            saved_at?: string
+        }
+        Update: {
+            id?: string
+            user_id?: string
+            question_id?: string
+            question_text?: string
+            options?: Json
+            correct_option_index?: number
+            explanation_prompt?: string | null
+            class_level?: string | null
+            subject?: string | null
+            topic?: string | null
+            source?: string | null
+            saved_at?: string
+        }
+        Relationships: [
+            {
+                foreignKeyName: "saved_questions_user_id_fkey"
+                columns: ["user_id"]
+                referencedRelation: "users"
+                referencedColumns: ["id"]
+            },
+            {
+                foreignKeyName: "saved_questions_question_id_fkey"
+                columns: ["question_id"]
+                referencedRelation: "questions"
+                referencedColumns: ["id"]
+            }
+        ]
+      }
       quiz_attempts: {
         Row: {
           id: string
           user_id: string
           quiz_id: string
           score: number
+          total_questions: number
           answers_submitted: Json 
           completed_at: string
           created_at: string
@@ -129,6 +264,7 @@ export type Database = {
           user_id: string
           quiz_id: string
           score: number
+          total_questions: number
           answers_submitted: Json
           completed_at?: string
           created_at?: string
@@ -138,6 +274,7 @@ export type Database = {
           user_id?: string
           quiz_id?: string
           score?: number
+          total_questions?: number
           answers_submitted?: Json
           completed_at?: string
           created_at?: string
@@ -157,16 +294,136 @@ export type Database = {
           }
         ]
       }
-      study_plans: {
+      study_plans: { // For Day, Month, Year planners
+        Row: {
+          id: string
+          user_id: string
+          title: string // Task name
+          description: string | null
+          start_time: string | null // TIMESTAMPTZ for Day Planner specific tasks
+          duration_minutes: number | null // For Day Planner
+          due_date: string // TIMESTAMPTZ - general due date, applicable for all planner types
+          completed: boolean
+          subject: string | null
+          class_level: string | null // "11" or "12" for Month Planner
+          plan_type: string // 'day_task', 'month_subject_task', 'year_goal', 'revision' etc.
+          created_at: string
+          alarm_set_at: string | null // TIMESTAMPTZ if alarm is set for this task
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          start_time?: string | null
+          duration_minutes?: number | null
+          due_date: string 
+          completed?: boolean
+          subject?: string | null
+          class_level?: string | null
+          plan_type: string
+          created_at?: string
+          alarm_set_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          start_time?: string | null
+          duration_minutes?: number | null
+          due_date?: string 
+          completed?: boolean
+          subject?: string | null
+          class_level?: string | null
+          plan_type?: string
+          created_at?: string
+          alarm_set_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_plans_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      neet_guidelines: {
+        Row: {
+          id: string
+          user_id: string
+          tab_name: string
+          content: string // Markdown or rich text
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tab_name: string
+          content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tab_name?: string
+          content?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neet_guidelines_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      activity_logs: {
+        Row: {
+          id: string
+          user_id: string
+          activity_type: string // e.g., 'task_completed', 'test_solved', 'content_viewed', 'ai_query'
+          description: string // e.g., "Completed Physics Chapter 5 MCQs"
+          details: Json | null // additional context, e.g. {"quiz_id": "uuid", "score": 80}
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          activity_type: string
+          description: string
+          details?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          activity_type?: string
+          description?: string
+          details?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      custom_tasks: { // For the Custom Task Dashboard
         Row: {
           id: string
           user_id: string
           title: string
           description: string | null
-          due_date: string 
+          due_date: string | null
           completed: boolean
-          subject: string | null
-          plan_type: string 
           created_at: string
         }
         Insert: {
@@ -174,10 +431,8 @@ export type Database = {
           user_id: string
           title: string
           description?: string | null
-          due_date: string 
+          due_date?: string | null
           completed?: boolean
-          subject?: string | null
-          plan_type?: string
           created_at?: string
         }
         Update: {
@@ -185,15 +440,152 @@ export type Database = {
           user_id?: string
           title?: string
           description?: string | null
-          due_date?: string 
+          due_date?: string | null
           completed?: boolean
-          subject?: string | null
-          plan_type?: string
           created_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "study_plans_user_id_fkey"
+            foreignKeyName: "custom_tasks_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_files: { // For File & Image Uploads
+        Row: {
+          id: string
+          user_id: string
+          file_name: string
+          file_path: string // Path in Supabase Storage
+          file_type: string // e.g., 'pdf', 'png', 'docx'
+          size_bytes: number
+          description: string | null
+          uploaded_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          file_name: string
+          file_path: string
+          file_type: string
+          size_bytes: number
+          description?: string | null
+          uploaded_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          size_bytes?: number
+          description?: string | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_files_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      dictionary_history: {
+        Row: {
+          id: string
+          user_id: string
+          word: string
+          definition: string
+          searched_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          word: string
+          definition: string
+          searched_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          word?: string
+          definition?: string
+          searched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dictionary_history_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      translation_history: {
+        Row: {
+          id: string
+          user_id: string
+          original_text: string
+          translated_text: string
+          source_language: string
+          target_language: string
+          translated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          original_text: string
+          translated_text: string
+          source_language: string
+          target_language: string
+          translated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          original_text?: string
+          translated_text?: string
+          source_language?: string
+          target_language?: string
+          translated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_history_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      calculator_history: {
+        Row: {
+          id: string
+          user_id: string
+          expression: string
+          result: string
+          calculated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          expression: string
+          result: string
+          calculated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          expression?: string
+          result?: string
+          calculated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calculator_history_user_id_fkey"
             columns: ["user_id"]
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -333,34 +725,31 @@ export type Database = {
           }
         ]
       }
-      study_assistant_logs: {
+      study_assistant_logs: { // For AI Assistant Chat History
         Row: {
           id: string
           user_id: string
-          query: string
-          context: string | null
-          preferences: string | null
-          ai_answer: string | null
-          ai_study_tips: Json | null 
+          session_id: string // To group messages into conversations
+          role: "user" | "ai" // To distinguish between user query and AI response
+          content: string // The actual message text
+          ai_study_tips: Json | null // If AI provided tips as part of response
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          query: string
-          context?: string | null
-          preferences?: string | null
-          ai_answer?: string | null
+          session_id: string
+          role: "user" | "ai"
+          content: string
           ai_study_tips?: Json | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          query?: string
-          context?: string | null
-          preferences?: string | null
-          ai_answer?: string | null
+          session_id?: string
+          role?: "user" | "ai"
+          content?: string
           ai_study_tips?: Json | null
           created_at?: string
         }
@@ -407,37 +796,6 @@ export type Database = {
           }
         ]
       }
-      profiles: {
-        Row: {
-          id: string
-          email: string | null
-          full_name: string | null
-          avatar_url: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id: string
-          email?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          email?: string | null
-          full_name?: string | null
-          avatar_url?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       missions: {
         Row: {
           id: string;
@@ -448,6 +806,8 @@ export type Database = {
           badge_id_reward: string | null; // Foreign key to badges table
           is_active: boolean;
           created_at: string;
+          target_value: number; // e.g. solve 10 questions, study 2 hours (in minutes)
+          criteria_type: string; // e.g. 'quiz_attempts', 'study_hours_logged'
         };
         Insert: {
           id?: string;
@@ -458,6 +818,8 @@ export type Database = {
           badge_id_reward?: string | null;
           is_active?: boolean;
           created_at?: string;
+          target_value: number;
+          criteria_type: string;
         };
         Update: {
           id?: string;
@@ -468,6 +830,8 @@ export type Database = {
           badge_id_reward?: string | null;
           is_active?: boolean;
           created_at?: string;
+          target_value?: number;
+          criteria_type?: string;
         };
         Relationships: [
           {
@@ -483,8 +847,8 @@ export type Database = {
           id: string;
           user_id: string;
           mission_id: string;
-          status: "accepted" | "in_progress" | "completed" | "failed";
-          progress: number; // e.g., 0-100 for percentage, or count
+          status: "locked" | "active" | "completed" | "failed";
+          current_progress: number; // User's current progress
           completed_at: string | null;
           started_at: string;
         };
@@ -492,8 +856,8 @@ export type Database = {
           id?: string;
           user_id: string;
           mission_id: string;
-          status?: "accepted" | "in_progress" | "completed" | "failed";
-          progress?: number;
+          status?: "locked" | "active" | "completed" | "failed";
+          current_progress?: number;
           completed_at?: string | null;
           started_at?: string;
         };
@@ -501,8 +865,8 @@ export type Database = {
           id?: string;
           user_id?: string;
           mission_id?: string;
-          status?: "accepted" | "in_progress" | "completed" | "failed";
-          progress?: number;
+          status?: "locked" | "active" | "completed" | "failed";
+          current_progress?: number;
           completed_at?: string | null;
           started_at?: string;
         };
@@ -526,15 +890,15 @@ export type Database = {
           id: string;
           name: string;
           description: string;
-          icon_url: string | null; // URL or identifier for badge image/icon
-          criteria: string; // How to earn the badge
+          icon_name_or_url: string; // Can be Lucide icon name or direct URL
+          criteria: string; 
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
           description: string;
-          icon_url?: string | null;
+          icon_name_or_url: string;
           criteria: string;
           created_at?: string;
         };
@@ -542,7 +906,7 @@ export type Database = {
           id?: string;
           name?: string;
           description?: string;
-          icon_url?: string | null;
+          icon_name_or_url?: string;
           criteria?: string;
           created_at?: string;
         };
@@ -586,7 +950,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          score: number; // Could be total points, completed missions, etc.
+          score: number; 
           rank: number | null;
           period: "daily" | "weekly" | "all_time";
           last_updated: string;
@@ -611,10 +975,82 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "users";
+            referencedRelation: "users"; // Assuming you have a 'profiles' table or join with auth.users
             referencedColumns: ["id"];
           }
         ];
+      }
+       ncert_books_metadata: { // For NCERT Book Viewer
+        Row: {
+          id: string
+          class_level: string // "11" or "12"
+          subject: string // "Physics", "Chemistry", "Maths", "Biology"
+          book_name: string // e.g., "Physics Part 1"
+          chapters: Json // JSON array of chapter names: [{"name": "Chapter 1: ...", "pdf_filename": "chapter1.pdf"}, ...]
+          cover_image_url: string | null
+        }
+        Insert: {
+          id?: string
+          class_level: string
+          subject: string
+          book_name: string
+          chapters: Json
+          cover_image_url?: string | null
+        }
+        Update: {
+          id?: string
+          class_level?: string
+          subject?: string
+          book_name?: string
+          chapters?: Json
+          cover_image_url?: string | null
+        }
+        Relationships: []
+      }
+      user_ncert_notes: { // For notes on NCERT books
+        Row: {
+          id: string
+          user_id: string
+          book_id: string // FK to ncert_books_metadata
+          chapter_name: string // Specific chapter
+          page_number: number | null // Optional, if notes are page-specific
+          note_content: string // Could be markdown, rich text, or JSON for annotations
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          book_id: string
+          chapter_name: string
+          page_number?: number | null
+          note_content: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          book_id?: string
+          chapter_name?: string
+          page_number?: number | null
+          note_content?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ncert_notes_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ncert_notes_book_id_fkey"
+            columns: ["book_id"]
+            referencedRelation: "ncert_books_metadata"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
@@ -712,5 +1148,14 @@ export type Enums<
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
     
+// Helper type for joined data, e.g. Quiz Attempts with Quiz Topic
+export type QuizAttemptWithQuizTopic = Tables<'quiz_attempts'> & {
+  quizzes: { topic: string } | null;
+};
 
-    
+// Extending StudyRoomMessage to include profile information
+export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
+  profiles: { email: string | null; full_name: string | null; avatar_url: string | null } | null;
+};
+
+export type StudyPlanWithAlarm = Tables<'study_plans'>; // Already includes alarm_set_at
