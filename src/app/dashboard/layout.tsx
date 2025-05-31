@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera // Added Camera
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award // Added Gift, Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -32,6 +32,8 @@ const mainNavItems = [
   { name: 'Challenges', href: '/dashboard/challenges', icon: <Trophy /> },
   { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: <Bot /> },
   { name: 'Games Arcade', href: '/dashboard/games', icon: <Gamepad2 /> },
+  { name: 'Rewards Wheel', href: '/dashboard/rewards-wheel', icon: <Gift /> },
+  { name: 'Achievements', href: '/dashboard/achievements', icon: <Award /> },
 ];
 
 const toolsNavItems = [

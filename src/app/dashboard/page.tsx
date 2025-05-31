@@ -1,11 +1,11 @@
-
 // src/app/dashboard/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact } from '@/ai/flows/random-fact-generator';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit } from 'lucide-react';
+import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow'; // Added Daily Challenge
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award } from 'lucide-react'; // Added Award for challenge
 import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
@@ -16,12 +16,31 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   let randomFact = { fact: "Loading your daily fact...", source_hint: "" };
+  let dailyChallenge: GenerateDailyChallengeOutput = { 
+    challengeTitle: "Loading Daily Challenge...", 
+    challengeDescription: "Stay tuned for today's mission!", 
+    subjectHint: "" 
+  };
+
   try {
     randomFact = await generateSyllabusFact({ class_level: "11/12" });
   } catch (error: any) {
     console.error("[ Server ] Error fetching random fact for dashboard:", error.message || JSON.stringify(error));
     randomFact = { fact: "Could not load a random fact at this moment. Please ensure your Google AI API key is correctly set up.", source_hint: "Error" };
   }
+
+  try {
+    // Pass user focus area or difficulty if available from profile later
+    dailyChallenge = await generateDailyChallenge({}); 
+  } catch (error: any) {
+    console.error("[ Server ] Error fetching daily challenge:", error.message || JSON.stringify(error));
+    dailyChallenge = { 
+      challengeTitle: "Challenge Unreachable", 
+      challengeDescription: "Could not load today's challenge. Your mission, should you choose to accept it, is to study hard!", 
+      subjectHint: "Persistence" 
+    };
+  }
+
 
   let recentQuizAttempts: QuizAttemptWithQuizTopic[] = [];
   let profileData: Tables<'profiles'> | null = null;
@@ -137,6 +156,19 @@ export default async function DashboardPage() {
               </Card>
             )}
           </div>
+
+          <Card className="bg-accent/10 border border-accent/30 p-4 rounded-lg shadow-inner mb-8">
+            <div className="flex items-start">
+              <Award className="h-8 w-8 text-accent mr-3 mt-1 shrink-0" />
+              <div>
+                <h3 className="text-lg font-semibold text-accent mb-1">{dailyChallenge.challengeTitle}</h3>
+                <p className="text-foreground">{dailyChallenge.challengeDescription}</p>
+                {dailyChallenge.subjectHint && (
+                  <p className="text-xs text-muted-foreground mt-1">Hint: {dailyChallenge.subjectHint}</p>
+                )}
+              </div>
+            </div>
+          </Card>
 
           <div className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-8">
             <div className="flex items-start">
