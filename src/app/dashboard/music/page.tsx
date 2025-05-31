@@ -4,12 +4,42 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Music, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { createClient } from '@/lib/supabase/client';
+import type { TablesInsert } from '@/lib/database.types';
+import { useEffect, useState } from 'react';
 
 
 // Fixed Spotify Playlist URL for embed
 const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M"; // Example: Spotify's "Chill Vibes" playlist
 
 export default function MusicPlayerPage() {
+  const supabase = createClient();
+  const [userId, setUserId] = useState<string|null>(null);
+
+  useEffect(() => {
+     const getInitialUser = async () => {
+        const {data: {user}} = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+    };
+    getInitialUser();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (userId) {
+      const logActivity = async () => {
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'music_player_visited',
+          description: `Visited the Music Player page.`,
+          details: { page: '/dashboard/music' }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+      };
+      logActivity();
+    }
+  }, [userId, supabase]);
+
+
   return (
     <div className="space-y-10 pb-16 md:pb-0">
       <header className="text-center">
@@ -35,7 +65,7 @@ export default function MusicPlayerPage() {
             width="100%"
             height="100%"
             frameBorder="0"
-            allowFullScreen={false} // Typically false for embeds unless explicitly needed
+            allowFullScreen={false} 
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
             title="Spotify Music Player Embed"

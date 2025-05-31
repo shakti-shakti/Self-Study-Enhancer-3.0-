@@ -140,6 +140,4 @@ const PuzzleAccessCard = ({ title, description, isSolved, onClick, disabled }: P
     </Button>
   </Card>
 );
-
-
     

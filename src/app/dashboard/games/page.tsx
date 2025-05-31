@@ -15,7 +15,7 @@ const games = [
     description: 'Escape a collapsing multiverse by solving ultra-logical NEET-based challenges. A sci-fi puzzle escape with a mysterious storyline.',
     genre: 'Sci-fi Puzzle Escape + NEET Prep',
     icon: <Zap className="h-12 w-12 text-accent" />,
-    imageUrl: 'https://placehold.co/600x400/2d004f/c0ffee.png?text=ChronoMind', // Placeholder
+    imageUrl: 'https://placehold.co/600x400/2d004f/c0ffee.png?text=ChronoMind', 
     dataAiHint: 'sci-fi futuristic'
   },
   {
@@ -24,7 +24,7 @@ const games = [
     description: 'Escape a locked NEET preparation lab by solving hidden, sequential puzzles in each subject room. A classic escape room quiz thriller.',
     genre: 'Classic Escape Room + Quiz Thriller',
     icon: <FlaskConical className="h-12 w-12 text-primary" />,
-    imageUrl: 'https://placehold.co/600x400/003d2d/aaffdd.png?text=Lab+Escape', // Placeholder
+    imageUrl: 'https://placehold.co/600x400/003d2d/aaffdd.png?text=Lab+Escape', 
     dataAiHint: 'science lab escape'
   },
 ];
@@ -43,7 +43,7 @@ export default function GamesHubPage() {
 
       <div className="grid md:grid-cols-2 gap-8">
         {games.map((game) => (
-          <Card key={game.id} className="interactive-card overflow-hidden shadow-2xl shadow-primary/20 hover:shadow-accent/30 transform transition-all duration-300 hover:scale-105">
+          <Card key={game.id} className="interactive-card overflow-hidden shadow-2xl shadow-primary/20 hover:shadow-accent/30 transform transition-all duration-300 hover:scale-105 group">
             <div className="relative h-56 w-full">
               <Image 
                 src={game.imageUrl} 
@@ -73,5 +73,4 @@ export default function GamesHubPage() {
     </div>
   );
 }
-
     

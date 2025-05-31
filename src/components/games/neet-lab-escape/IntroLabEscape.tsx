@@ -36,5 +36,4 @@ export default function IntroLabEscape({ onStartGame }: IntroLabEscapeProps) {
     </Card>
   );
 }
-
     

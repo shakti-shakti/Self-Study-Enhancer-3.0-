@@ -3,12 +3,12 @@
 
 import { useState, useEffect, useTransition, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { StudyPlanWithAlarm } from '@/lib/database.types';
+import type { StudyPlanWithAlarm, TablesInsert } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { AlarmClock, BellOff, BellRing, Loader2, Info } from 'lucide-react';
-import { format, parseISO, isFuture } from 'date-fns';
+import { AlarmClock, BellOff, BellRing, Loader2, Info, Edit3 } from 'lucide-react';
+import { format, parseISO, isFuture, isPast } from 'date-fns';
 import Link from 'next/link';
 
 type ActiveAlarm = StudyPlanWithAlarm & { isRinging?: boolean };
@@ -21,6 +21,7 @@ export default function TaskRemindersPage() {
   const [userId, setUserId] = useState<string|null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [profileAlarmToneUrl, setProfileAlarmToneUrl] = useState<string | null>(null);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
 
   useEffect(() => {
@@ -43,23 +44,22 @@ export default function TaskRemindersPage() {
           .select('alarm_tone_url')
           .eq('id', userId)
           .single();
-        if (profile?.alarm_tone_url) {
-          setProfileAlarmToneUrl(profile.alarm_tone_url);
-        } else {
-           setProfileAlarmToneUrl('/alarms/default_alarm.mp3'); // Fallback
+        
+        // Use profile alarm tone or fallback to default public one
+        const toneUrl = profile?.alarm_tone_url || '/alarms/default_alarm.mp3';
+        setProfileAlarmToneUrl(toneUrl);
+
+        if (toneUrl && !audioRef.current) { // Initialize audio only once or if tone changes
+            const newAudio = new Audio(toneUrl);
+            newAudio.loop = true;
+            audioRef.current = newAudio;
+        } else if (audioRef.current && audioRef.current.src !== toneUrl) { // Update src if tone changed
+            audioRef.current.src = toneUrl;
         }
       };
       fetchProfile();
     }
   }, [userId, supabase]);
-
-  useEffect(() => {
-    if (profileAlarmToneUrl) {
-        const newAudio = new Audio(profileAlarmToneUrl);
-        newAudio.loop = true;
-        audioRef.current = newAudio;
-    }
-  }, [profileAlarmToneUrl]);
 
 
   const fetchAlarmTasks = useCallback(async () => {
@@ -86,26 +86,31 @@ export default function TaskRemindersPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      let shouldPlayAudio = false;
+      let anyRingingNow = false;
       setAlarmTasks(prevTasks => 
         prevTasks.map(task => {
           if (task.alarm_set_at && !task.completed && !task.isRinging) {
             const alarmTime = parseISO(task.alarm_set_at);
-            if (new Date() >= alarmTime) {
-              shouldPlayAudio = true; // Mark that at least one alarm is ringing
+            if (isPast(alarmTime) && !task.isRinging) { // Check if current time is past alarm time
+              anyRingingNow = true;
               return { ...task, isRinging: true };
             }
+          }
+          // If task was ringing but is now completed or alarm dismissed externally, stop its ringing state
+          if (task.isRinging && (task.completed || !task.alarm_set_at)) {
+              return {...task, isRinging: false};
           }
           return task;
         })
       );
       
-      if (shouldPlayAudio && audioRef.current && audioRef.current.paused) {
+      if (anyRingingNow && audioRef.current && audioRef.current.paused) {
         audioRef.current.play().catch(e => console.error("Error playing audio:", e));
-      } else if (!shouldPlayAudio && audioRef.current && !audioRef.current.paused) {
-        // If no alarms are ringing, pause the audio
+        setIsAudioPlaying(true);
+      } else if (!anyRingingNow && audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
+        setIsAudioPlaying(false);
       }
 
     }, 1000); 
@@ -113,40 +118,90 @@ export default function TaskRemindersPage() {
     return () => clearInterval(interval);
   }, []); 
 
-  const dismissAlarm = (taskId: string) => {
-    setAlarmTasks(prevTasks => 
-      prevTasks.map(task => task.id === taskId ? { ...task, isRinging: false } : task)
-    );
-    // Check if any other alarms are still ringing
-    const anyOtherRinging = alarmTasks.some(task => task.id !== taskId && task.isRinging);
-    if (!anyOtherRinging && audioRef.current) {
+  const stopAudioIfNeeded = () => {
+    const stillRinging = alarmTasks.some(task => task.isRinging);
+    if (!stillRinging && audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
+        setIsAudioPlaying(false);
     }
+  };
+
+  const dismissAlarm = async (taskId: string) => {
+    setAlarmTasks(prevTasks => 
+      prevTasks.map(task => task.id === taskId ? { ...task, isRinging: false, alarm_set_at: null } : task) // Clear alarm_set_at to prevent re-trigger
+    );
+    stopAudioIfNeeded();
+    // Also update in DB
+    if(!userId) return;
+    startTransition(async () => {
+        const { error } = await supabase
+            .from('study_plans')
+            .update({ alarm_set_at: null }) // Clear the alarm in DB
+            .eq('id', taskId)
+            .eq('user_id', userId);
+        if (error) toast({ variant: 'destructive', title: "Error dismissing alarm in DB", description: error.message });
+        else {
+            toast({ title: "Alarm Dismissed."});
+            fetchAlarmTasks(); // Re-fetch to get the updated list
+        }
+    });
   };
 
   const snoozeAlarm = (taskId: string) => {
     const newAlarmTime = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    setAlarmTasks(prevTasks => 
+        prevTasks.map(task => task.id === taskId ? { ...task, isRinging: false, alarm_set_at: newAlarmTime } : task)
+    );
+    stopAudioIfNeeded();
+    if(!userId) return;
     startTransition(async () => {
         const { error } = await supabase
             .from('study_plans')
             .update({ alarm_set_at: newAlarmTime })
             .eq('id', taskId)
-            .eq('user_id', userId!);
+            .eq('user_id', userId);
         if (error) {
             toast({ variant: 'destructive', title: "Error snoozing alarm", description: error.message });
+            fetchAlarmTasks(); // Re-fetch to revert optimistic update if DB fails
         } else {
             toast({ title: "Alarm Snoozed!", description: "Reminder set for 5 minutes later." });
-            dismissAlarm(taskId); 
-            fetchAlarmTasks(); 
+            fetchAlarmTasks(); // Re-fetch to confirm update and re-sort
         }
     });
   };
 
+  const markAsComplete = async (task: ActiveAlarm) => {
+     if(!userId) return;
+     startTransition(async () => {
+        const { error } = await supabase
+            .from('study_plans')
+            .update({ completed: true, isRinging: false, alarm_set_at: null }) // Mark complete and clear alarm
+            .eq('id', task.id)
+            .eq('user_id', userId);
+        if (error) {
+            toast({variant: 'destructive', title: 'Error marking task complete', description: error.message});
+        } else {
+            toast({title: `Task "${task.title}" marked as complete.`});
+            setAlarmTasks(prev => prev.map(t => t.id === task.id ? {...t, completed: true, isRinging: false, alarm_set_at: null} : t));
+            stopAudioIfNeeded();
+            fetchAlarmTasks();
+        }
+     });
+  };
 
-  if (isPending && alarmTasks.length === 0) {
-    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+
+  if (isPending && alarmTasks.length === 0 && !userId) {
+    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /> <p className="ml-3 text-muted-foreground">Authenticating...</p></div>;
   }
+  if (isPending && alarmTasks.length === 0 && userId) {
+    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /> <p className="ml-3 text-muted-foreground">Loading alarms...</p></div>;
+  }
+
+
+  const currentRingingAlarms = alarmTasks.filter(task => task.isRinging && !task.completed);
+  const upcomingAlarms = alarmTasks.filter(task => task.alarm_set_at && isFuture(parseISO(task.alarm_set_at)) && !task.completed);
+
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
@@ -161,50 +216,78 @@ export default function TaskRemindersPage() {
 
       <Card className="interactive-card shadow-lg p-4 md:p-6">
         <CardHeader>
-            <CardTitle className="text-2xl font-headline glow-text-accent">Upcoming & Active Alarms</CardTitle>
+            <CardTitle className="text-2xl font-headline glow-text-accent">Active & Upcoming Alarms</CardTitle>
             <CardDescription>
                 Tasks from your <Link href="/dashboard/planner" className="text-primary hover:underline">Planner</Link> with alarms set. 
-                {profileAlarmToneUrl === '/alarms/default_alarm.mp3' ? " Default alarm tone will be used." : (profileAlarmToneUrl ? " Custom alarm tone is active." : " Loading alarm tone..." )}
+                {profileAlarmToneUrl === '/alarms/default_alarm.mp3' ? " Default alarm tone is set." : (profileAlarmToneUrl ? " Custom alarm tone is active." : " Loading alarm tone..." )}
             </CardDescription>
         </CardHeader>
         <CardContent>
-            {alarmTasks.filter(task => (task.alarm_set_at && isFuture(parseISO(task.alarm_set_at))) || task.isRinging).length === 0 && !isPending && (
+            {(currentRingingAlarms.length === 0 && upcomingAlarms.length === 0 && !isPending) && (
                 <div className="text-center py-10">
                     <AlarmClock className="mx-auto h-16 w-16 text-muted-foreground/50 my-4" />
                     <p className="text-xl text-muted-foreground">No upcoming or active alarms.</p>
                     <p className="text-sm text-muted-foreground">Set alarms for your tasks in the Planner page.</p>
                 </div>
             )}
-            <div className="space-y-4">
-                {alarmTasks.filter(task => task.alarm_set_at && (isFuture(parseISO(task.alarm_set_at)) || task.isRinging)).map(task => (
-                    <Card key={task.id} className={`border p-4 rounded-lg shadow-md transition-all duration-300 ${task.isRinging ? 'bg-destructive/20 border-destructive animate-pulse' : task.completed ? 'bg-green-500/10 border-green-500/30 opacity-70' : 'bg-card'}`}>
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h3 className={`text-xl font-semibold ${task.isRinging ? 'text-destructive-foreground glow-text-destructive' : 'text-primary glow-text-primary'}`}>{task.title}</h3>
-                                <p className={`text-sm ${task.isRinging ? 'text-destructive-foreground/80' : 'text-muted-foreground'}`}>
-                                    Alarm at: {format(parseISO(task.alarm_set_at!), "PPP, p")}
-                                </p>
-                                {task.subject && <p className="text-xs text-muted-foreground">Subject: {task.subject}</p>}
+            {currentRingingAlarms.length > 0 && (
+                <div className="mb-8">
+                    <h3 className="text-xl font-semibold mb-3 text-destructive glow-text-destructive">Ringing Now!</h3>
+                    {currentRingingAlarms.map(task => (
+                        <Card key={task.id} className="border p-4 rounded-lg shadow-md transition-all duration-300 bg-destructive/20 border-destructive animate-pulse mb-4">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="text-xl font-bold text-destructive-foreground glow-text-destructive">{task.title}</h3>
+                                    <p className="text-sm text-destructive-foreground/80">
+                                        Alarm was at: {format(parseISO(task.alarm_set_at!), "PPP, p")}
+                                    </p>
+                                    {task.subject && <p className="text-xs text-destructive-foreground/70">Subject: {task.subject}</p>}
+                                </div>
+                                <BellRing className="h-8 w-8 text-destructive-foreground animate-bounce" />
                             </div>
-                            {task.isRinging && <BellRing className="h-8 w-8 text-destructive-foreground animate-bounce" />}
-                        </div>
-                        {task.description && <p className={`mt-2 text-sm ${task.isRinging ? 'text-destructive-foreground/90' : 'text-foreground'}`}>{task.description}</p>}
-                        {task.isRinging && (
-                            <div className="mt-4 flex gap-2 justify-end">
-                                <Button variant="outline" size="sm" onClick={() => snoozeAlarm(task.id)} className="glow-button">Snooze (5min)</Button>
+                            {task.description && <p className="mt-2 text-sm text-destructive-foreground/90">{task.description}</p>}
+                            <div className="mt-4 flex gap-2 justify-end flex-wrap">
+                                <Button variant="outline" size="sm" onClick={() => snoozeAlarm(task.id)} className="glow-button bg-background/80">Snooze (5min)</Button>
+                                <Button variant="secondary" size="sm" onClick={() => markAsComplete(task)} className="glow-button">Mark as Complete</Button>
                                 <Button variant="destructive" size="sm" onClick={() => dismissAlarm(task.id)} className="bg-destructive/80 hover:bg-destructive">
                                     <BellOff className="mr-2 h-4 w-4" /> Dismiss
                                 </Button>
                             </div>
-                        )}
-                    </Card>
-                ))}
-            </div>
+                        </Card>
+                    ))}
+                </div>
+            )}
+             {upcomingAlarms.length > 0 && (
+                <div>
+                    <h3 className="text-xl font-semibold mb-3 text-primary glow-text-primary">Upcoming Alarms</h3>
+                    <div className="space-y-4">
+                        {upcomingAlarms.map(task => (
+                            <Card key={task.id} className="border p-4 rounded-lg shadow-md bg-card">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-primary glow-text-primary">{task.title}</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            Alarm at: {format(parseISO(task.alarm_set_at!), "PPP, p")}
+                                        </p>
+                                        {task.subject && <p className="text-xs text-muted-foreground">Subject: {task.subject}</p>}
+                                    </div>
+                                     <Link href={`/dashboard/planner?edit=${task.id}`} passHref>
+                                        <Button variant="ghost" size="sm"><Edit3 className="h-4 w-4"/></Button>
+                                     </Link>
+                                </div>
+                                {task.description && <p className="mt-1 text-sm text-foreground line-clamp-2">{task.description}</p>}
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            )}
+
              <Alert className="mt-6 bg-primary/5 border-primary/20">
                 <Info className="h-5 w-5 text-primary" />
                 <AlertTitle className="text-primary font-semibold">How Alarms Work</AlertTitle>
                 <AlertDescription>
-                    This page provides visual and audio cues for your set alarms when it's open in your browser. For alarms to work when the app is closed or in the background, browser notification permissions might be required (feature to be enhanced). Ensure your device volume is on.
+                    This page provides visual and audio cues for your set alarms when it's open in your browser. For alarms to work when the app is closed or in the background, browser notification permissions would be required (future enhancement). Ensure your device volume is on. 
+                    You can set a custom alarm tone in your <Link href="/dashboard/profile" className="font-medium text-primary hover:underline">Profile Settings</Link>.
                 </AlertDescription>
             </Alert>
         </CardContent>

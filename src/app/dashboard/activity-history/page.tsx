@@ -7,7 +7,7 @@ import type { Tables } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { History, Loader2, Trash2, Filter, CalendarDays, ListChecks, Bot } from 'lucide-react';
+import { History, Loader2, Trash2, Filter, CalendarDays, ListChecks, Bot, Zap, Edit3, Star, Music, Download, FolderOpen, AlarmClock, SlidersHorizontal } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,8 @@ export default function ActivityHistoryPage() {
         .from('activity_logs')
         .select('*')
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100); // Limit to recent 100 activities for performance
 
       if (error) {
         toast({ variant: 'destructive', title: 'Error fetching activity history', description: error.message });
@@ -83,7 +84,7 @@ export default function ActivityHistoryPage() {
       if (error) {
         toast({ variant: 'destructive', title: 'Error deleting activity', description: error.message });
       } else {
-        fetchActivities(); // Refetch all activities after deletion
+        fetchActivities(); 
         toast({ title: 'Activity log removed.' });
       }
     });
@@ -91,9 +92,16 @@ export default function ActivityHistoryPage() {
   
   const activityTypeOptions = [
     {value: "task_completed", label: "Task Completed", icon: <ListChecks/>},
-    {value: "test_solved", label: "Test Solved", icon: <ListChecks/>},
+    {value: "quiz_attempted", label: "Quiz Attempted", icon: <Zap/>},
     {value: "ai_query", label: "AI Interaction", icon: <Bot/>},
-    // Add more as they are implemented
+    {value: "guideline_updated", label: "Guideline Updated", icon: <Edit3/>},
+    {value: "question_saved", label: "Question Saved", icon: <Star/>},
+    {value: "music_played", label: "Music Player Used", icon: <Music/>},
+    {value: "file_uploaded", label: "File Uploaded", icon: <Download/>},
+    {value: "custom_task_created", label: "Custom Task Created", icon: <FolderOpen/>},
+    {value: "alarm_set", label: "Alarm Set/Modified", icon: <AlarmClock/>},
+    {value: "app_customized", label: "App Customization", icon: <SlidersHorizontal/>},
+    {value: "profile_updated", label: "Profile Updated", icon: <SlidersHorizontal/>},
   ];
   
   const getActivityIcon = (type: string) => {
@@ -163,7 +171,7 @@ export default function ActivityHistoryPage() {
                         {activity.details && typeof activity.details === 'object' && Object.keys(activity.details).length > 0 && (
                              <details className="mt-1 text-xs">
                                 <summary className="cursor-pointer text-accent hover:underline">View Details</summary>
-                                <pre className="p-2 bg-muted/20 rounded mt-1 text-muted-foreground whitespace-pre-wrap text-[0.7rem]">
+                                <pre className="p-2 bg-muted/20 rounded mt-1 text-muted-foreground whitespace-pre-wrap text-[0.7rem] max-h-40 overflow-auto">
                                     {JSON.stringify(activity.details, null, 2)}
                                 </pre>
                             </details>

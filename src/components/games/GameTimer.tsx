@@ -25,5 +25,4 @@ export default function GameTimer({ remainingTime }: GameTimerProps) {
     </div>
   );
 }
-
     

@@ -31,9 +31,9 @@ const languageOptions = [
 ];
 
 const translationSchema = z.object({
-  textToTranslate: z.string().min(1, { message: 'Please enter text to translate.' }),
-  sourceLanguage: z.string().min(2, {message: 'Source language required.'}).optional(), 
-  targetLanguage: z.string().min(2, {message: 'Target language required.'}),
+  textToTranslate: z.string().min(1, { message: 'Please enter text to translate.' }).max(5000, {message: "Text is too long for translation."}),
+  sourceLanguage: z.string().min(2, {message: 'Source language code is required.'}).optional(), 
+  targetLanguage: z.string().min(2, {message: 'Target language code is required.'}),
 });
 type TranslationFormData = z.infer<typeof translationSchema>;
 type TranslationHistoryEntry = Tables<'translation_history'>;
@@ -88,7 +88,7 @@ export default function TranslatorPage() {
         const input: TranslationInput = {
             textToTranslate: values.textToTranslate,
             targetLanguage: values.targetLanguage,
-            sourceLanguage: values.sourceLanguage || undefined, // Pass undefined if empty for auto-detect
+            sourceLanguage: values.sourceLanguage || undefined, 
         };
         const result = await translateText(input);
         setAiResponse(result);
@@ -102,6 +102,18 @@ export default function TranslatorPage() {
         };
         await supabase.from('translation_history').insert(logEntry);
         fetchHistory();
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'text_translated',
+          description: `Translated text from ${result.detected_source_language || values.sourceLanguage || 'auto'} to ${values.targetLanguage}.`,
+          details: { 
+            original_preview: values.textToTranslate.substring(0,50),
+            translated_preview: result.translated_text.substring(0,50),
+            source: result.detected_source_language || values.sourceLanguage || 'auto',
+            target: values.targetLanguage
+          }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error translating text', description: error.message });
@@ -176,7 +188,7 @@ export default function TranslatorPage() {
                                     </FormItem>
                                 )} />
                             </div>
-                            <Button type="submit" className="w-full text-lg py-3 glow-button" disabled={isPending}>
+                            <Button type="submit" className="w-full text-lg py-3 glow-button" disabled={isPending || !form.formState.isValid}>
                                 {isPending ? <Loader2 className="animate-spin mr-2" /> : <Languages className="mr-2" />} Translate
                             </Button>
                         </form>

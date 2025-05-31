@@ -7,12 +7,13 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { resolveDoubt, type ResolveDoubtInput, type ResolveDoubtOutput } from '@/ai/flows/smart-doubt-resolver';
 import { Lightbulb, Loader2, UploadCloud, Sparkles, Image as ImageIcon } from 'lucide-react';
-import Image from 'next/image';
+import NextImage from 'next/image'; // Renamed to avoid conflict with Lucide's Image
 import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 
@@ -29,6 +30,7 @@ const doubtResolverSchema = z.object({
       (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
       "Only .jpg, .jpeg, .png and .webp formats are supported."
     ),
+  subjectContext: z.string().optional(),
 });
 
 type DoubtResolverFormData = z.infer<typeof doubtResolverSchema>;
@@ -44,6 +46,9 @@ export default function SmartDoubtResolverPage() {
 
   const form = useForm<DoubtResolverFormData>({
     resolver: zodResolver(doubtResolverSchema),
+    defaultValues: {
+        subjectContext: '',
+    }
   });
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,9 +59,8 @@ export default function SmartDoubtResolverPage() {
         setPreviewImage(reader.result as string);
       };
       reader.readAsDataURL(file);
-      // Trigger validation by setting value for react-hook-form
       form.setValue('questionImage', event.target.files as FileList);
-      form.trigger('questionImage'); // Manually trigger validation
+      form.trigger('questionImage'); 
     } else {
       setPreviewImage(null);
       form.resetField('questionImage');
@@ -77,18 +81,31 @@ export default function SmartDoubtResolverPage() {
         const imageDataUri = reader.result as string;
         startTransition(async () => {
           try {
-            const input: ResolveDoubtInput = { questionImage: imageDataUri };
+            const input: ResolveDoubtInput = { 
+                questionImage: imageDataUri,
+                subjectContext: values.subjectContext
+            };
             const result = await resolveDoubt(input);
             setAiExplanation(result);
 
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                // Store a smaller preview or just metadata if imageDataUri is too large for DB
+                const previewDataUri = imageDataUri.length > 1000000 ? 'Image too large for DB preview' : imageDataUri;
                 const logEntry: TablesInsert<'doubt_resolution_logs'> = {
                     user_id: user.id,
-                    question_image_data_uri: imageDataUri, // Storing for potential review/history, consider size implications
-                    explanation: result.explanation
+                    question_image_data_uri: previewDataUri, 
+                    explanation: result.explanation,
                 };
                 await supabase.from('doubt_resolution_logs').insert(logEntry);
+                
+                const activityLog: TablesInsert<'activity_logs'> = {
+                  user_id: user.id,
+                  activity_type: 'doubt_resolved',
+                  description: `Used Smart Doubt Resolver for a question${values.subjectContext ? ` on ${values.subjectContext}` : ''}.`,
+                  details: { subject: values.subjectContext, question_interpretation: result.questionText }
+                };
+                await supabase.from('activity_logs').insert(activityLog);
             }
 
             toast({
@@ -134,17 +151,17 @@ export default function SmartDoubtResolverPage() {
               <FormField
                 control={form.control}
                 name="questionImage"
-                render={({ fieldState }) => ( // field is not directly used here as we use a ref
+                render={({ fieldState }) => ( 
                   <FormItem>
                     <FormLabel className="text-base font-medium">Question Image</FormLabel>
                     <FormControl>
                       <div
-                        className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-input hover:border-primary rounded-md cursor-pointer"
+                        className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-input hover:border-primary rounded-md cursor-pointer input-glow"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <div className="space-y-1 text-center">
                           {previewImage ? (
-                            <Image src={previewImage} alt="Question preview" width={200} height={200} className="mx-auto max-h-48 w-auto object-contain rounded-md shadow-md" />
+                            <NextImage src={previewImage} alt="Question preview" width={200} height={200} className="mx-auto max-h-48 w-auto object-contain rounded-md shadow-md" />
                           ) : (
                             <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                           )}
@@ -160,7 +177,6 @@ export default function SmartDoubtResolverPage() {
                               accept={ACCEPTED_IMAGE_TYPES.join(',')}
                               className="sr-only"
                               onChange={handleImageChange}
-                              onBlur={form.control.getFieldState('questionImage').isTouched ? form.trigger : undefined}
                             />
                             {!previewImage && <p className="pl-1">or drag and drop</p>}
                           </div>
@@ -169,6 +185,29 @@ export default function SmartDoubtResolverPage() {
                       </div>
                     </FormControl>
                     <FormMessage>{fieldState.error?.message}</FormMessage>
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="subjectContext"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-medium">Subject (Optional)</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger className="input-glow h-11"><SelectValue placeholder="Help AI by selecting subject..." /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">None / Unsure</SelectItem>
+                            <SelectItem value="Physics">Physics</SelectItem>
+                            <SelectItem value="Chemistry">Chemistry</SelectItem>
+                            <SelectItem value="Biology (Botany)">Biology (Botany)</SelectItem>
+                            <SelectItem value="Biology (Zoology)">Biology (Zoology)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormDescription>Providing subject helps AI give more relevant explanation.</FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -199,13 +238,26 @@ export default function SmartDoubtResolverPage() {
               <Lightbulb className="mr-3 h-8 w-8" /> AI Explanation
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-base whitespace-pre-wrap">{aiExplanation.explanation}</p>
+          <CardContent className="space-y-4">
+            {aiExplanation.questionText && aiExplanation.questionText !== "Image unclear" && (
+                <div>
+                    <h3 className="font-semibold text-lg text-accent mb-1">AI's Interpretation of the Question:</h3>
+                    <p className="italic bg-muted/30 p-3 rounded-md">{aiExplanation.questionText}</p>
+                </div>
+            )}
+            <div>
+                <h3 className="font-semibold text-lg text-accent mb-1">Step-by-Step Explanation:</h3>
+                <p className="text-base whitespace-pre-wrap">{aiExplanation.explanation}</p>
+            </div>
+            {aiExplanation.sourceReference && (
+                 <div>
+                    <h3 className="font-semibold text-lg text-accent mb-1">Possible Source/Concept Reference:</h3>
+                    <p className="text-sm text-muted-foreground">{aiExplanation.sourceReference}</p>
+                </div>
+            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
-
-    

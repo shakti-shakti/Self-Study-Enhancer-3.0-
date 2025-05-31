@@ -8,76 +8,93 @@ body {
 
 @layer base {
   :root {
-    --background: 222 47% 11%; /* Deep Space Blue */
-    --foreground: 210 40% 98%; /* Bright Silver */
-    --card: 222 45% 16%; /* Darker Space Blue */
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 14%; /* Dark Popover */
-    --popover-foreground: 210 40% 98%;
-    --primary: 190 100% 50%; /* Electric Cyan */
-    --primary-foreground: 222 47% 10%; /* Deep Space Blue for contrast on primary */
-    --secondary: 275 80% 60%; /* Neon Purple */
-    --secondary-foreground: 210 40% 98%;
-    --muted: 222 40% 25%; /* Muted Darker Blue/Grey */
-    --muted-foreground: 210 30% 75%; /* Lighter Muted Text */
-    --accent: 330 100% 55%; /* Hot Pink/Magenta */
-    --accent-foreground: 210 40% 98%; 
-    --destructive: 0 80% 60%; /* Bright Red */
-    --destructive-foreground: 0 0% 98%;
-    --border: 222 40% 30%; /* Visible Border on Dark */
-    --input: 222 40% 20%; /* Dark Input Background with a hint of blue */
-    --input-foreground: 210 40% 98%; /* Text color for input */
-    --ring: 190 100% 55%; /* Primary color for ring, slightly brighter cyan */
+    --background: 240 17% 94%; /* Light Pinkish-Purple HSL(240, 17%, 94%) #F2EEF4 */
+    --foreground: 275 10% 20%; /* Dark Purple for Text HSL(275, 10%, 20%) #363138 */
     
-    --chart-1: 190 100% 60%; /* Cyan variant */
-    --chart-2: 275 80% 65%; /* Purple variant */
-    --chart-3: 50 100% 60%; /* Yellow/Gold variant */
-    --chart-4: 330 100% 60%; /* Pink/Magenta variant */
-    --chart-5: 120 70% 55%; /* Green variant */
+    --card: 0 0% 100%; /* White cards for contrast */
+    --card-foreground: 275 10% 20%; /* Dark Purple text on cards */
     
-    --radius: 0.8rem; /* Slightly larger radius */
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 275 10% 20%;
+    
+    --primary: 298 42% 50%; /* Saturated Purple HSL(298, 42%, 50%) #A758A9 */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    
+    --secondary: 209 58% 63%; /* Vibrant Blue HSL(209, 58%, 63%) #559BBA */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    
+    --muted: 240 10% 88%; /* Lighter version of background HSL(240, 10%, 88%) #DCD9E0 */
+    --muted-foreground: 275 8% 40%; /* Softer purple for muted text HSL(275, 8%, 40%) #676269 */
+    
+    --accent: 209 50% 50%; /* Using a slightly darker blue for accent HSL(209, 50%, 50%) #4087AC - can be adjusted */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+    
+    --destructive: 0 70% 60%; /* A standard red for destructive actions HSL(0, 70%, 60%) #EC4D4D */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 240 10% 80%; /* Slightly darker border HSL(240, 10%, 80%) #C9C6D1 */
+    --input: 0 0% 100%; /* White input background */
+    --input-foreground: 275 10% 20%; /* Dark purple text in input */
+    --ring: 298 42% 55%; /* Primary color for focus rings, slightly lighter */
+    
+    --chart-1: 298 42% 50%; /* Primary */
+    --chart-2: 209 58% 63%; /* Secondary */
+    --chart-3: 30 80% 60%; /* An Orange for contrast */
+    --chart-4: 120 40% 55%; /* A Green for contrast */
+    --chart-5: 275 50% 70%; /* Lighter Purple */
+    
+    --radius: 0.75rem; /* Default 0.5rem, made slightly larger */
 
-    /* Sidebar Specific Colors */
-    --sidebar-background: 222 47% 13%; /* Slightly lighter than main bg */
-    --sidebar-foreground: 210 40% 95%;
-    --sidebar-border: 222 40% 25%;
-    --sidebar-ring: 190 100% 55%;
-    --sidebar-accent: 222 45% 22%; /* Accent color for sidebar items (e.g. hover) */
-    --sidebar-accent-foreground: 190 100% 50%; /* Text color on sidebar accent */
-    --sidebar-primary: 190 100% 50%; /* Primary elements within sidebar if needed */
-    --sidebar-primary-foreground: 222 47% 10%;
+    /* Sidebar Specific Colors (Light Theme) */
+    --sidebar-background: 240 17% 96%; /* Slightly lighter than main bg */
+    --sidebar-foreground: 275 10% 25%;
+    --sidebar-border: 240 10% 85%;
+    --sidebar-ring: 298 42% 55%;
+    --sidebar-accent: 240 15% 90%; /* Accent color for sidebar items (e.g. hover) */
+    --sidebar-accent-foreground: 298 42% 45%; /* Text color on sidebar accent */
+    --sidebar-primary: 298 42% 50%; 
+    --sidebar-primary-foreground: 0 0% 100%;
   }
 
-  .light { 
-    --background: 200 20% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 190 95% 45%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 275 75% 55%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 330 95% 50%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 72.2% 50.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --input-foreground: 222 47% 11%;
-    --ring: 190 95% 47%;
+  .dark {
+    --background: 275 15% 12%; /* Very Dark Purple HSL(275, 15%, 12%) #211D24 */
+    --foreground: 240 10% 85%; /* Light Gray/Lavender HSL(240, 10%, 85%) #D3D1D9 */
+    
+    --card: 275 13% 18%; /* Darker Card Background HSL(275, 13%, 18%) #2D2830 */
+    --card-foreground: 240 10% 85%;
+    
+    --popover: 275 15% 10%; /* Even Darker Popover HSL(275, 15%, 10%) #1A171C */
+    --popover-foreground: 240 10% 85%;
+    
+    --primary: 298 50% 65%; /* Saturated Purple (lighter for dark mode) HSL(298, 50%, 65%) #C07AC3 */
+    --primary-foreground: 275 20% 10%; /* Very dark for contrast on primary */
+    
+    --secondary: 209 50% 60%; /* Vibrant Blue (lighter for dark mode) HSL(209, 50%, 60%) #66A3CC */
+    --secondary-foreground: 275 20% 10%; 
+    
+    --muted: 275 10% 22%; /* Muted Dark Purple HSL(275, 10%, 22%) #3A363D */
+    --muted-foreground: 240 8% 65%; /* Softer Gray/Lavender HSL(240, 8%, 65%) #A19FAC */
+    
+    --accent: 209 55% 55%; /* Vibrant Blue for Accent HSL(209, 55%, 55%) #529BCC */
+    --accent-foreground: 0 0% 100%; 
+    
+    --destructive: 0 60% 55%; /* Red for destructive HSL(0, 60%, 55%) #DE5C5C */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 275 10% 25%; /* Border color HSL(275, 10%, 25%) #403C43 */
+    --input: 275 10% 20%; /* Input background HSL(275, 10%, 20%) #332F36 */
+    --input-foreground: 240 10% 85%; /* Text for input */
+    --ring: 298 50% 70%; /* Primary color for focus rings, slightly brighter */
 
-    --sidebar-background: 200 20% 96%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-border: 200 20% 88%;
-    --sidebar-ring: 190 95% 47%;
-    --sidebar-accent: 200 20% 90%;
-    --sidebar-accent-foreground: 190 95% 35%;
-    --sidebar-primary: 190 95% 45%;
-    --sidebar-primary-foreground: 210 40% 98%;
+    /* Sidebar Specific Colors (Dark Theme) */
+    --sidebar-background: 275 15% 14%; /* Slightly different dark for sidebar */
+    --sidebar-foreground: 240 10% 88%;
+    --sidebar-border: 275 10% 22%;
+    --sidebar-ring: 298 50% 70%;
+    --sidebar-accent: 275 12% 25%; /* Accent for sidebar items */
+    --sidebar-accent-foreground: 298 50% 70%; /* Text on sidebar accent */
+    --sidebar-primary: 298 50% 65%;
+    --sidebar-primary-foreground: 275 20% 10%;
   }
 }
 
@@ -95,18 +112,31 @@ body {
 
 @layer components {
   .interactive-card {
-    @apply bg-card border border-border shadow-xl hover:shadow-primary/40 transition-all duration-300 ease-out transform hover:-translate-y-1.5 rounded-xl overflow-hidden;
+    @apply bg-card border border-border shadow-xl hover:shadow-primary/40 transition-all duration-300 ease-out transform hover:-translate-y-1 rounded-xl overflow-hidden;
   }
   .glow-button {
-    @apply shadow-[0_0_18px_0_hsl(var(--primary)/0.6),_0_0_8px_0_hsl(var(--primary)/0.4)] hover:shadow-[0_0_30px_6px_hsl(var(--primary)/0.6),_0_0_12px_0_hsl(var(--primary)/0.4)] transition-shadow duration-300;
+    @apply shadow-[0_0_15px_-3px_hsl(var(--primary)/0.7),_0_0_8px_-4px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_25px_0px_hsl(var(--primary)/0.7),_0_0_10px_0px_hsl(var(--primary)/0.5)] transition-shadow duration-300;
   }
   .glow-text-primary {
-    text-shadow: 0 0 8px hsl(var(--primary)/0.8), 0 0 12px hsl(var(--primary)/0.6), 0 0 20px hsl(var(--primary)/0.4);
+    text-shadow: 0 0 6px hsl(var(--primary)/0.7), 0 0 10px hsl(var(--primary)/0.5), 0 0 18px hsl(var(--primary)/0.3);
   }
   .glow-text-accent {
-    text-shadow: 0 0 8px hsl(var(--accent)/0.8), 0 0 12px hsl(var(--accent)/0.6), 0 0 20px hsl(var(--accent)/0.4);
+    text-shadow: 0 0 6px hsl(var(--accent)/0.7), 0 0 10px hsl(var(--accent)/0.5), 0 0 18px hsl(var(--accent)/0.3);
+  }
+   .glow-text-destructive {
+    text-shadow: 0 0 6px hsl(var(--destructive)/0.7), 0 0 10px hsl(var(--destructive)/0.5), 0 0 18px hsl(var(--destructive)/0.3);
   }
   .input-glow {
-    @apply border-2 border-input bg-input text-input-foreground focus:border-primary focus:shadow-[0_0_12px_2px_hsl(var(--primary)/0.5)] focus:ring-0 transition-all duration-300;
+    @apply border-2 border-input bg-input text-input-foreground focus:border-primary focus:shadow-[0_0_10px_0px_hsl(var(--primary)/0.4)] focus:ring-0 transition-all duration-300;
   }
+}
+
+/* For gradient animation in auth layout */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient-flow {
+  animation: gradient-flow 15s ease infinite;
 }

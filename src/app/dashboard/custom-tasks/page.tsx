@@ -114,6 +114,16 @@ export default function CustomTasksPage() {
         toast({ variant: 'destructive', title: `Error ${selectedTask ? 'updating' : 'adding'} task`, description: error.message });
       } else {
         toast({ title: `Task ${selectedTask ? 'updated' : 'added'} successfully`, className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+        
+        // Log activity
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: selectedTask ? 'custom_task_updated' : 'custom_task_created',
+          description: `${selectedTask ? 'Updated' : 'Created'} custom task: "${values.title.substring(0,50)}..."`,
+          details: { title: values.title, completed: values.completed, due_date: values.due_date }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+        
         fetchTasks();
         handleCloseDialog();
       }
@@ -123,11 +133,21 @@ export default function CustomTasksPage() {
   const handleDeleteTask = async (taskId: string) => {
      if (!userId) return;
     startTransition(async () => {
+      const taskToDelete = tasks.find(t => t.id === taskId);
       const { error } = await supabase.from('custom_tasks').delete().eq('id', taskId).eq('user_id', userId);
       if (error) {
         toast({ variant: 'destructive', title: 'Error deleting task', description: error.message });
       } else {
         toast({ title: 'Task deleted successfully' });
+         if (taskToDelete) {
+          const activityLog: TablesInsert<'activity_logs'> = {
+            user_id: userId,
+            activity_type: 'custom_task_deleted',
+            description: `Deleted custom task: "${taskToDelete.title.substring(0,50)}..."`,
+            details: { title: taskToDelete.title }
+          };
+          await supabase.from('activity_logs').insert(activityLog);
+        }
         fetchTasks();
       }
     });
@@ -145,6 +165,13 @@ export default function CustomTasksPage() {
         toast({ variant: 'destructive', title: 'Error updating task status', description: error.message });
       } else {
         toast({ title: `Task marked as ${!task.completed ? 'complete' : 'incomplete'}` });
+         const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'custom_task_status_changed',
+          description: `Task "${task.title.substring(0,50)}..." marked as ${!task.completed ? 'complete' : 'incomplete'}.`,
+          details: { title: task.title, new_status: !task.completed }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
         fetchTasks();
       }
     });
@@ -299,5 +326,4 @@ export default function CustomTasksPage() {
     </div>
   );
 }
-
     

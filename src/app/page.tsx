@@ -8,9 +8,9 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-br from-background via-secondary/20 to-primary/10 text-center">
-      <BookOpenCheck className="w-24 h-24 text-primary mb-6" />
-      <h1 className="text-5xl md:text-6xl font-headline font-bold text-foreground mb-4">
+    <main className="flex flex-col items-center justify-center min-h-screen p-8 bg-gradient-to-br from-background via-secondary/20 to-primary/10 text-center animate-gradient-flow bg-[length:200%_200%]">
+      <BookOpenCheck className="w-24 h-24 text-primary mb-6 glow-text-primary" />
+      <h1 className="text-5xl md:text-6xl font-headline font-bold text-foreground mb-4 glow-text-primary">
         Welcome to NEET Prep+
       </h1>
       <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10">
@@ -20,7 +20,7 @@ export default async function HomePage() {
       {user ? (
         <div className="space-y-4">
           <p className="text-lg text-foreground">You are logged in as {user.email}.</p>
-          <Button asChild size="lg" className="font-semibold">
+          <Button asChild size="lg" className="font-semibold text-lg py-3 px-6 glow-button">
             <Link href="/dashboard">
               Go to Dashboard
               <ArrowRight className="ml-2 h-5 w-5" />
@@ -29,12 +29,12 @@ export default async function HomePage() {
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button asChild size="lg" className="font-semibold">
+          <Button asChild size="lg" className="font-semibold text-lg py-3 px-6 glow-button">
             <Link href="/login">
               <LogIn className="mr-2 h-5 w-5" /> Login
             </Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="font-semibold border-primary text-primary hover:bg-primary/10 hover:text-primary">
+          <Button asChild variant="outline" size="lg" className="font-semibold text-lg py-3 px-6 glow-button border-primary text-primary hover:bg-primary/10 hover:text-primary">
             <Link href="/signup">
               Sign Up Now
               <ArrowRight className="ml-2 h-5 w-5" />

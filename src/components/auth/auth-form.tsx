@@ -45,7 +45,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter(); 
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [actionError, setActionError] = useState<string | null>(null); // Renamed to avoid conflict with form.error
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const formSchema = mode === 'login' ? loginSchema : signupSchema;
   type FormData = z.infer<typeof formSchema>;
@@ -60,38 +60,59 @@ export function AuthForm({ mode }: AuthFormProps) {
   });
 
   async function onSubmit(values: FormData) {
-    setActionError(null);
+    setActionError(null); // Clear previous errors
     startTransition(async () => {
-      if (mode === 'login') {
-        toast({ title: 'Logging in...', description: 'Please wait a moment.' });
-        const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
-        
-        if (result?.error) {
-          setActionError(result.error);
-          toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
-        } else if (result?.success) {
-          toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-          router.push('/dashboard');
-          router.refresh(); // Crucial for updating client session state
-        } else {
-          setActionError('An unexpected error occurred during login.');
-          toast({ variant: 'destructive', title: 'Login Failed', description: 'An unexpected error occurred.' });
-        }
-      } else { // Signup logic
-        toast({ title: 'Creating account...', description: 'Please wait a moment.' });
-        const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
-         if (result?.error) {
-          setActionError(result.error);
-          toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
-        } else if (result?.success) { // Assuming signup action also returns success
-          toast({ title: 'Account Created!', description: 'Welcome! Please check your email to verify your account.', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-          form.reset();
-          // Optionally, redirect to a "please verify email" page or login page
-          // router.push('/login?message=verification_sent');
-        } else {
+      try {
+        if (mode === 'login') {
+          console.log("[AuthForm] Attempting login for:", values.email);
+          toast({ title: 'Attempting login...', description: 'Please wait.' });
+          const result = await loginWithEmail(values as z.infer<typeof loginSchema>);
+          
+          if (result?.error) {
+            console.error("[AuthForm] Login error:", result.error);
+            setActionError(result.error);
+            toast({ variant: 'destructive', title: 'Login Failed', description: result.error });
+          } else if (result?.success) {
+            console.log("[AuthForm] Login API successful for:", values.email);
+            toast({ title: 'Login Successful!', description: 'Redirecting to your dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+            router.push('/dashboard');
+            router.refresh(); // Essential for updating client session state and layout
+          } else {
+            console.error("[AuthForm] Login: Unexpected result from server action.");
+            setActionError('An unexpected error occurred during login.');
+            toast({ variant: 'destructive', title: 'Login Failed', description: 'An unexpected error occurred.' });
+          }
+        } else { // Signup logic
+          console.log("[AuthForm] Attempting signup for:", values.email);
+          toast({ title: 'Creating account...', description: 'Please wait.' });
+          const result = await signupWithEmail(values as z.infer<typeof signupSchema>);
+
+          if (result?.error) {
+            console.error("[AuthForm] Signup error:", result.error);
+            setActionError(result.error);
+            toast({ variant: 'destructive', title: 'Signup Failed', description: result.error });
+          } else if (result?.success && result.message) { // Email verification needed
+            console.log("[AuthForm] Signup successful (email verification pending) for:", values.email);
+            toast({ title: 'Account Created!', description: result.message, className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary', duration: 7000 });
+            form.reset();
+          } else if (result?.success) { // Auto-login (server action should have redirected)
+             console.log("[AuthForm] Signup successful (auto-login path, server should redirect) for:", values.email);
+             // If server action handles redirect, this path might not be hit often client-side
+             // unless there's a specific non-redirect success case.
+             toast({ title: 'Account Created & Logged In!', description: 'Redirecting to dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
+             // Server action is expected to redirect, but router.refresh() can ensure client updates if needed.
+             router.refresh();
+          }
+          else {
+            console.error("[AuthForm] Signup: Unexpected result from server action.");
             setActionError('An unexpected error occurred during signup.');
             toast({ variant: 'destructive', title: 'Signup Failed', description: 'An unexpected error occurred.' });
+          }
         }
+      } catch (e: any) {
+        console.error("[AuthForm] onSubmit general catch error:", e);
+        setActionError(e.message || "An unexpected client-side error occurred.");
+        toast({ variant: 'destructive', title: 'Operation Failed', description: e.message || "An unexpected client-side error occurred." });
       }
     });
   }
@@ -151,7 +172,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 )}
               />
             )}
-            {actionError && ( // Display actionError here
+            {actionError && (
                 <p className="text-sm font-semibold text-destructive text-center py-2 bg-destructive/10 rounded-md">{actionError}</p>
             )}
             <Button type="submit" className="w-full font-headline font-semibold text-xl py-7 glow-button tracking-wider" disabled={isPending}>

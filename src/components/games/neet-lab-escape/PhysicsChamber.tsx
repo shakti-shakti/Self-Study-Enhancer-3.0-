@@ -129,5 +129,4 @@ export default function PhysicsChamber({ gameState, updateGameState, advanceRoom
     </Card>
   );
 }
-
     

@@ -7,19 +7,20 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { customizeApp, type CustomizeAppInput, type CustomizeAppOutput } from '@/ai/flows/customization-tool';
-import { SlidersHorizontal, Loader2, Wand2, Info } from 'lucide-react';
+import { SlidersHorizontal, Loader2, Wand2, Info, CheckCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 
 
 const customizationSchema = z.object({
-  command: z.string().min(10, { message: 'Command must be at least 10 characters.' }),
-  currentDashboard: z.string().optional(), // Example context field
+  command: z.string().min(10, { message: 'Command must be at least 10 characters.' }).max(500, {message: 'Command too long.'}),
+  currentDashboard: z.string().optional(), 
+  availableDashboards: z.array(z.string()).optional(),
 });
 
 type CustomizationFormData = z.infer<typeof customizationSchema>;
@@ -35,6 +36,7 @@ export default function AppCustomizationPage() {
     defaultValues: {
       command: '',
       currentDashboard: 'Main Dashboard', // Example default
+      availableDashboards: ['Main Dashboard', 'Planner', 'Quizzes', 'AI Study Assistant', 'Progress Overview', 'Study Rooms', 'NCERT Explorer', 'Guidelines', 'Profile Settings'], // Keep this updated
     },
   });
 
@@ -43,8 +45,9 @@ export default function AppCustomizationPage() {
     startTransition(async () => {
       try {
         const input: CustomizeAppInput = {
-            ...values,
-            availableDashboards: ['Main Dashboard', 'Progress Overview', 'Quiz Arena'] // Example
+            command: values.command,
+            currentDashboard: values.currentDashboard,
+            availableDashboards: values.availableDashboards
         };
         const result = await customizeApp(input);
         setAiResponse(result);
@@ -55,14 +58,23 @@ export default function AppCustomizationPage() {
                 user_id: user.id,
                 command: values.command,
                 ai_instruction: result.instruction,
-                ai_explanation: result.explanation
+                ai_explanation: result.explanation,
+                // Note: 'feasibility' and 'clarifying_question' are not in the DB table schema currently.
+                // If you want to log them, you'd need to add columns to `customization_requests_logs`.
             };
             await supabase.from('customization_requests_logs').insert(logEntry);
+             const activityLog: TablesInsert<'activity_logs'> = {
+              user_id: user.id,
+              activity_type: 'app_customized',
+              description: `Used AI app customization tool with command: "${values.command.substring(0,50)}..."`,
+              details: { command: values.command, ai_explanation: result.explanation }
+            };
+            await supabase.from('activity_logs').insert(activityLog);
         }
 
         toast({
           title: 'Customization Processed!',
-          description: 'AI has provided instructions for your command.',
+          description: 'AI has provided conceptual instructions for your command.',
           className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
         });
       } catch (error: any) {
@@ -74,6 +86,17 @@ export default function AppCustomizationPage() {
       }
     });
   }
+  
+  const FeasibilityIcon = ({ feasibility }: { feasibility: CustomizeAppOutput['feasibility'] | undefined }) => {
+    if (!feasibility) return null;
+    switch (feasibility) {
+      case 'High': return <CheckCircle className="mr-2 h-5 w-5 text-green-400" />;
+      case 'Medium': return <HelpCircle className="mr-2 h-5 w-5 text-yellow-400" />;
+      case 'Low': return <AlertTriangle className="mr-2 h-5 w-5 text-orange-400" />;
+      case 'Not Possible': return <AlertTriangle className="mr-2 h-5 w-5 text-red-400" />;
+      default: return null;
+    }
+  };
 
   return (
     <div className="space-y-10">
@@ -108,7 +131,7 @@ export default function AppCustomizationPage() {
                       <Textarea
                         placeholder="E.g., 'Change the dashboard primary color to green', 'Add a button to the quiz page that shows hints', 'Make the font size larger in the study notes section.'"
                         {...field}
-                        className="min-h-[100px] border-2 border-input focus:border-primary"
+                        className="min-h-[100px] input-glow"
                       />
                     </FormControl>
                     <FormMessage />
@@ -122,7 +145,7 @@ export default function AppCustomizationPage() {
                   <FormItem>
                     <FormLabel className="text-base font-medium">Current Context (Optional)</FormLabel>
                     <FormControl>
-                     <Input placeholder="E.g., On Quiz Page" {...field} className="h-11 border-2 border-input focus:border-primary" />
+                     <Input placeholder="E.g., On Quiz Page" {...field} className="h-11 input-glow" />
                     </FormControl>
                     <FormDescription>Tell the AI where you are in the app if relevant.</FormDescription>
                     <FormMessage />
@@ -156,17 +179,29 @@ export default function AppCustomizationPage() {
               <SlidersHorizontal className="mr-3 h-8 w-8" /> AI Customization Plan
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold text-accent mb-1">Instruction / Code Snippet:</h3>
-              <pre className="bg-muted/50 p-3 rounded-md text-sm overflow-x-auto">
+              <h3 className="text-lg font-semibold text-accent mb-1">AI's Understanding:</h3>
+              <p className="text-base whitespace-pre-wrap italic bg-muted/30 p-3 rounded-md">{aiResponse.explanation}</p>
+            </div>
+             <div>
+              <h3 className="text-lg font-semibold text-accent mb-1 flex items-center">
+                <FeasibilityIcon feasibility={aiResponse.feasibility} />
+                Feasibility: <span className="ml-2 font-bold">{aiResponse.feasibility}</span>
+              </h3>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-accent mb-1">Conceptual Instruction:</h3>
+              <pre className="bg-muted/50 p-3 rounded-md text-sm overflow-x-auto font-code">
                 <code>{aiResponse.instruction}</code>
               </pre>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-accent mb-1">Explanation:</h3>
-              <p className="text-base whitespace-pre-wrap">{aiResponse.explanation}</p>
-            </div>
+            {aiResponse.clarifyingQuestion && (
+                 <div>
+                    <h3 className="text-lg font-semibold text-accent mb-1">AI Needs More Info:</h3>
+                    <p className="text-base whitespace-pre-wrap bg-muted/30 p-3 rounded-md">{aiResponse.clarifyingQuestion}</p>
+                </div>
+            )}
             <div className="pt-4 border-t border-border/30">
                 <p className="text-xs text-muted-foreground flex items-center"><Info className="w-3 h-3 mr-1.5"/>Note: This tool is conceptual. The AI provides guidance on how changes might be implemented, but does not apply them directly to the app.</p>
             </div>
@@ -176,5 +211,4 @@ export default function AppCustomizationPage() {
     </div>
   );
 }
-
     

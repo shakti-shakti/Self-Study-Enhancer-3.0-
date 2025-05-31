@@ -1,7 +1,7 @@
 // src/app/dashboard/study-rooms/page.tsx
 'use client';
 
-import { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -10,39 +10,42 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+// import { Textarea } from '@/components/ui/textarea'; // Not used in this simplified version
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert, Database } from '@/lib/database.types';
+import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from '@/lib/database.types'; // Use refined type
 import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info } from 'lucide-react';
 import { moderateStudyRoom, type ModerateStudyRoomInput, type ModerateStudyRoomOutput } from '@/ai/flows/ai-moderated-study-rooms';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+
 
 const createRoomSchema = z.object({
   name: z.string().min(3, 'Room name must be at least 3 characters.').max(50),
-  topic: z.string().optional(),
+  topic: z.string().max(100).optional(),
 });
 type CreateRoomFormData = z.infer<typeof createRoomSchema>;
 
 const messageSchema = z.object({
-  message_text: z.string().min(1, 'Message cannot be empty.'),
+  message_text: z.string().min(1, 'Message cannot be empty.').max(1000),
 });
 type MessageFormData = z.infer<typeof messageSchema>;
 
 type StudyRoom = Tables<'study_rooms'>;
-type StudyRoomMessage = Tables<'study_room_messages'> & { profiles: { email: string | null } | null }; // Assuming you join user profiles for display
+// StudyRoomMessageWithProfile is imported from database.types.ts
 
 export default function StudyRoomsPage() {
   const [isPending, startTransition] = useTransition();
+  const [isRoomOperationPending, startRoomOperationTransition] = useTransition();
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<StudyRoom | null>(null);
-  const [messages, setMessages] = useState<StudyRoomMessage[]>([]);
+  const [messages, setMessages] = useState<StudyRoomMessageWithProfile[]>([]);
   const [aiModeration, setAiModeration] = useState<ModerateStudyRoomOutput | null>(null);
   const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
   
   const { toast } = useToast();
   const supabase = createClient();
-  const currentUserId = useRef<string | null>(null);
+  const [userId, setUserId] = useState<string|null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const createRoomForm = useForm<CreateRoomFormData>({
@@ -58,31 +61,36 @@ export default function StudyRoomsPage() {
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) currentUserId.current = user.id;
+      setUserId(user?.id || null);
     };
     getCurrentUser();
-    fetchRooms();
-  }, []);
+  }, [supabase]);
+  
+  useEffect(() => {
+    if(userId) fetchRooms();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   useEffect(() => {
-    if (selectedRoom) {
+    if (selectedRoom && userId) {
       fetchMessages(selectedRoom.id);
       const channel = supabase
         .channel(`study_room:${selectedRoom.id}`)
-        .on<TablesInsert<'study_room_messages'>>(
+        .on<Tables<'study_room_messages'>>( // Use base type for payload
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'study_room_messages', filter: `room_id=eq.${selectedRoom.id}` },
           async (payload) => {
+            const newMessage = payload.new as Tables<'study_room_messages'>; // Cast to base type
             // Fetch the user profile for the new message
             const { data: profileData, error: profileError } = await supabase
-              .from('profiles') // Assuming you have a 'profiles' table with 'id' and 'email'
-              .select('email')
-              .eq('id', payload.new.user_id)
+              .from('profiles')
+              .select('email, full_name, avatar_url')
+              .eq('id', newMessage.user_id)
               .single();
 
-            const newMessageWithProfile: StudyRoomMessage = {
-                ...(payload.new as Tables<'study_room_messages'>),
-                profiles: profileData ? { email: profileData.email } : {email: 'Unknown User'}
+            const newMessageWithProfile: StudyRoomMessageWithProfile = {
+                ...newMessage,
+                profiles: profileData ? { email: profileData.email, full_name: profileData.full_name, avatar_url: profileData.avatar_url } : {email: 'Unknown User', full_name: 'Unknown', avatar_url: null}
             };
             setMessages((prevMessages) => [...prevMessages, newMessageWithProfile]);
           }
@@ -92,14 +100,15 @@ export default function StudyRoomsPage() {
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedRoom]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom, userId, supabase]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const fetchRooms = async () => {
-    startTransition(async () => {
+    startRoomOperationTransition(async () => {
       const { data, error } = await supabase.from('study_rooms').select('*').order('created_at', { ascending: false });
       if (error) toast({ variant: 'destructive', title: 'Error fetching rooms', description: error.message });
       else setRooms(data || []);
@@ -110,60 +119,62 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles(email)') // Adjust if your user table/column is different
+        .select('*, profiles(email, full_name, avatar_url)') 
         .eq('room_id', roomId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(100); // Limit messages fetched initially
       if (error) toast({ variant: 'destructive', title: 'Error fetching messages', description: error.message });
-      else setMessages(data as StudyRoomMessage[] || []);
+      else setMessages(data as StudyRoomMessageWithProfile[] || []);
     });
   };
 
   const handleCreateRoom = async (values: CreateRoomFormData) => {
-    if (!currentUserId.current) {
+    if (!userId) {
         toast({ variant: 'destructive', title: 'Not authenticated' });
         return;
     }
-    startTransition(async () => {
-      const { data, error } = await supabase.from('study_rooms').insert([{ ...values, created_by_user_id: currentUserId.current! }]).select();
+    startRoomOperationTransition(async () => {
+      const { data, error } = await supabase.from('study_rooms').insert([{ ...values, created_by_user_id: userId! }]).select().single();
       if (error) {
         toast({ variant: 'destructive', title: 'Error creating room', description: error.message });
       } else {
         toast({ title: 'Room created successfully!', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'});
         setIsCreateRoomOpen(false);
         createRoomForm.reset();
-        if (data) setRooms(prev => [data[0] as StudyRoom, ...prev]); // Add to local state
+        if (data) {
+          setRooms(prev => [data as StudyRoom, ...prev]); 
+          setSelectedRoom(data as StudyRoom); // Auto-select new room
+        }
       }
     });
   };
 
   const handleSendMessage = async (values: MessageFormData) => {
-    if (!selectedRoom || !currentUserId.current) {
+    if (!selectedRoom || !userId) {
         toast({ variant: 'destructive', title: 'No room selected or not authenticated' });
         return;
     }
     startTransition(async () => {
       const { error } = await supabase.from('study_room_messages').insert([{
         room_id: selectedRoom.id,
-        user_id: currentUserId.current!,
+        user_id: userId!,
         message_text: values.message_text,
       }]);
       if (error) {
         toast({ variant: 'destructive', title: 'Error sending message', description: error.message });
       } else {
         messageForm.reset();
-        // AI Moderation call after sending message
-        if (selectedRoom.topic) { // Only call AI if room has a topic
+        if (selectedRoom.topic) { 
             const aiInput: ModerateStudyRoomInput = {
                 topic: selectedRoom.topic,
-                studentQuestion: values.message_text, // Use the message as student question
+                studentQuestion: values.message_text, 
                 currentActivity: 'Chatting / Discussion',
             };
             try {
                 const modResult = await moderateStudyRoom(aiInput);
-                setAiModeration(modResult); // Display AI suggestions
+                setAiModeration(modResult); 
             } catch (aiError: any) {
                 console.warn("AI Moderation Error:", aiError.message);
-                // Don't show toast for AI errors to keep chat flow smooth
             }
         }
       }
@@ -172,13 +183,13 @@ export default function StudyRoomsPage() {
   
   const handleSelectRoom = (room: StudyRoom) => {
     setSelectedRoom(room);
-    setAiModeration(null); // Clear previous AI moderation
+    setAiModeration(null); 
   };
 
 
   if (!selectedRoom) {
     return (
-      <div className="space-y-10">
+      <div className="space-y-10 pb-16 md:pb-0">
         <header className="text-center">
           <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3 flex items-center justify-center">
             <Users className="mr-4 h-10 w-10" /> AI-Moderated Study Rooms
@@ -204,21 +215,21 @@ export default function StudyRoomsPage() {
                   <FormField control={createRoomForm.control} name="name" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Room Name</FormLabel>
-                      <FormControl><Input placeholder="E.g., Biology Ch.3 Discussion" {...field} className="border-2 border-input focus:border-primary" /></FormControl>
+                      <FormControl><Input placeholder="E.g., Biology Ch.3 Discussion" {...field} className="input-glow" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={createRoomForm.control} name="topic" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Topic (Optional)</FormLabel>
-                      <FormControl><Input placeholder="E.g., Cell Structure" {...field} className="border-2 border-input focus:border-primary" /></FormControl>
+                      <FormControl><Input placeholder="E.g., Cell Structure" {...field} className="input-glow" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <DialogFooter className="pt-4">
                     <DialogClose asChild><Button type="button" variant="outline" className="glow-button">Cancel</Button></DialogClose>
-                    <Button type="submit" disabled={isPending} className="glow-button">
-                      {isPending ? <Loader2 className="animate-spin" /> : <PlusCircle />} Create Room
+                    <Button type="submit" disabled={isRoomOperationPending} className="glow-button">
+                      {isRoomOperationPending ? <Loader2 className="animate-spin" /> : <PlusCircle />} Create Room
                     </Button>
                   </DialogFooter>
                 </form>
@@ -226,8 +237,8 @@ export default function StudyRoomsPage() {
             </DialogContent>
           </Dialog>
         </div>
-        {isPending && rooms.length === 0 && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading rooms...</p></div>}
-        {!isPending && rooms.length === 0 && <p className="text-center text-muted-foreground py-10 text-lg">No study rooms available. Create one to get started!</p>}
+        {isRoomOperationPending && rooms.length === 0 && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading rooms...</p></div>}
+        {!isRoomOperationPending && rooms.length === 0 && <p className="text-center text-muted-foreground py-10 text-lg">No study rooms available. Create one to get started!</p>}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map(room => (
             <Card key={room.id} className="interactive-card shadow-lg shadow-primary/10 cursor-pointer hover:border-primary" onClick={() => handleSelectRoom(room)}>
@@ -236,7 +247,7 @@ export default function StudyRoomsPage() {
                 {room.topic && <CardDescription>Topic: {room.topic}</CardDescription>}
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Created: {new Date(room.created_at).toLocaleDateString()}</p>
+                <p className="text-sm text-muted-foreground">Created: {format(parseISO(room.created_at), "PP")}</p>
               </CardContent>
             </Card>
           ))}
@@ -245,7 +256,6 @@ export default function StudyRoomsPage() {
     );
   }
 
-  // Selected Room View
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)]">
       <header className="mb-6">
@@ -263,14 +273,14 @@ export default function StudyRoomsPage() {
           </CardHeader>
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full p-4">
+              {isPending && messages.length === 0 && <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading messages...</p></div>}
               {messages.map(msg => (
-                <div key={msg.id} className={`mb-3 p-3 rounded-lg max-w-[80%] break-words ${msg.user_id === currentUserId.current ? 'ml-auto bg-primary/20 text-primary-foreground' : 'bg-muted/50'}`}>
-                  <p className="text-xs text-muted-foreground mb-1">{msg.profiles?.email || 'User'} - {new Date(msg.created_at).toLocaleTimeString()}</p>
+                <div key={msg.id} className={`mb-3 p-3 rounded-lg max-w-[80%] break-words shadow-sm ${msg.user_id === userId ? 'ml-auto bg-primary/80 text-primary-foreground' : 'bg-muted/50'}`}>
+                  <p className="text-xs text-muted-foreground mb-1">{msg.profiles?.full_name || msg.profiles?.email?.split('@')[0] || 'User'} - {formatDistanceToNow(parseISO(msg.created_at), { addSuffix: true })}</p>
                   <p>{msg.message_text}</p>
                 </div>
               ))}
               <div ref={messagesEndRef} />
-               {isPending && messages.length === 0 && <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading messages...</p></div>}
             </ScrollArea>
           </CardContent>
           <CardFooter className="border-t pt-4">
@@ -278,11 +288,11 @@ export default function StudyRoomsPage() {
               <form onSubmit={messageForm.handleSubmit(handleSendMessage)} className="flex w-full gap-2">
                 <FormField control={messageForm.control} name="message_text" render={({ field }) => (
                   <FormItem className="flex-1">
-                    <FormControl><Input placeholder="Type your message..." {...field} className="h-11 border-2 border-input focus:border-primary" /></FormControl>
+                    <FormControl><Input placeholder="Type your message..." {...field} className="h-11 input-glow" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <Button type="submit" disabled={isPending} className="h-11 glow-button">
+                <Button type="submit" disabled={isPending || !messageForm.formState.isValid} className="h-11 glow-button">
                   {isPending ? <Loader2 className="animate-spin" /> : <Send />}
                 </Button>
               </form>
@@ -290,36 +300,42 @@ export default function StudyRoomsPage() {
           </CardFooter>
         </Card>
         
-        {aiModeration && (
+        {selectedRoom.topic && (
           <Card className="w-full md:w-1/3 interactive-card shadow-lg shadow-accent/10">
             <CardHeader>
               <CardTitle className="font-headline text-xl glow-text-accent flex items-center"><Bot className="mr-2" /> AI Moderator</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-                {aiModeration.quizQuestion && (
+                {aiModeration?.clarificationOrAnswer && (
+                     <div>
+                        <h4 className="font-semibold text-accent mb-1">AI Clarification/Answer:</h4>
+                        <p className="bg-muted/30 p-2 rounded-md">{aiModeration.clarificationOrAnswer}</p>
+                    </div>
+                )}
+                {aiModeration?.quizQuestion && (
                     <div>
                         <h4 className="font-semibold text-accent mb-1">Quiz Question:</h4>
-                        <p>{aiModeration.quizQuestion}</p>
+                        <p className="bg-muted/30 p-2 rounded-md">{aiModeration.quizQuestion}</p>
                     </div>
                 )}
-                {aiModeration.timeSuggestion && (
+                {aiModeration?.timeSuggestion && (
                     <div>
                         <h4 className="font-semibold text-accent mb-1">Time Suggestion:</h4>
-                        <p>{aiModeration.timeSuggestion}</p>
+                        <p className="bg-muted/30 p-2 rounded-md">{aiModeration.timeSuggestion}</p>
                     </div>
                 )}
-                {aiModeration.nextTopicSuggestion && (
+                {aiModeration?.nextTopicSuggestion && (
                      <div>
                         <h4 className="font-semibold text-accent mb-1">Next Topic Suggestion:</h4>
-                        <p>{aiModeration.nextTopicSuggestion}</p>
+                        <p className="bg-muted/30 p-2 rounded-md">{aiModeration.nextTopicSuggestion}</p>
                     </div>
                 )}
-                 {!aiModeration.quizQuestion && !aiModeration.timeSuggestion && !aiModeration.nextTopicSuggestion && (
-                    <p className="text-muted-foreground">AI moderator is active. Waiting for relevant discussion to provide suggestions.</p>
+                 {!aiModeration && (
+                    <p className="text-muted-foreground">AI moderator is active. Relevant suggestions will appear based on chat activity.</p>
                 )}
             </CardContent>
             <CardFooter>
-                <p className="text-xs text-muted-foreground flex items-center"><Info className="w-3 h-3 mr-1.5"/>AI suggestions appear based on chat activity.</p>
+                <p className="text-xs text-muted-foreground flex items-center"><Info className="w-3 h-3 mr-1.5"/>AI suggestions appear based on chat in rooms with a topic.</p>
             </CardFooter>
           </Card>
         )}
@@ -327,5 +343,3 @@ export default function StudyRoomsPage() {
     </div>
   );
 }
-
-    

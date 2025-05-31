@@ -13,11 +13,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { studyAssistant, type StudyAssistantInput, type StudyAssistantOutput } from '@/ai/flows/ai-study-assistant';
-import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft } from 'lucide-react';
+import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const assistantSchema = z.object({
   query: z.string().min(3, { message: 'Query must be at least 3 characters.' }),
@@ -71,39 +82,51 @@ export default function AiStudyAssistantPage() {
     if (!userId) return;
     setIsLoadingSessions(true);
     const { data, error } = await supabase
-        .from('study_assistant_logs')
-        .select('session_id, content, created_at, query') // query to get first user message
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
+      .from('study_assistant_logs')
+      .select('session_id, content, created_at, role, query') 
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+  
     if (error) {
-        toast({ variant: 'destructive', title: 'Error fetching chat sessions', description: error.message });
-        setIsLoadingSessions(false);
-        return;
+      toast({ variant: 'destructive', title: 'Error fetching chat sessions', description: error.message });
+      setIsLoadingSessions(false);
+      return;
     }
-    
+  
     const sessionsMap = new Map<string, ChatSession>();
-    data?.forEach(log => {
+    if (data) {
+      // Sort logs by session_id and then by created_at ascending to find the true first message
+      const sortedLogs = [...data].sort((a, b) => {
+        if (a.session_id < b.session_id) return -1;
+        if (a.session_id > b.session_id) return 1;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+  
+      sortedLogs.forEach(log => {
         const existingSession = sessionsMap.get(log.session_id);
-        const firstMessage = log.role === 'user' ? log.content : log.query; // Prioritize direct user content
-        const preview = (firstMessage || 'Chat').substring(0, 50) + ((firstMessage || '').length > 50 ? '...' : '');
-
-        if (!existingSession) {
-            sessionsMap.set(log.session_id, {
-                session_id: log.session_id,
-                last_message_at: log.created_at,
-                first_message_preview: preview,
-            });
+        let firstMessagePreview = 'Chat...';
+  
+        if (!existingSession) { // This log is the first encountered for this session_id
+          if (log.role === 'user' && log.content) {
+            firstMessagePreview = log.content.substring(0, 50) + (log.content.length > 50 ? '...' : '');
+          } else if (log.query) { // Fallback to query if content is not user's first message
+            firstMessagePreview = log.query.substring(0, 50) + (log.query.length > 50 ? '...' : '');
+          }
+          sessionsMap.set(log.session_id, {
+            session_id: log.session_id,
+            last_message_at: log.created_at, // Temporarily set, will be updated by later messages in this session
+            first_message_preview: firstMessagePreview,
+          });
         } else {
-            if (new Date(log.created_at) > new Date(existingSession.last_message_at)) {
-                sessionsMap.set(log.session_id, { ...existingSession, last_message_at: log.created_at, first_message_preview: preview });
-            } else if (new Date(log.created_at) < new Date(existingSession.last_message_at) && existingSession.first_message_preview === 'Chat...' && preview !== 'Chat...') {
-                // if the current log is older, but provides a better preview (the actual first user message)
-                sessionsMap.set(log.session_id, { ...existingSession, first_message_preview: preview });
-            }
+          // Update last_message_at if this log is newer
+          if (new Date(log.created_at) > new Date(existingSession.last_message_at)) {
+            sessionsMap.set(log.session_id, { ...existingSession, last_message_at: log.created_at });
+          }
         }
-    });
-    const sortedSessions = Array.from(sessionsMap.values()).sort((a,b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+      });
+    }
+  
+    const sortedSessions = Array.from(sessionsMap.values()).sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
     setChatSessions(sortedSessions);
     setIsLoadingSessions(false);
   }, [userId, supabase, toast]);
@@ -134,13 +157,13 @@ export default function AiStudyAssistantPage() {
                     id: log.id,
                     session_id: log.session_id,
                     role: 'user',
-                    content: log.content, // user's query is in content
+                    content: log.content,
                     timestamp: log.created_at,
                 });
             } else if (log.role === 'ai') {
                 if (log.ai_answer) {
                     formattedMessages.push({
-                        id: log.id + '_answer', // Ensure unique ID if splitting
+                        id: log.id + '_answer', 
                         session_id: log.session_id,
                         role: 'ai',
                         content: log.ai_answer,
@@ -149,11 +172,11 @@ export default function AiStudyAssistantPage() {
                 }
                 if (log.ai_study_tips && (log.ai_study_tips as string[]).length > 0) {
                      formattedMessages.push({
-                        id: log.id + '_tips', // Ensure unique ID
+                        id: log.id + '_tips', 
                         session_id: log.session_id,
                         role: 'ai-tips',
                         content: log.ai_study_tips as string[],
-                        timestamp: log.created_at, // Can slightly adjust if needed
+                        timestamp: log.created_at, 
                     });
                 }
             }
@@ -218,15 +241,14 @@ export default function AiStudyAssistantPage() {
         const result = await studyAssistant(values);
         
         const aiTimestamp = new Date().toISOString();
-        // Log a single AI response, containing both answer and tips
         const aiResponseLog: TablesInsert<'study_assistant_logs'> = {
             user_id: userId,
             session_id: activeSessionId,
             role: 'ai',
-            query: values.query, // Link to original query
-            content: result.answer + (result.studyTips.length > 0 ? "\nStudy Tips:\n" + result.studyTips.join("\n- ") : ""), // Combined content
+            query: values.query,
+            content: result.answer + (result.studyTips && result.studyTips.length > 0 ? "\nStudy Tips:\n- " + result.studyTips.join("\n- ") : ""), 
             ai_answer: result.answer,
-            ai_study_tips: result.studyTips,
+            ai_study_tips: result.studyTips || [],
             created_at: aiTimestamp,
         };
         const { error: aiLogError } = await supabase.from('study_assistant_logs').insert(aiResponseLog);
@@ -250,7 +272,10 @@ export default function AiStudyAssistantPage() {
                 timestamp: aiTimestamp 
             }]);
         }
-        fetchChatSessions(); 
+        // Update last message time for the session
+        setChatSessions(prevSessions => prevSessions.map(s => 
+            s.session_id === activeSessionId ? {...s, last_message_at: aiTimestamp} : s
+        ).sort((a,b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()));
 
       } catch (error: any) {
         const errorMessageContent = `Sorry, I encountered an error: ${error.message || 'Please try again.'}`;
@@ -272,14 +297,33 @@ export default function AiStudyAssistantPage() {
     form.reset();
   }
 
+  const deleteChatSession = async (sessionId: string) => {
+    if (!userId) return;
+    startTransition(async () => {
+        const { error } = await supabase
+            .from('study_assistant_logs')
+            .delete()
+            .eq('user_id', userId)
+            .eq('session_id', sessionId);
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error deleting chat session', description: error.message });
+        } else {
+            toast({ title: 'Chat session deleted.' });
+            setChatSessions(prev => prev.filter(s => s.session_id !== sessionId));
+            if (currentSessionId === sessionId) {
+                startNewChat();
+            }
+        }
+    });
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] space-y-6 md:space-y-0 md:space-x-6 pb-16 md:pb-0">
-        {/* Sessions Sidebar */}
-        <Card className="w-full md:w-1/4 lg:w-1/5 interactive-card shadow-xl shadow-primary/10 flex flex-col min-h-0">
+        <Card className="w-full md:w-1/3 lg:w-1/4 interactive-card shadow-xl shadow-primary/10 flex flex-col min-h-0">
             <CardHeader className="border-b">
                 <CardTitle className="font-headline text-xl glow-text-primary flex items-center justify-between">
                     <List className="mr-2" /> Chats
-                    <Button variant="ghost" size="icon" onClick={startNewChat} className="text-primary hover:text-primary/80">
+                    <Button variant="ghost" size="icon" onClick={startNewChat} className="text-primary hover:text-primary/80" title="Start New Chat">
                         <CornerDownLeft className="h-5 w-5"/>
                     </Button>
                 </CardTitle>
@@ -292,24 +336,45 @@ export default function AiStudyAssistantPage() {
                         <p className="text-sm text-muted-foreground p-4 text-center">No chat sessions yet. Start a new conversation!</p>
                     ) : (
                         chatSessions.map(session => (
-                            <Button
-                                key={session.session_id}
-                                variant={currentSessionId === session.session_id ? "secondary" : "ghost"}
-                                className="w-full justify-start text-left mb-1 p-2 h-auto block"
-                                onClick={() => setCurrentSessionId(session.session_id)}
-                            >
-                                <p className="text-sm font-medium truncate text-foreground">{session.first_message_preview}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(session.last_message_at), { addSuffix: true })}
-                                </p>
-                            </Button>
+                            <div key={session.session_id} className="relative group">
+                                <Button
+                                    variant={currentSessionId === session.session_id ? "secondary" : "ghost"}
+                                    className="w-full justify-start text-left mb-1 p-2 h-auto block"
+                                    onClick={() => setCurrentSessionId(session.session_id)}
+                                >
+                                    <p className="text-sm font-medium truncate text-foreground">{session.first_message_preview}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {formatDistanceToNow(parseISO(session.last_message_at), { addSuffix: true })}
+                                    </p>
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="absolute top-1/2 right-1 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 text-destructive/70 hover:text-destructive h-7 w-7">
+                                            <Trash2 className="h-4 w-4"/>
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete this chat session and all its messages. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => deleteChatSession(session.session_id)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                                            Delete
+                                        </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         ))
                     )}
                 </ScrollArea>
             </CardContent>
         </Card>
 
-      {/* Chat Area */}
       <div className="flex-1 flex flex-col space-y-6 min-h-0">
         <header className="text-center md:text-left">
             <h1 className="text-3xl md:text-4xl font-headline font-bold glow-text-primary mb-1 flex items-center">
@@ -343,13 +408,13 @@ export default function AiStudyAssistantPage() {
                             <div className="flex items-center mb-1 text-xs text-muted-foreground">
                                 {msg.role === 'user' ? <User className="h-4 w-4 mr-1.5" /> : (msg.role === 'ai-tips' ? <Lightbulb className="h-4 w-4 mr-1.5 text-accent" /> : <Bot className="h-4 w-4 mr-1.5 text-primary" />)}
                                 <span>{msg.role === 'user' ? 'You' : (msg.role === 'ai-tips' ? 'AI Study Tips' : 'AI Assistant')}</span>
-                                <span className="ml-2">{formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true })}</span>
+                                <span className="ml-2">{formatDistanceToNow(parseISO(msg.timestamp), { addSuffix: true })}</span>
                             </div>
                             {typeof msg.content === 'string' ? (
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                             ) : ( 
                                 <ul className="list-disc pl-5 space-y-1">
-                                {msg.content.map((tip, index) => <li key={index}>{tip}</li>)}
+                                {(msg.content as string[]).map((tip, index) => <li key={index}>{tip}</li>)}
                                 </ul>
                             )}
                             </div>
@@ -392,7 +457,7 @@ export default function AiStudyAssistantPage() {
                         </FormItem>
                     )} />
                 </div>
-                <Button type="submit" className="w-full sm:w-auto font-semibold text-lg py-3 px-6 glow-button" disabled={isPending}>
+                <Button type="submit" className="w-full sm:w-auto font-semibold text-lg py-3 px-6 glow-button" disabled={isPending || !form.formState.isValid}>
                     {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5" />}
                     Send to AI
                 </Button>

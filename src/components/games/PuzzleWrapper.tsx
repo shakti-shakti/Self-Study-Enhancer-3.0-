@@ -23,5 +23,4 @@ export default function PuzzleWrapper({ title, description, children, className 
     </Card>
   );
 }
-
     

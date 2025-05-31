@@ -1065,10 +1065,9 @@ export type Database = {
           }
         ]
       }
-      // Game related tables
       game_metadata: {
         Row: {
-          id: string; // e.g., "chronomind", "neet_lab_escape"
+          id: string; 
           title: string;
           description: string;
           genre: string;
@@ -1091,12 +1090,12 @@ export type Database = {
       }
       user_game_progress: {
         Row: {
-          id: string; // Composite key or UUID
+          id: string; 
           user_id: string;
-          game_id: string; // FK to game_metadata
-          current_chapter: string | null; // e.g., "chapter1_time_chamber"
-          current_room: string | null; // e.g., "physics_room_1"
-          game_specific_state: Json | null; // For storing puzzle states, inventory, choices
+          game_id: string; 
+          current_chapter: string | null; 
+          current_room: string | null; 
+          game_specific_state: Json | null; 
           score: number | null;
           last_played: string;
           completed_at: string | null;
@@ -1138,11 +1137,11 @@ export type Database = {
           }
         ];
       }
-      game_leaderboard: { // Specifically for NEET Lab Escape or any game with a leaderboard
+      game_leaderboard: { 
         Row: {
           id: string;
           user_id: string;
-          game_id: string; // FK to game_metadata, e.g. "neet_lab_escape"
+          game_id: string; 
           score: number;
           time_taken_seconds: number | null;
           completed_at: string;
@@ -1276,8 +1275,9 @@ export type Enums<
     
 // Helper type for joined data, e.g. Quiz Attempts with Quiz Topic
 export type QuizAttemptWithQuizTopic = Tables<'quiz_attempts'> & {
-  quizzes: { topic: string, class_level: string | null, subject: string | null } | null;
+  quizzes: { topic: string | null, class_level: string | null, subject: string | null } | null; // Allow topic to be null
 };
+
 
 // Extending StudyRoomMessage to include profile information
 export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
@@ -1300,13 +1300,14 @@ export interface ChronoMindState {
     projectileMotionSolved: boolean;
   };
   // Add more chapter progress states here
+  // e.g. chapter2Progress: { puzzleA: boolean, puzzleB: boolean }
   playerChoices: Record<string, any>; // To store decisions that might affect story/puzzles
-  memoryLossEvents: number;
+  memoryLossEvents: number; // Example of a game-specific stat
 }
 
 export interface NEETLabEscapeState {
   currentRoom: 'intro' | 'physics' | 'chemistry' | 'botany' | 'zoology' | 'final_hallway' | 'escaped' | 'failed';
-  physicsPuzzlesSolved: boolean[]; // e.g., [false, false, false, false, false]
+  physicsPuzzlesSolved: boolean[]; // e.g., [false, false, false, false, false] for 5 puzzles
   chemistryPuzzlesSolved: boolean[];
   botanyPuzzlesSolved: boolean[];
   zoologyPuzzlesSolved: boolean[];
@@ -1317,10 +1318,8 @@ export interface NEETLabEscapeState {
     zoology: boolean;
   };
   remainingTime: number; // in seconds
-  retriesUsed: number;
-  finalQuestionAnsweredCorrectly?: boolean;
+  retriesUsed: number; // Count of incorrect attempts on major puzzles
+  finalQuestionAnsweredCorrectly?: boolean; // For the final hallway
 }
 
-export type GameSpecificState = ChronoMindState | NEETLabEscapeState;
-
-    
+export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json; // Allow general Json for flexibility

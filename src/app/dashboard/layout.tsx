@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2 // New icon for Games
+  Gamepad2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -20,8 +20,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 
 export const metadata: Metadata = {
-  title: 'Dashboard - Self Study Enhancer',
-  description: 'Your Self Study Enhancer Dashboard',
+  title: 'Dashboard - NEET Prep+',
+  description: 'Your NEET Prep+ Dashboard',
 };
 
 const mainNavItems = [
@@ -30,7 +30,7 @@ const mainNavItems = [
   { name: 'Quizzes', href: '/dashboard/quizzes', icon: <TargetIcon /> },
   { name: 'Challenges', href: '/dashboard/challenges', icon: <Trophy /> },
   { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: <Bot /> },
-  { name: 'Games', href: '/dashboard/games', icon: <Gamepad2 /> }, // New Games link
+  { name: 'Games', href: '/dashboard/games', icon: <Gamepad2 /> },
 ];
 
 const toolsNavItems = [
@@ -62,6 +62,12 @@ const accountNavItems = [
   { name: 'Profile Settings', href: '/dashboard/profile', icon: <Settings /> },
 ];
 
+// Helper for SidebarMenuButton to avoid repetition
+const SidebarGroupLabel = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={cn("duration-200 px-2 py-1.5 text-xs font-medium text-sidebar-foreground/70 group-data-[collapsible=icon]:hidden", className)} {...props} />
+);
+
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -88,7 +94,7 @@ export default async function DashboardLayout({
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Planner', href: '/dashboard/planner', icon: Edit3 },
     { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: Bot },
-    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 }, // Added Games to bottom nav
+    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 },
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
   ];
 
@@ -100,12 +106,12 @@ export default async function DashboardLayout({
         <SidebarHeader className="p-3 border-b border-sidebar-border">
           <Link href="/dashboard" className="flex items-center gap-2.5 text-primary hover:text-primary/90 transition-colors">
             <BookHeadphones className="h-8 w-8 shrink-0" />
-            <span className="text-2xl font-headline font-bold glow-text-primary group-data-[collapsible=icon]:hidden">SelfStudy+</span>
+            <span className="text-2xl font-headline font-bold glow-text-primary group-data-[collapsible=icon]:hidden">NEET Prep+</span>
           </Link>
         </SidebarHeader>
         <SidebarContent className="p-2">
           <SidebarMenu>
-            <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Main</SidebarGroupLabel>
+            <SidebarGroupLabel>Main</SidebarGroupLabel>
             {mainNavItems.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton 
@@ -123,7 +129,7 @@ export default async function DashboardLayout({
           </SidebarMenu>
           <SidebarSeparator className="my-3"/>
           <SidebarMenu>
-            <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Tools</SidebarGroupLabel>
+            <SidebarGroupLabel>Tools</SidebarGroupLabel>
             {toolsNavItems.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton 
@@ -141,7 +147,7 @@ export default async function DashboardLayout({
           </SidebarMenu>
           <SidebarSeparator className="my-3"/>
            <SidebarMenu>
-            <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Resources</SidebarGroupLabel>
+            <SidebarGroupLabel>Resources</SidebarGroupLabel>
             {resourcesNavItems.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton 
@@ -159,7 +165,7 @@ export default async function DashboardLayout({
           </SidebarMenu>
           <SidebarSeparator className="my-3"/>
           <SidebarMenu>
-             <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">Account</SidebarGroupLabel>
+             <SidebarGroupLabel>Account</SidebarGroupLabel>
             {accountNavItems.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton 
@@ -200,7 +206,7 @@ export default async function DashboardLayout({
           <div className="container flex h-16 items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors">
               <BookHeadphones className="h-7 w-7" />
-              <span className="text-2xl font-headline font-bold glow-text-primary">SelfStudy+</span>
+              <span className="text-2xl font-headline font-bold glow-text-primary">NEET Prep+</span>
             </Link>
             <div className="flex items-center gap-2">
               <SidebarTrigger className="md:hidden" />
@@ -233,11 +239,10 @@ export default async function DashboardLayout({
 
 
         <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
-          Self Study Enhancer &copy; {new Date().getFullYear()} - Maximize Your Potential.
+          NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
         </footer>
       </SidebarInset>
     </SidebarProvider>
   );
 }
 
-    

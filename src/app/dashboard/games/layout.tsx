@@ -33,10 +33,9 @@ export default function GamesLayout({
         {children}
       </main>
       <footer className="p-4 text-center text-sm text-muted-foreground border-t border-border/30">
-        &copy; {new Date().getFullYear()} Self Study Enhancer - Game On!
+        &copy; {new Date().getFullYear()} NEET Prep+ - Game On!
       </footer>
     </div>
   );
 }
-
     

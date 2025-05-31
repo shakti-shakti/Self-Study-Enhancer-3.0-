@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -17,8 +17,10 @@ import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 
 const notesGeneratorSchema = z.object({
-  content: z.string().min(50, { message: 'Content must be at least 50 characters.' }),
-  contentType: z.enum(['test', 'chapter'], { required_error: 'Please select content type.' }),
+  content: z.string().min(50, { message: 'Content must be at least 50 characters.' }).max(30000, { message: 'Content is too long for optimal processing. Try a smaller chunk.'}),
+  contentType: z.enum(['test_review', 'chapter_summary', 'concept_clarification'], { required_error: 'Please select content type.' }),
+  subject: z.enum(['Physics', 'Chemistry', 'Biology', 'General']).optional(),
+  noteFormatPreferences: z.array(z.enum(['summary', 'key_formulas', 'mnemonics', 'bullet_points', 'flowchart_points'])).optional()
 });
 
 type NotesGeneratorFormData = z.infer<typeof notesGeneratorSchema>;
@@ -34,6 +36,8 @@ export default function SmartNotesGeneratorPage() {
     defaultValues: {
       content: '',
       contentType: undefined,
+      subject: undefined,
+      noteFormatPreferences: []
     },
   });
 
@@ -49,15 +53,23 @@ export default function SmartNotesGeneratorPage() {
             const logEntry: TablesInsert<'smart_notes_logs'> = {
                 user_id: user.id,
                 content_type: values.contentType,
-                original_content_preview: values.content.substring(0, 200) + (values.content.length > 200 ? '...' : ''), // Store a preview
+                original_content_preview: values.content.substring(0, 200) + (values.content.length > 200 ? '...' : ''), 
                 generated_notes: result.notes
             };
             await supabase.from('smart_notes_logs').insert(logEntry);
+
+            const activityLog: TablesInsert<'activity_logs'> = {
+              user_id: user.id,
+              activity_type: 'smart_notes_generated',
+              description: `Generated smart notes for ${values.contentType} ${values.subject ? `on ${values.subject}` : ''}.`,
+              details: { content_type: values.contentType, subject: values.subject, title_suggestion: result.titleSuggestion }
+            };
+            await supabase.from('activity_logs').insert(activityLog);
         }
         
         toast({
           title: 'Smart Notes Ready!',
-          description: 'AI has generated notes from your content.',
+          description: `AI has generated notes titled: "${result.titleSuggestion || 'Notes'}"`,
           className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
         });
       } catch (error: any) {
@@ -101,15 +113,40 @@ export default function SmartNotesGeneratorPage() {
                     <FormLabel className="text-base font-medium">Content Type</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-11 border-2 border-input focus:border-primary">
-                          <SelectValue placeholder="Select content type (e.g., chapter, test)" />
+                        <SelectTrigger className="h-11 input-glow">
+                          <SelectValue placeholder="Select content type..." />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="chapter">Chapter Text</SelectItem>
-                        <SelectItem value="test">Test/Quiz Content</SelectItem>
+                        <SelectItem value="chapter_summary">Chapter Text / Article</SelectItem>
+                        <SelectItem value="test_review">Test/Quiz Content (Questions & Answers)</SelectItem>
+                        <SelectItem value="concept_clarification">Specific Concept Explanation</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-medium">Subject (Optional)</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger className="h-11 input-glow">
+                          <SelectValue placeholder="Select subject to help AI..." />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="General">General / Mixed</SelectItem>
+                        <SelectItem value="Physics">Physics</SelectItem>
+                        <SelectItem value="Chemistry">Chemistry</SelectItem>
+                        <SelectItem value="Biology">Biology</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Helps AI tailor notes (e.g., focus on formulas for Physics).</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -124,14 +161,15 @@ export default function SmartNotesGeneratorPage() {
                       <Textarea
                         placeholder="Paste your chapter text, test questions & answers, or any study material here..."
                         {...field}
-                        className="min-h-[200px] border-2 border-input focus:border-primary"
+                        className="min-h-[200px] input-glow"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
+              {/* TODO: Add multi-select for noteFormatPreferences if desired UI is available */}
+              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending || !form.formState.isValid}>
                 {isPending ? (
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 ) : (
@@ -155,16 +193,16 @@ export default function SmartNotesGeneratorPage() {
         <Card className="max-w-2xl mx-auto mt-12 interactive-card shadow-xl shadow-accent/10">
           <CardHeader>
             <CardTitle className="flex items-center text-2xl font-headline glow-text-accent">
-              <FileText className="mr-3 h-8 w-8" /> Your AI-Generated Notes
+              <FileText className="mr-3 h-8 w-8" /> {generatedNotes.titleSuggestion || "Your AI-Generated Notes"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-base whitespace-pre-wrap">{generatedNotes.notes}</p>
+            <div className="prose dark:prose-invert prose-sm sm:prose-base max-w-none whitespace-pre-wrap bg-muted/20 p-4 rounded-md">
+              {generatedNotes.notes}
+            </div>
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
-
-    

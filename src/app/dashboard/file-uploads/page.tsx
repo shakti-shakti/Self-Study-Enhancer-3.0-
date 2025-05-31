@@ -1,7 +1,7 @@
 // src/app/dashboard/file-uploads/page.tsx
 'use client';
 
-import { useState, useEffect, useTransition, useRef } from 'react';
+import { useState, useEffect, useTransition, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -27,7 +27,7 @@ export default function FileUploadsPage() {
   const [userFiles, setUserFiles] = useState<UserFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
-  const [isProcessing, startProcessingTransition] = useTransition(); // General pending state for uploads/deletes/fetches
+  const [isProcessing, startProcessingTransition] = useTransition(); 
   
   const { toast } = useToast();
   const supabase = createClient();
@@ -118,6 +118,13 @@ export default function FileUploadsPage() {
         await supabase.storage.from('user_uploads').remove([filePath]);
       } else {
         toast({ title: 'File Uploaded Successfully!', className: 'bg-primary/10 border-primary text-primary-foreground' });
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'file_uploaded',
+          description: `Uploaded file: "${selectedFile.name}"`,
+          details: { filename: selectedFile.name, type: selectedFile.type, size: selectedFile.size }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
         setSelectedFile(null);
         setDescription('');
         if(fileInputRef.current) fileInputRef.current.value = "";
@@ -148,6 +155,13 @@ export default function FileUploadsPage() {
         toast({ variant: 'destructive', title: 'Metadata deletion failed', description: dbError.message });
       } else {
         toast({ title: 'File Deleted Successfully' });
+         const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'file_deleted',
+          description: `Deleted file: "${file.file_name}"`,
+          details: { filename: file.file_name }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
         fetchUserFiles(); 
       }
     });

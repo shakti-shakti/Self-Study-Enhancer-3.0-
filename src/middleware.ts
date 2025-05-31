@@ -4,7 +4,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 
 export async function middleware(request: NextRequest) {
-  // Create an unmodified response object
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -20,12 +19,10 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is set, update the request cookies and the response cookies.
           request.cookies.set({ name, value, ...options });
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the request cookies and the response cookies.
           request.cookies.set({ name, value: '', ...options });
           response.cookies.set({ name, value: '', ...options });
         },
@@ -33,32 +30,29 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired - this will update cookies if necessary.
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
-  // Define protected routes
-  const protectedRoutes = ['/dashboard']; // Add any other routes that need protection
+  const protectedRoutes = ['/dashboard']; 
+  const authRoutes = ['/login', '/signup'];
 
-  // If user is not logged in and trying to access a protected route, redirect to login
   if (!session && protectedRoutes.some(route => pathname.startsWith(route))) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('redirectedFrom', pathname); // Optional: pass original path
+    console.log(`[Middleware] No session, accessing protected route ${pathname}. Redirecting to /login.`);
     return NextResponse.redirect(url);
   }
 
-  // If user is logged in and trying to access login/signup, redirect to dashboard
-  if (session && (pathname === '/login' || pathname === '/signup')) {
+  if (session && authRoutes.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
+     console.log(`[Middleware] Session found, accessing auth route ${pathname}. Redirecting to /dashboard.`);
     return NextResponse.redirect(url);
   }
   
-  // Return the response (it might have been modified by supabase.auth.getSession() to set cookies)
   return response;
 }
 
@@ -72,6 +66,6 @@ export const config = {
      * - auth/callback (Supabase auth callback)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|auth/callback).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/callback|alarms/).*)', // Added alarms to exclude from middleware processing for now
   ],
 };

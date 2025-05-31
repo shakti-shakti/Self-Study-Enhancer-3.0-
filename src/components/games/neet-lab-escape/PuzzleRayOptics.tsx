@@ -126,5 +126,4 @@ export default function PuzzleRayOptics({ onSolve, onFail }: PuzzleRayOpticsProp
     </PuzzleWrapper>
   );
 }
-
     

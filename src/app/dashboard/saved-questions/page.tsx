@@ -1,22 +1,27 @@
 // src/app/dashboard/saved-questions/page.tsx
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables } from '@/lib/database.types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
-import { Star, Loader2, Trash2, Filter, CalendarDays, BookOpen, Tag } from 'lucide-react';
+import { Star, Loader2, Trash2, Filter, CalendarDays, BookOpen, Tag, Eye } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/customizable-quiz-explanation';
+import { Lightbulb, HelpCircle } from 'lucide-react';
 
 type SavedQuestion = Tables<'saved_questions'>;
 
 export default function SavedQuestionsPage() {
   const [savedQuestions, setSavedQuestions] = useState<SavedQuestion[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [isExplaining, startExplainingTransition] = useTransition();
+  const [explanations, setExplanations] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const supabase = createClient();
   const [userId, setUserId] = useState<string|null>(null);
@@ -33,8 +38,7 @@ export default function SavedQuestionsPage() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
-  useEffect(() => {
-    const fetchSavedQuestions = async () => {
+  const fetchSavedQuestions = useCallback(async () => {
       if (!userId) return;
       startTransition(async () => {
         const { data, error } = await supabase
@@ -49,12 +53,13 @@ export default function SavedQuestionsPage() {
           setSavedQuestions(data || []);
         }
       });
-    };
+    }, [userId, supabase, toast]);
 
+  useEffect(() => {
     if (userId) {
       fetchSavedQuestions();
     }
-  }, [userId, supabase, toast]);
+  }, [userId, fetchSavedQuestions]);
 
   const handleDeleteQuestion = async (questionId: string) => {
     if(!userId) return;
@@ -62,44 +67,61 @@ export default function SavedQuestionsPage() {
       const { error } = await supabase
         .from('saved_questions')
         .delete()
-        .eq('id', questionId)
+        .eq('id', questionId) // Assuming 'id' is the primary key of saved_questions
         .eq('user_id', userId);
 
       if (error) {
         toast({ variant: 'destructive', title: 'Error deleting question', description: error.message });
       } else {
-        setSavedQuestions(prev => prev.filter(q => q.id !== questionId));
         toast({ title: 'Question removed from saved list.' });
+        fetchSavedQuestions(); // Refetch to update the list
       }
     });
   };
-
-  // TODO: Implement filter UI and logic
-  const handleFilter = () => {
-    toast({ title: 'Filter (Coming Soon)', description: 'Filtering options will be added here.' });
-  };
-
-  if (isPending && savedQuestions.length === 0) {
-    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  
+  async function handleGetExplanation(question: SavedQuestion) {
+    startExplainingTransition(async () => {
+      try {
+        // Student's answer is not stored in saved_questions, so we pass a generic "Not Attempted in this View"
+        const studentAnswerText = "N/A (Viewing saved question)"; 
+        const correctAnswerText = (question.options as string[])[question.correct_option_index];
+        
+        const input: ExplainQuizQuestionInput = {
+          question: question.question_text,
+          answer: correctAnswerText,
+          studentAnswer: studentAnswerText,
+          topic: question.topic || question.subject || 'General', 
+        };
+        
+        const result = await explainQuizQuestion(input);
+        setExplanations(prev => ({ ...prev, [question.id]: result.explanation }));
+      } catch (error: any) {
+        console.error("Error fetching explanation for saved question:", error);
+        toast({ variant: 'destructive', title: 'Error Fetching Explanation', description: error.message || 'Could not load explanation.' });
+        setExplanations(prev => ({...prev, [question.id]: "Sorry, couldn't fetch explanation at this time."}))
+      }
+    });
   }
+
+
+  if (isPending && savedQuestions.length === 0 && !userId) {
+    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /> <p className="ml-3 text-muted-foreground">Authenticating...</p></div>;
+  }
+  if (isPending && savedQuestions.length === 0 && userId) {
+    return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /> <p className="ml-3 text-muted-foreground">Loading saved questions...</p></div>;
+  }
+
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
       <header className="text-center">
         <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3 flex items-center justify-center">
-          <Star className="mr-4 h-10 w-10 text-yellow-400" /> Your Saved Questions
+          <Star className="mr-4 h-10 w-10 text-yellow-400 fill-yellow-400" /> Your Saved Questions
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
           Revisit and review the questions you've marked for later study.
         </p>
       </header>
-
-      {/* Filter button - to be implemented */}
-      {/* <div className="text-right mb-4">
-        <Button variant="outline" onClick={handleFilter} className="glow-button">
-          <Filter className="mr-2 h-4 w-4" /> Filter Questions
-        </Button>
-      </div> */}
 
       {savedQuestions.length === 0 && !isPending && (
         <Card className="interactive-card shadow-lg">
@@ -137,12 +159,27 @@ export default function SavedQuestionsPage() {
                     {question.topic && <p className="flex items-center"><Tag className="h-4 w-4 mr-2 text-accent" /> Topic: <Badge variant="outline" className="ml-1">{question.topic}</Badge></p>}
                     {question.source && <p className="flex items-center"><Tag className="h-4 w-4 mr-2 text-accent" /> Source: <Badge variant="outline" className="ml-1">{question.source}</Badge></p>}
                 </div>
-                {question.explanation_prompt && (
-                    <details className="mt-2 text-sm">
-                        <summary className="cursor-pointer text-accent hover:underline">View Explanation Prompt</summary>
-                        <p className="p-2 bg-muted/30 rounded mt-1 whitespace-pre-wrap">{question.explanation_prompt}</p>
-                    </details>
+                
+                {explanations[question.id] ? (
+                    <Alert variant="default" className="bg-card-foreground/5 border-accent/30 mt-3">
+                        <Lightbulb className="h-5 w-5 text-accent" />
+                        <AlertTitle className="text-accent">AI Explanation</AlertTitle>
+                        <AlertDescription className="text-sm whitespace-pre-wrap">{explanations[question.id]}</AlertDescription>
+                    </Alert>
+                ) : (
+                    question.explanation_prompt && // Only show button if there's a prompt
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleGetExplanation(question)}
+                        disabled={isExplaining}
+                        className="glow-button border-accent text-accent hover:bg-accent/10 hover:text-accent mt-3"
+                    >
+                        {isExplaining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HelpCircle className="mr-2 h-4 w-4" />}
+                        Get AI Explanation
+                    </Button>
                 )}
+
                  <div className="text-right mt-4">
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteQuestion(question.id)} disabled={isPending} className="glow-button">
                         <Trash2 className="mr-2 h-4 w-4" /> Remove

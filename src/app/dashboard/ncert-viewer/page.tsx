@@ -12,13 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { BookOpen, Loader2, Download, Edit, Info, ChevronRight, FileText, Save, Trash2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
+import Image from 'next/image';
 
 
-type NcertBookMetadata = Tables<'ncert_books_metadata'>;
+type NcertBookMetadata = Tables<'ncert_books_metadata'> & { parsed_chapters?: Array<{name: string, pdf_filename: string}> };
 type UserNcertNote = Tables<'user_ncert_notes'>;
 
 // Dummy NCERT data structure (replace with actual fetched data or structure from Supabase)
-// This would ideally be populated from the `ncert_books_metadata` table.
 const ncertBooksData: NcertBookMetadata[] = [
   { id: 'phy11_1', class_level: '11', subject: 'Physics', book_name: 'Physics Part I - Class 11', chapters: JSON.stringify([{name: "Chapter 1: Physical World", pdf_filename: "keph101.pdf"}, {name: "Chapter 2: Units and Measurement", pdf_filename: "keph102.pdf"}, {name: "Chapter 3: Motion in a Straight Line", pdf_filename: "keph103.pdf"}, {name: "Chapter 4: Motion in a Plane", pdf_filename: "keph104.pdf"}, {name: "Chapter 5: Laws of Motion", pdf_filename: "keph105.pdf"}, {name: "Chapter 6: Work, Energy and Power", pdf_filename: "keph106.pdf"}, {name: "Chapter 7: System of Particles and Rotational Motion", pdf_filename: "keph107.pdf"}, {name: "Chapter 8: Gravitation", pdf_filename: "keph108.pdf"}]), cover_image_url: `https://placehold.co/150x200/A758A9/FFFFFF.png?text=Phy+11.1` },
   { id: 'phy11_2', class_level: '11', subject: 'Physics', book_name: 'Physics Part II - Class 11', chapters: JSON.stringify([{name: "Chapter 9: Mechanical Properties of Solids", pdf_filename: "keph201.pdf"}, {name: "Chapter 10: Mechanical Properties of Fluids", pdf_filename: "keph202.pdf"}, {name: "Chapter 11: Thermal Properties of Matter", pdf_filename: "keph203.pdf"}, {name: "Chapter 12: Thermodynamics", pdf_filename: "keph204.pdf"}, {name: "Chapter 13: Kinetic Theory", pdf_filename: "keph205.pdf"}, {name: "Chapter 14: Oscillations", pdf_filename: "keph206.pdf"}, {name: "Chapter 15: Waves", pdf_filename: "keph207.pdf"}]), cover_image_url: `https://placehold.co/150x200/A758A9/FFFFFF.png?text=Phy+11.2` },
@@ -62,14 +62,34 @@ export default function NcertViewerPage() {
   }, [supabase]);
 
   useEffect(() => {
-    // In a real app, fetch this from `ncert_books_metadata` table in Supabase
-    // For now, using the hardcoded ncertBooksData
-    const filtered = ncertBooksData.filter(book => book.class_level === selectedClass && book.subject === selectedSubject);
-    setBooksForSelection(filtered);
-    setSelectedBook(null); 
-    setSelectedChapter(null);
-    setChapterNotes([]);
-  }, [selectedClass, selectedSubject]);
+    startTransition(async () => {
+      // In a real app, fetch this from `ncert_books_metadata` table in Supabase
+      // const { data: fetchedBooks, error } = await supabase
+      //   .from('ncert_books_metadata')
+      //   .select('*')
+      //   .eq('class_level', selectedClass)
+      //   .eq('subject', selectedSubject);
+      // if (error) toast({ variant: 'destructive', title: 'Error fetching books', description: error.message });
+      // else {
+      //    const parsedBooks = (fetchedBooks || []).map(book => ({
+      //       ...book,
+      //       parsed_chapters: typeof book.chapters === 'string' ? JSON.parse(book.chapters) : book.chapters
+      //   }));
+      //   setBooksForSelection(parsedBooks);
+      // }
+      // For now, using the hardcoded ncertBooksData
+      const filtered = ncertBooksData
+        .filter(book => book.class_level === selectedClass && book.subject === selectedSubject)
+        .map(book => ({
+            ...book,
+            parsed_chapters: typeof book.chapters === 'string' ? JSON.parse(book.chapters) : book.chapters
+        }));
+      setBooksForSelection(filtered);
+      setSelectedBook(null); 
+      setSelectedChapter(null);
+      setChapterNotes([]);
+    });
+  }, [selectedClass, selectedSubject, supabase, toast]);
   
   const fetchChapterNotes = useCallback(async () => {
     if (!userId || !selectedBook || !selectedChapter) {
@@ -196,7 +216,7 @@ export default function NcertViewerPage() {
             {booksForSelection.map(book => (
               <Card key={book.id} className={`interactive-card hover:border-primary p-1 ${selectedBook?.id === book.id ? 'border-2 border-primary shadow-primary/30' : ''}`} onClick={() => {setSelectedBook(book); setSelectedChapter(null);}}>
                 <CardHeader className="p-3 text-center">
-                  <img src={book.cover_image_url || `https://placehold.co/150x200/777/FFF.png?text=${book.subject.slice(0,3)}`} alt={book.book_name} className="w-24 h-32 object-cover rounded-md mx-auto mb-2 shadow-md" data-ai-hint={`${book.subject} textbook`}/>
+                  <Image src={book.cover_image_url || `https://placehold.co/150x200/777/FFF.png?text=${book.subject.slice(0,3)}`} alt={book.book_name} width={100} height={133} className="w-24 h-32 object-cover rounded-md mx-auto mb-2 shadow-md" data-ai-hint={`${book.subject} textbook`}/>
                   <CardTitle className="text-lg font-semibold glow-text-primary">{book.book_name}</CardTitle>
                 </CardHeader>
               </Card>
@@ -213,11 +233,10 @@ export default function NcertViewerPage() {
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full" value={selectedChapter?.name} onValueChange={(value) => {
-                const chaptersArray = typeof selectedBook.chapters === 'string' ? JSON.parse(selectedBook.chapters) : selectedBook.chapters;
-                const chap = (chaptersArray as Array<{name: string, pdf_filename: string}>)?.find((c: any) => c.name === value);
+                const chap = selectedBook.parsed_chapters?.find((c: any) => c.name === value);
                 setSelectedChapter(chap || null);
             }}>
-              {(typeof selectedBook.chapters === 'string' ? JSON.parse(selectedBook.chapters) : selectedBook.chapters as Array<{name: string, pdf_filename: string}> || []).map((chapter: {name: string, pdf_filename: string}) => (
+              {(selectedBook.parsed_chapters || []).map((chapter: {name: string, pdf_filename: string}) => (
                 <AccordionItem value={chapter.name} key={chapter.name} className="border rounded-lg bg-card/50 my-2 shadow-sm">
                   <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary">
                     <div className="flex items-center justify-between w-full">

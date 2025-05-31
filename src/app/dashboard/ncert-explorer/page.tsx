@@ -7,17 +7,19 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { getHighlights, type GetHighlightsInput, type GetHighlightsOutput } from '@/ai/flows/ncert-explorer-highlights';
 import { BookOpen, Loader2, Search, Sparkles, ListChecks, HelpCircle, FileText } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { createClient } from '@/lib/supabase/client';
+import type { TablesInsert } from '@/lib/database.types';
 
 const ncertExplorerSchema = z.object({
-  chapterText: z.string().min(100, { message: 'Chapter text must be at least 100 characters.' }),
-  query: z.string().optional(),
+  chapterText: z.string().min(100, { message: 'Chapter text must be at least 100 characters.' }).max(50000, {message: "Chapter text is too long for optimal processing."}),
+  query: z.string().max(100, {message: "Query is too long."}).optional(),
 });
 
 type NcertExplorerFormData = z.infer<typeof ncertExplorerSchema>;
@@ -26,6 +28,7 @@ export default function NcertExplorerPage() {
   const [isPending, startTransition] = useTransition();
   const [highlights, setHighlights] = useState<GetHighlightsOutput | null>(null);
   const { toast } = useToast();
+  const supabase = createClient();
 
   const form = useForm<NcertExplorerFormData>({
     resolver: zodResolver(ncertExplorerSchema),
@@ -41,6 +44,18 @@ export default function NcertExplorerPage() {
       try {
         const result = await getHighlights(values);
         setHighlights(result);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const activityLog: TablesInsert<'activity_logs'> = {
+              user_id: user.id,
+              activity_type: 'ncert_explorer_used',
+              description: `Used NCERT AI Explorer${values.query ? ` with query: "${values.query}"` : ''}.`,
+              details: { query: values.query, summary_length: result.summary.length }
+            };
+            await supabase.from('activity_logs').insert(activityLog);
+        }
+
         toast({
           title: 'Highlights Ready!',
           description: 'AI has analyzed the chapter content.',
@@ -89,7 +104,7 @@ export default function NcertExplorerPage() {
                       <Textarea
                         placeholder="Paste the full text of the NCERT chapter here..."
                         {...field}
-                        className="min-h-[200px] border-2 border-input focus:border-primary"
+                        className="min-h-[200px] input-glow"
                       />
                     </FormControl>
                     <FormMessage />
@@ -103,14 +118,14 @@ export default function NcertExplorerPage() {
                   <FormItem>
                     <FormLabel className="text-base font-medium">Focus Query (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="E.g., 'mitochondria function', 'Newton's laws'" {...field} className="border-2 border-input focus:border-primary h-11"/>
+                      <Input placeholder="E.g., 'mitochondria function', 'Newton's laws'" {...field} className="input-glow h-11"/>
                     </FormControl>
                      <FormDescription>Filter highlights based on specific keywords or concepts.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
+              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending || !form.formState.isValid}>
                 {isPending ? (
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 ) : (
@@ -147,56 +162,55 @@ export default function NcertExplorerPage() {
             </CardContent>
           </Card>
 
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            <AccordionItem value="key-diagrams" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
-              <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
-                <ListChecks className="mr-2 h-5 w-5 text-primary" /> Key Diagrams Mentioned
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                {highlights.keyDiagrams.length > 0 ? (
-                  <ul className="list-disc pl-5 space-y-1">
+          <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="important-lines">
+            {highlights.importantLines && highlights.importantLines.length > 0 && (
+                <AccordionItem value="important-lines" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
+                <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
+                    <Sparkles className="mr-2 h-5 w-5 text-primary" /> Important Lines
+                </AccordionTrigger>
+                <AccordionContent className="p-4 pt-0">
+                    <ul className="list-disc pl-5 space-y-1">
+                        {highlights.importantLines.map((line, index) => (
+                        <li key={index}>{line}</li>
+                        ))}
+                    </ul>
+                </AccordionContent>
+                </AccordionItem>
+            )}
+
+            {highlights.keyDiagrams && highlights.keyDiagrams.length > 0 && (
+                <AccordionItem value="key-diagrams" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
+                <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
+                    <ListChecks className="mr-2 h-5 w-5 text-primary" /> Key Diagrams Mentioned
+                </AccordionTrigger>
+                <AccordionContent className="p-4 pt-0">
+                    <ul className="list-disc pl-5 space-y-1">
                     {highlights.keyDiagrams.map((diagram, index) => (
-                      <li key={index}>{diagram}</li>
+                        <li key={index}>{diagram}</li>
                     ))}
-                  </ul>
-                ) : <p className="text-muted-foreground">No specific diagrams identified by AI.</p>}
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="likely-questions" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
-              <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
-                <HelpCircle className="mr-2 h-5 w-5 text-primary" /> Likely Questions
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                 {highlights.likelyQuestions.length > 0 ? (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {highlights.likelyQuestions.map((question, index) => (
-                      <li key={index}>{question}</li>
-                    ))}
-                  </ul>
-                ) : <p className="text-muted-foreground">No specific questions identified by AI.</p>}
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="important-lines" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
-              <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
-                <Sparkles className="mr-2 h-5 w-5 text-primary" /> Important Lines
-              </AccordionTrigger>
-              <AccordionContent className="p-4 pt-0">
-                {highlights.importantLines.length > 0 ? (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {highlights.importantLines.map((line, index) => (
-                      <li key={index}>{line}</li>
-                    ))}
-                  </ul>
-                ) : <p className="text-muted-foreground">No specific lines highlighted by AI.</p>}
-              </AccordionContent>
-            </AccordionItem>
+                    </ul>
+                </AccordionContent>
+                </AccordionItem>
+            )}
+            
+            {highlights.likelyQuestions && highlights.likelyQuestions.length > 0 && (
+                <AccordionItem value="likely-questions" className="border rounded-lg bg-card interactive-card shadow-md shadow-primary/5">
+                <AccordionTrigger className="p-4 text-lg font-medium hover:no-underline text-primary font-headline">
+                    <HelpCircle className="mr-2 h-5 w-5 text-primary" /> Likely Questions
+                </AccordionTrigger>
+                <AccordionContent className="p-4 pt-0">
+                    <ul className="list-disc pl-5 space-y-1">
+                        {highlights.likelyQuestions.map((question, index) => (
+                        <li key={index}>{question}</li>
+                        ))}
+                    </ul>
+                </AccordionContent>
+                </AccordionItem>
+            )}
+            
           </Accordion>
         </section>
       )}
     </div>
   );
 }
-
-    

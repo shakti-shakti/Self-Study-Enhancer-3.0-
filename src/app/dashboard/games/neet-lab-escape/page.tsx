@@ -6,7 +6,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { UserGameProgress, NEETLabEscapeState, GameSpecificState } from '@/lib/database.types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+// import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Not used directly here, but by sub-components
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FlaskConical, DoorOpen, AlertTriangle, ChevronRight } from 'lucide-react';
 import IntroLabEscape from '@/components/games/neet-lab-escape/IntroLabEscape';
@@ -17,19 +17,22 @@ import PhysicsChamber from '@/components/games/neet-lab-escape/PhysicsChamber';
 // import ZoologyDen from '@/components/games/neet-lab-escape/ZoologyDen';
 // import FinalHallway from '@/components/games/neet-lab-escape/FinalHallway';
 import GameTimer from '@/components/games/GameTimer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Used for fallback display
+
 
 const GAME_ID_LAB_ESCAPE = "neet_lab_escape";
 const TOTAL_GAME_TIME_SECONDS = 30 * 60; // 30 minutes for the entire escape
 
 const initialLabEscapeState: NEETLabEscapeState = {
   currentRoom: 'intro',
-  physicsPuzzlesSolved: [false, false, false, false, false],
-  chemistryPuzzlesSolved: [false, false, false, false, false],
-  botanyPuzzlesSolved: [false, false, false, false, false],
-  zoologyPuzzlesSolved: [false, false, false, false, false],
+  physicsPuzzlesSolved: Array(5).fill(false), // Assuming 5 puzzles per room for now
+  chemistryPuzzlesSolved: Array(5).fill(false),
+  botanyPuzzlesSolved: Array(5).fill(false),
+  zoologyPuzzlesSolved: Array(5).fill(false),
   masterLocksSolved: { physics: false, chemistry: false, botany: false, zoology: false },
   remainingTime: TOTAL_GAME_TIME_SECONDS,
   retriesUsed: 0,
+  finalQuestionAnsweredCorrectly: undefined,
 };
 
 export default function NEETLabEscapePage() {
@@ -53,6 +56,7 @@ export default function NEETLabEscapePage() {
       }
     };
     getCurrentUserAndLoadProgress();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadGameProgress = async (currentUserId: string) => {
@@ -68,9 +72,25 @@ export default function NEETLabEscapePage() {
       if (error && error.code !== 'PGRST116') {
         toast({ variant: 'destructive', title: 'Error loading progress', description: error.message });
       } else if (data && data.game_specific_state) {
-        setGameState(data.game_specific_state as NEETLabEscapeState);
+         const loadedState = data.game_specific_state as Partial<NEETLabEscapeState>;
+         setGameState({
+            ...initialLabEscapeState, // Base default
+            ...loadedState, // Loaded overrides
+            // Ensure arrays and nested objects are correctly initialized/merged
+            physicsPuzzlesSolved: loadedState.physicsPuzzlesSolved || Array(5).fill(false),
+            chemistryPuzzlesSolved: loadedState.chemistryPuzzlesSolved || Array(5).fill(false),
+            botanyPuzzlesSolved: loadedState.botanyPuzzlesSolved || Array(5).fill(false),
+            zoologyPuzzlesSolved: loadedState.zoologyPuzzlesSolved || Array(5).fill(false),
+            masterLocksSolved: {
+                ...initialLabEscapeState.masterLocksSolved,
+                ...(loadedState.masterLocksSolved || {}),
+            },
+            remainingTime: loadedState.remainingTime !== undefined ? loadedState.remainingTime : TOTAL_GAME_TIME_SECONDS,
+
+         });
       } else {
         await saveGameProgress(currentUserId, initialLabEscapeState);
+        setGameState(initialLabEscapeState);
       }
       setIsLoadingGame(false);
     });
@@ -78,8 +98,6 @@ export default function NEETLabEscapePage() {
 
   const saveGameProgress = async (currentUserId: string, newGameState: NEETLabEscapeState) => {
     if (!currentUserId) return;
-    // Do not use startTransition here if called from within another transition (e.g. puzzle completion)
-    // to avoid nested transition issues.
     const progressData: Omit<UserGameProgress, 'id' | 'last_played'> & { last_played?: string } = {
       user_id: currentUserId,
       game_id: GAME_ID_LAB_ESCAPE,
@@ -106,6 +124,7 @@ export default function NEETLabEscapePage() {
     puzzleSets.forEach(set => score += set.filter(solved => solved).length * 10); // 10 points per puzzle
     Object.values(currentState.masterLocksSolved).forEach(solved => { if(solved) score += 50; }); // 50 per master lock
     if(currentState.currentRoom === 'escaped') score += 100; // Escape bonus
+    if (currentState.finalQuestionAnsweredCorrectly) score += 50; // Bonus for final question
     score -= currentState.retriesUsed * 5; // Penalty for retries
     return Math.max(0, score); // Ensure score is not negative
   };
@@ -113,7 +132,12 @@ export default function NEETLabEscapePage() {
 
   const updateGameState = (newState: Partial<NEETLabEscapeState>) => {
     setGameState(prev => {
-      const updatedState = { ...prev, ...newState };
+      const updatedState = { 
+        ...prev, 
+        ...newState,
+        // Ensure nested objects like masterLocksSolved are correctly merged
+        masterLocksSolved: newState.masterLocksSolved ? {...prev.masterLocksSolved, ...newState.masterLocksSolved} : prev.masterLocksSolved,
+      };
       if (userId) saveGameProgress(userId, updatedState);
       return updatedState;
     });
@@ -140,6 +164,7 @@ export default function NEETLabEscapePage() {
           }
           // Save progress less frequently to avoid too many DB writes, e.g., every 10 seconds
           if (newTime % 10 === 0 && userId) {
+            // Only save the time, not the full state, to avoid overwriting rapid puzzle updates
             saveGameProgress(userId, {...prev, remainingTime: newTime});
           }
           return { ...prev, remainingTime: newTime };
@@ -181,7 +206,12 @@ export default function NEETLabEscapePage() {
         return <PhysicsChamber gameState={gameState} updateGameState={updateGameState} advanceRoom={advanceRoom} />;
       // case 'chemistry':
       //   return <ChemistryVault gameState={gameState} updateGameState={updateGameState} advanceRoom={advanceRoom} />;
-      // Add other rooms
+      // case 'botany':
+      //   return <BotanyDome gameState={gameState} updateGameState={updateGameState} advanceRoom={advanceRoom} />;
+      // case 'zoology':
+      //   return <ZoologyDen gameState={gameState} updateGameState={updateGameState} advanceRoom={advanceRoom} />;
+      // case 'final_hallway':
+      //   return <FinalHallway gameState={gameState} updateGameState={updateGameState} advanceRoom={advanceRoom} />;
       case 'escaped':
         return (
             <div className="text-center p-8 bg-gradient-to-br from-green-500/20 via-background to-primary/20 rounded-xl shadow-2xl shadow-green-400/40 border border-green-500/50">
@@ -208,7 +238,21 @@ export default function NEETLabEscapePage() {
             </div>
         );
       default:
-        return <p>Loading room...</p>;
+        // Fallback for unimplemented rooms
+         return (
+             <Card className="w-full max-w-xl text-center lab-escape-puzzle-card p-6">
+                <CardHeader>
+                    <FlaskConical className="h-16 w-16 mx-auto text-yellow-400 mb-4" />
+                    <CardTitle className="text-3xl font-headline glow-text-primary">Containment Breach!</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-lg text-muted-foreground mb-4">Room "{gameState.currentRoom}" is currently unstable or not yet constructed.</p>
+                     <Button onClick={() => updateGameState({currentRoom: 'intro'})} className="mt-4 glow-button">
+                        Return to Lab Entrance
+                    </Button>
+                </CardContent>
+            </Card>
+        );
     }
   };
 
@@ -225,25 +269,29 @@ export default function NEETLabEscapePage() {
 // Basic CSS for Lab Escape theme
 const labEscapeStyles = `
   .neet-lab-escape-container {
-    background: linear-gradient(135deg, hsl(220, 20%, 15%), hsl(210, 30%, 25%));
-    color: #fafafa;
+    background: linear-gradient(135deg, hsl(var(--background) / 0.9), hsl(var(--background) / 0.7)), 
+                radial-gradient(ellipse at center, hsl(var(--primary)/0.1) 0%, transparent 70%);
+    color: hsl(var(--foreground));
   }
   .lab-escape-text-accent {
     color: hsl(var(--primary));
     text-shadow: 0 0 6px hsl(var(--primary)/0.6);
   }
-  .lab-escape-puzzle-card {
-    background-color: hsl(var(--card)/0.8);
+  .lab-escape-puzzle-card { /* Styling for cards within this game */
+    background-color: hsl(var(--card) / 0.85); /* Use card color with alpha */
     border: 1px solid hsl(var(--border)/0.7);
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(4px);
+    color: hsl(var(--card-foreground));
   }
 `;
 
 if (typeof window !== 'undefined') {
-  const styleSheet = document.createElement("style");
-  styleSheet.type = "text/css";
-  styleSheet.innerText = labEscapeStyles;
-  document.head.appendChild(styleSheet);
+   if (!document.getElementById('neet-lab-escape-styles')) {
+    const styleSheet = document.createElement("style");
+    styleSheet.id = 'neet-lab-escape-styles';
+    styleSheet.type = "text/css";
+    styleSheet.innerText = labEscapeStyles;
+    document.head.appendChild(styleSheet);
+  }
 }
-
     

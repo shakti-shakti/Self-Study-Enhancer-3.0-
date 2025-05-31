@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getSuggestions, type MentalHealthInput } from '@/ai/flows/mental-health-tracker';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
+import type { TablesInsert } from '@/lib/database.types';
 import { Brain, Zap, Lightbulb, Loader2, Sparkles, ThumbsUp, Meh, Frown } from 'lucide-react';
 
 const moodOptions = [
@@ -70,19 +71,29 @@ export default function MentalHealthTrackerPage() {
         const result = await getSuggestions(aiInput);
         setAiSuggestions(result.suggestions);
 
-        const { error: dbError } = await supabase.from('mood_logs').insert({
-          user_id: user.id,
-          mood: values.mood,
-          focus_level: values.focusLevel,
-          suggestions: result.suggestions,
-        });
+        const logEntry: TablesInsert<'mood_logs'> = {
+            user_id: user.id,
+            mood: values.mood,
+            focus_level: values.focusLevel,
+            suggestions: result.suggestions,
+        };
+        const { error: dbError } = await supabase.from('mood_logs').insert(logEntry);
 
         if (dbError) {
           throw new Error(dbError.message);
         }
+        
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: user.id,
+          activity_type: 'mood_logged',
+          description: `Logged mood: ${values.mood}, focus: ${values.focusLevel}/10`,
+          details: { mood: values.mood, focus: values.focusLevel, suggestions_count: result.suggestions.length }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+
 
         toast({
-          title: 'Log Saved &amp; Suggestions Ready!',
+          title: 'Log Saved & Suggestions Ready!',
           description: 'Your mood and focus have been logged.',
           className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
         });
@@ -99,8 +110,8 @@ export default function MentalHealthTrackerPage() {
   return (
     <div className="space-y-10">
       <header className="text-center">
-        <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3">
-          Mind &amp; Focus Hub
+        <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3 flex items-center justify-center">
+          <Brain className="mr-3 h-10 w-10" /> Mind & Focus Hub
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
           Tune into your well-being. Log your mood and focus to unlock personalized AI insights and boost your study game.
@@ -110,7 +121,7 @@ export default function MentalHealthTrackerPage() {
       <Card className="max-w-2xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center text-2xl font-headline">
-            <Brain className="mr-3 h-8 w-8 text-primary" /> How are you feeling?
+            <Zap className="mr-3 h-8 w-8 text-primary" /> How are you feeling?
           </CardTitle>
           <CardDescription>
             Track your mental state to optimize your preparation.
@@ -127,7 +138,7 @@ export default function MentalHealthTrackerPage() {
                     <FormLabel className="text-lg font-medium">Current Mood</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-12 text-base border-2 border-input focus:border-primary glow-button">
+                        <SelectTrigger className="h-12 text-base input-glow">
                           <SelectValue placeholder="Select your mood..." />
                         </SelectTrigger>
                       </FormControl>
@@ -163,7 +174,7 @@ export default function MentalHealthTrackerPage() {
                         step={1}
                         defaultValue={[field.value]}
                         onValueChange={(value) => field.onChange(value[0])}
-                        className="[&amp;_.slider-thumb]:bg-primary [&amp;_.slider-range]:bg-primary/80"
+                        className="[&_.slider-thumb]:bg-primary [&_.slider-range]:bg-primary/80"
                       />
                     </FormControl>
                     <FormDescription>
@@ -173,13 +184,13 @@ export default function MentalHealthTrackerPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
+              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending || !form.formState.isValid}>
                 {isPending ? (
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                 ) : (
                   <Zap className="mr-2 h-6 w-6" />
                 )}
-                Get AI Insights &amp; Log
+                Get AI Insights & Log
               </Button>
             </form>
           </Form>

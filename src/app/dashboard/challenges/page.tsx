@@ -11,108 +11,230 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { ShieldCheck, Star, Trophy, Zap, Loader2, HelpCircle, Award, Target as TargetIcon, CalendarDays, CheckCircle, Clock } from 'lucide-react';
 import { Badge as ShadBadge } from '@/components/ui/badge'; // Renamed to avoid conflict
+import Image from 'next/image';
 
 // Types for local data structure
-type Mission = {
-  id: string;
-  title: string;
-  description: string;
-  mission_type: 'daily' | 'weekly';
-  reward_points: number;
-  badge_id_reward?: string;
-  target_value: number; // e.g. solve 10 questions, study 2 hours (in minutes)
-  current_progress: number; // User's current progress
-  status: 'locked' | 'active' | 'completed';
+type Mission = Tables<'missions'> & {
+  current_progress: number; // User's current progress (fetched from user_missions)
+  status: "locked" | "active" | "completed" | "failed"; // User's status for this mission
+  icon?: React.ElementType; // For Lucide icons
+};
+
+type Badge = Tables<'badges'> & {
   icon?: React.ElementType;
 };
 
-type Badge = {
-  id: string;
-  name: string;
-  description: string;
-  icon?: React.ElementType;
-  icon_url?: string; // For image-based icons
+type LeaderboardUser = Tables<'leaderboard_entries'> & {
+  profiles: { full_name: string | null; username: string | null; avatar_url: string | null } | null;
 };
 
-type LeaderboardUser = {
-  id: string;
-  name: string;
-  score: number;
-  rank: number;
-  avatarUrl?: string;
-};
 
 const sampleMissions: Mission[] = [
-  { id: 'm1', title: 'NCERT Quick Scan', description: 'Solve 10 NCERT-based questions in 15 mins.', mission_type: 'daily', reward_points: 50, target_value: 10, current_progress: 3, status: 'active', icon: TargetIcon, badge_id_reward: 'b1' },
-  { id: 'm2', title: 'Physics Power Hour', description: 'Complete 1 hour of focused Physics study.', mission_type: 'daily', reward_points: 75, target_value: 60, current_progress: 0, status: 'locked', icon: Zap },
-  { id: 'm3', title: 'Weekly Quiz Champion', description: 'Score above 80% in 3 quizzes this week.', mission_type: 'weekly', reward_points: 200, target_value: 3, current_progress: 1, status: 'active', icon: Trophy, badge_id_reward: 'b2' },
-  { id: 'm4', title: 'Study Streak Keeper', description: 'Log study time for 5 consecutive days.', mission_type: 'weekly', reward_points: 150, target_value: 5, current_progress: 2, status: 'active', icon: CalendarDays },
+  // This will be replaced by fetched data
 ];
 
 const sampleBadges: Badge[] = [
-  { id: 'b1', name: 'NCERT Novice', description: 'Completed your first NCERT mission!', icon: Award },
-  { id: 'b2', name: 'Quiz Conqueror', description: 'Dominated multiple quizzes in a week.', icon: ShieldCheck },
-  { id: 'b3', name: 'Streak Master', description: 'Maintained a 5-day study streak.', icon: Star, icon_url: 'https://placehold.co/64x64/A758A9/FFFFFF.png?text=S' },
+  // This will be replaced by fetched data
 ];
 
 const sampleLeaderboard: LeaderboardUser[] = [
-  { id: 'u1', name: 'RacerX', score: 1250, rank: 1, avatarUrl: 'https://placehold.co/40x40/559BBA/FFFFFF.png?text=RX' },
-  { id: 'u2', name: 'StudyNinja', score: 1100, rank: 2, avatarUrl: 'https://placehold.co/40x40/A758A9/FFFFFF.png?text=SN' },
-  { id: 'u3', name: 'AtomSmasher', score: 980, rank: 3, avatarUrl: 'https://placehold.co/40x40/84CC16/FFFFFF.png?text=AS' },
+    // This will be replaced by fetched data
 ];
 
 
 export default function ChallengesPage() {
   const [isPending, startTransition] = useTransition();
-  const [userMissions, setUserMissions] = useState<Mission[]>(sampleMissions); // Will be fetched from Supabase
-  const [userBadges, setUserBadges] = useState<Badge[]>([]); // Will be fetched from Supabase
-  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>(sampleLeaderboard); // Will be fetched
+  const [userId, setUserId] = useState<string|null>(null);
+  const [userMissions, setUserMissions] = useState<Mission[]>([]);
+  const [userBadges, setUserBadges] = useState<Badge[]>([]);
+  const [availableBadges, setAvailableBadges] = useState<Badge[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
 
   const { toast } = useToast();
   const supabase = createClient();
 
-  // TODO: Fetch userMissions, userBadges, leaderboard from Supabase
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     const { data: { user } } = await supabase.auth.getUser();
-  //     if (!user) return;
-  //     startTransition(async () => {
-  //       // Fetch user_missions and join with missions table
-  //       // Fetch user_badges and join with badges table
-  //       // Fetch leaderboard_entries
-  //     });
-  //   };
-  //   fetchData();
-  // }, []);
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, [supabase]);
 
-  const handleCompleteMission = (missionId: string) => {
-    // This would typically involve verifying the mission completion criteria.
-    // For now, it's a manual completion for demo purposes.
-    startTransition(async () => {
-      setUserMissions(prevMissions =>
-        prevMissions.map(m =>
-          m.id === missionId ? { ...m, status: 'completed', current_progress: m.target_value } : m
-        )
-      );
-      
-      const completedMission = userMissions.find(m => m.id === missionId);
-      if (completedMission?.badge_id_reward) {
-        const badge = sampleBadges.find(b => b.id === completedMission.badge_id_reward);
-        if (badge && !userBadges.find(ub => ub.id === badge.id)) {
-          setUserBadges(prev => [...prev, badge]);
-          toast({
-            title: "Badge Unlocked!",
-            description: `You've earned the ${badge.name} badge!`,
-            className: 'bg-accent/20 border-accent text-accent-foreground glow-text-accent'
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchData = async () => {
+      startTransition(async () => {
+        // Fetch all active missions
+        const { data: missionsData, error: missionsError } = await supabase
+          .from('missions')
+          .select('*')
+          .eq('is_active', true);
+        if (missionsError) toast({ variant: 'destructive', title: 'Error fetching missions', description: missionsError.message });
+
+        // Fetch user's progress on these missions
+        const { data: userMissionsData, error: userMissionsError } = await supabase
+          .from('user_missions')
+          .select('*')
+          .eq('user_id', userId);
+        if (userMissionsError) toast({ variant: 'destructive', title: 'Error fetching user mission progress', description: userMissionsError.message });
+
+        if (missionsData) {
+          const combinedMissions = missionsData.map(mission => {
+            const userProgress = userMissionsData?.find(um => um.mission_id === mission.id);
+            let iconComponent = TargetIcon; // Default icon
+            if (mission.title.toLowerCase().includes("physics")) iconComponent = Zap;
+            else if (mission.title.toLowerCase().includes("quiz")) iconComponent = Trophy;
+            else if (mission.title.toLowerCase().includes("streak")) iconComponent = CalendarDays;
+
+            return {
+              ...mission,
+              icon: iconComponent,
+              current_progress: userProgress?.current_progress || 0,
+              status: userProgress?.status || 'locked', 
+            };
           });
+          setUserMissions(combinedMissions);
         }
-      }
-      // TODO: Update Supabase: user_missions status, potentially user_badges, leaderboard_entries
-      toast({
-        title: "Mission Complete!",
-        description: `You've completed "${completedMission?.title}" and earned ${completedMission?.reward_points} points!`,
-        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'
+
+        // Fetch all badges
+        const { data: allBadgesData, error: allBadgesError } = await supabase.from('badges').select('*');
+        if (allBadgesError) toast({ variant: 'destructive', title: 'Error fetching badges', description: allBadgesError.message });
+        
+        // Fetch user's earned badges
+        const { data: earnedUserBadgesData, error: userBadgesError } = await supabase
+          .from('user_badges')
+          .select('*, badges(*)')
+          .eq('user_id', userId);
+        if (userBadgesError) toast({ variant: 'destructive', title: 'Error fetching user badges', description: userBadgesError.message });
+        
+        if (earnedUserBadgesData && allBadgesData) {
+            const mappedUserBadges = earnedUserBadgesData.map(ub => {
+                const badgeDetails = ub.badges as Badge; // Cast since we selected * from badges
+                let iconComp = Award; // Default
+                if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
+                else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
+                else if(badgeDetails?.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
+                return { ...badgeDetails, icon: iconComp };
+            });
+            setUserBadges(mappedUserBadges);
+
+            const available = allBadgesData.map(badge => {
+                 let iconComp = Award;
+                if(badge.icon_name_or_url?.toLowerCase().includes("ncert")) iconComp = Award;
+                else if(badge.icon_name_or_url?.toLowerCase().includes("quiz")) iconComp = ShieldCheck;
+                else if(badge.icon_name_or_url?.toLowerCase().includes("streak")) iconComp = Star;
+                return {...badge, icon: iconComp } as Badge;
+            });
+            setAvailableBadges(available.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)));
+        }
+
+
+        // Fetch leaderboard (all_time for now, simple example)
+        const { data: leaderboardData, error: leaderboardError } = await supabase
+          .from('leaderboard_entries')
+          .select('*, profiles(full_name, username, avatar_url)')
+          .eq('period', 'all_time')
+          .order('score', { ascending: false })
+          .limit(10);
+        if (leaderboardError) toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: leaderboardError.message });
+        else setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
       });
+    };
+    fetchData();
+  }, [userId, supabase, toast]);
+
+  const handleCompleteMission = async (mission: Mission) => {
+    if(!userId) return;
+    // This would typically involve verifying the mission completion criteria based on `mission.criteria_type`.
+    // For demo, we assume it's directly completable by button click if active.
+    if (mission.status !== 'active') {
+        toast({title: "Mission not active", description: "This mission is either locked or already completed."});
+        return;
+    }
+
+    startTransition(async () => {
+        // Update user_mission status to completed
+        const { error: updateError } = await supabase
+            .from('user_missions')
+            .update({ status: 'completed', current_progress: mission.target_value, completed_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .eq('mission_id', mission.id);
+
+        if (updateError) {
+            toast({ variant: 'destructive', title: "Error completing mission", description: updateError.message });
+            return;
+        }
+        
+        // Add reward points to leaderboard (simplified: directly update all_time score)
+        const { error: scoreError } = await supabase.rpc('increment_leaderboard_score', { 
+            p_user_id: userId, 
+            p_score_increment: mission.reward_points, 
+            p_period: 'all_time' 
+        });
+        if (scoreError) console.error("Error updating score via RPC:", scoreError);
+
+
+        // Grant badge if applicable
+        if (mission.badge_id_reward) {
+            const { error: badgeError } = await supabase
+                .from('user_badges')
+                .insert({ user_id: userId, badge_id: mission.badge_id_reward });
+            
+            if (badgeError && badgeError.code !== '23505') { // 23505 is unique violation, means badge already earned
+                toast({ variant: 'destructive', title: "Error granting badge", description: badgeError.message });
+            } else if (!badgeError) {
+                const awardedBadge = availableBadges.find(b => b.id === mission.badge_id_reward) || userBadges.find(b => b.id === mission.badge_id_reward);
+                 toast({
+                    title: "Badge Unlocked!",
+                    description: `You've earned the ${awardedBadge?.name || 'new'} badge!`,
+                    className: 'bg-accent/20 border-accent text-accent-foreground glow-text-accent'
+                });
+            }
+        }
+        
+        // Log activity
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'mission_completed',
+          description: `Completed mission: "${mission.title}" (+${mission.reward_points} pts)`,
+          details: { mission_id: mission.id, points: mission.reward_points, badge: mission.badge_id_reward }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+
+        toast({
+            title: "Mission Complete!",
+            description: `You've completed "${mission.title}" and earned ${mission.reward_points} points!`,
+            className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'
+        });
+        
+        // Refetch all data to update UI
+        if (userId) { // Re-check userId before calling dependent functions
+            const { data: missionsData, error: missionsError } = await supabase.from('missions').select('*').eq('is_active', true);
+            const { data: userMissionsData, error: userMissionsError } = await supabase.from('user_missions').select('*').eq('user_id', userId);
+            if (missionsData) {
+                const combinedMissions = missionsData.map(m => {
+                    const userProgress = userMissionsData?.find(um => um.mission_id === m.id);
+                     let iconComponent = TargetIcon;
+                    if (m.title.toLowerCase().includes("physics")) iconComponent = Zap;
+                    else if (m.title.toLowerCase().includes("quiz")) iconComponent = Trophy;
+                    else if (m.title.toLowerCase().includes("streak")) iconComponent = CalendarDays;
+                    return { ...m, icon: iconComponent, current_progress: userProgress?.current_progress || 0, status: userProgress?.status || 'locked' };
+                });
+                setUserMissions(combinedMissions);
+            }
+            const { data: earnedUserBadgesData } = await supabase.from('user_badges').select('*, badges(*)').eq('user_id', userId);
+            const { data: allBadgesData } = await supabase.from('badges').select('*');
+             if (earnedUserBadgesData && allBadgesData) {
+                 const mappedUserBadges = earnedUserBadgesData.map(ub => ({ ...(ub.badges as Badge), icon: Award })); // Add dynamic icon logic
+                 setUserBadges(mappedUserBadges);
+                 setAvailableBadges(allBadgesData.filter(ab => !mappedUserBadges.find(ub => ub.id === ab.id)).map(b => ({...b, icon: Award})));
+             }
+            const { data: leaderboardData } = await supabase.from('leaderboard_entries').select('*, profiles(full_name, username, avatar_url)').eq('period', 'all_time').order('score', { ascending: false }).limit(10);
+            setLeaderboard((leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1})));
+        }
     });
   };
   
@@ -134,7 +256,7 @@ export default function ChallengesPage() {
         </ShadBadge>
       </CardHeader>
       <CardContent className="p-4 space-y-3">
-        <p className="text-sm text-muted-foreground">{mission.description}</p>
+        <p className="text-sm text-muted-foreground min-h-[40px]">{mission.description}</p>
         <div>
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
             <span>Progress</span>
@@ -148,16 +270,16 @@ export default function ChallengesPage() {
         {mission.status === 'active' && (
           <Button 
             className="w-full glow-button" 
-            onClick={() => handleCompleteMission(mission.id)}
-            disabled={isPending}
+            onClick={() => handleCompleteMission(mission)}
+            disabled={isPending || mission.current_progress >= mission.target_value} // Disable if already met for demo
           >
             {isPending ? <Loader2 className="animate-spin mr-2"/> : <CheckCircle className="mr-2"/>}
-            Mark as Complete (Demo)
+            {mission.current_progress >= mission.target_value ? 'Claim Reward' : 'Mark as Complete (Demo)'}
           </Button>
         )}
         {mission.status === 'locked' && (
           <Button className="w-full" variant="outline" disabled>
-            <HelpCircle className="mr-2"/> Locked (Complete other tasks)
+            <HelpCircle className="mr-2"/> Locked
           </Button>
         )}
         {mission.status === 'completed' && (
@@ -172,14 +294,20 @@ export default function ChallengesPage() {
   const BadgeCard = ({ badge }: { badge: Badge }) => (
     <Card className="interactive-card shadow-md shadow-accent/10 text-center p-4 flex flex-col items-center justify-center aspect-square">
       {badge.icon ? <badge.icon className="h-12 w-12 text-accent mb-2"/> : 
-      badge.icon_url ? <img src={badge.icon_url} alt={badge.name} className="h-12 w-12 mb-2 rounded-full" data-ai-hint="achievement badge icon"/> : <Award className="h-12 w-12 text-accent mb-2"/> }
+      badge.icon_name_or_url && badge.icon_name_or_url.startsWith('http') ? 
+        <Image src={badge.icon_name_or_url} alt={badge.name} width={48} height={48} className="mb-2 rounded-full" data-ai-hint="badge icon"/> : 
+        <Award className="h-12 w-12 text-accent mb-2"/> }
       <h3 className="font-semibold text-lg glow-text-accent">{badge.name}</h3>
       <p className="text-xs text-muted-foreground">{badge.description}</p>
     </Card>
   );
+  
+  if (isPending && userMissions.length === 0 && leaderboard.length === 0) {
+     return <div className="flex justify-center items-center h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 pb-16 md:pb-0">
       <header className="text-center">
         <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3 flex items-center justify-center">
           <Trophy className="mr-4 h-10 w-10" /> Challenges &amp; Leaderboard
@@ -222,31 +350,35 @@ export default function ChallengesPage() {
            ) : (
             <p className="text-muted-foreground text-center py-10">You haven't earned any badges yet. Complete missions to unlock them!</p>
            )}
-           <h2 className="text-2xl font-headline font-semibold mt-10 mb-4 glow-text-accent text-center">Available Badges</h2>
+           <h2 className="text-2xl font-headline font-semibold mt-10 mb-4 glow-text-accent text-center">Available Badges to Earn</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-60">
-                {sampleBadges.filter(b => !userBadges.find(ub => ub.id === b.id)).map(badge => <BadgeCard key={badge.id} badge={badge} />)}
+                {availableBadges.map(badge => <BadgeCard key={badge.id} badge={badge} />)}
             </div>
         </TabsContent>
 
         <TabsContent value="leaderboard" className="mt-8">
-          <Card className="max-w-md mx-auto interactive-card shadow-xl shadow-primary/10">
+          <Card className="max-w-lg mx-auto interactive-card shadow-xl shadow-primary/10">
             <CardHeader>
-              <CardTitle className="font-headline text-2xl glow-text-primary text-center">Top Achievers</CardTitle>
+              <CardTitle className="font-headline text-2xl glow-text-primary text-center">Top Achievers (All Time)</CardTitle>
               <CardDescription className="text-center">See who's leading the charge!</CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-3">
-                {leaderboard.map(user => (
-                  <li key={user.id} className="flex items-center justify-between p-3 bg-card-foreground/5 rounded-lg border border-border/20 hover:bg-primary/10 transition-colors">
-                    <div className="flex items-center">
-                      <span className={`font-bold text-lg mr-3 w-6 text-center ${user.rank === 1 ? 'text-yellow-400' : user.rank === 2 ? 'text-gray-400' : user.rank === 3 ? 'text-orange-400' : 'text-primary'}`}>#{user.rank}</span>
-                      <img src={user.avatarUrl || `https://placehold.co/40x40/777/FFF.png?text=${user.name.charAt(0)}`} alt={user.name} className="w-8 h-8 rounded-full mr-3" data-ai-hint="avatar user"/>
-                      <span className="font-medium text-foreground">{user.name}</span>
-                    </div>
-                    <span className="font-bold text-lg text-accent">{user.score} PTS</span>
-                  </li>
-                ))}
-              </ul>
+              {leaderboard.length > 0 ? (
+                <ul className="space-y-3">
+                    {leaderboard.map(user => (
+                    <li key={user.id} className="flex items-center justify-between p-3 bg-card-foreground/5 rounded-lg border border-border/20 hover:bg-primary/10 transition-colors">
+                        <div className="flex items-center">
+                        <span className={`font-bold text-lg mr-3 w-6 text-center ${user.rank === 1 ? 'text-yellow-400' : user.rank === 2 ? 'text-gray-400' : user.rank === 3 ? 'text-orange-400' : 'text-primary'}`}>#{user.rank}</span>
+                        <Image src={user.profiles?.avatar_url || `https://placehold.co/40x40/777/FFF.png?text=${user.profiles?.full_name?.charAt(0) || user.profiles?.username?.charAt(0) || 'U'}`} alt={user.profiles?.full_name || user.profiles?.username || 'User'} width={32} height={32} className="w-8 h-8 rounded-full mr-3" data-ai-hint="avatar user"/>
+                        <span className="font-medium text-foreground">{user.profiles?.full_name || user.profiles?.username || 'Anonymous User'}</span>
+                        </div>
+                        <span className="font-bold text-lg text-accent">{user.score} PTS</span>
+                    </li>
+                    ))}
+                </ul>
+                ) : (
+                 <p className="text-muted-foreground text-center py-10">Leaderboard is currently empty. Start completing missions!</p>
+                )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -254,5 +386,4 @@ export default function ChallengesPage() {
     </div>
   );
 }
-
     

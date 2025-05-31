@@ -81,6 +81,14 @@ export default function CalculatorPage() {
         };
         await supabase.from('calculator_history').insert(logEntry);
         fetchHistory();
+         const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'calculator_used',
+          description: `Calculated: ${values.expression.substring(0,50)}...`,
+          details: { expression: values.expression, result: result.result }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+
 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error calculating expression', description: error.message });
@@ -134,7 +142,7 @@ export default function CalculatorPage() {
                             <FormMessage />
                         </FormItem>
                     )} />
-                    <Button type="submit" className="w-full text-lg py-3 glow-button" disabled={isPending}>
+                    <Button type="submit" className="w-full text-lg py-3 glow-button" disabled={isPending || !form.formState.isValid}>
                         {isPending ? <Loader2 className="animate-spin mr-2" /> : <Calculator className="mr-2" />} Calculate
                     </Button>
                     </form>

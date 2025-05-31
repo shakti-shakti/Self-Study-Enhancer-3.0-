@@ -13,8 +13,11 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
+    console.error("Auth callback error exchanging code:", error.message);
+  } else {
+    console.error("Auth callback: No code found in search params.");
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user`);
+  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user. Please try again.`);
 }

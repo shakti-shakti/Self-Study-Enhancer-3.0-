@@ -82,6 +82,14 @@ export default function DictionaryPage() {
         };
         await supabase.from('dictionary_history').insert(logEntry);
         fetchHistory(); 
+         const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'dictionary_lookup',
+          description: `Looked up word: "${values.word}"`,
+          details: { word: values.word, definition_preview: result.definition.substring(0, 100) }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+
 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error fetching definition', description: error.message });
@@ -135,7 +143,7 @@ export default function DictionaryPage() {
                             <FormMessage />
                         </FormItem>
                     )} />
-                    <Button type="submit" className="h-12 text-lg px-6 glow-button" disabled={isPending}>
+                    <Button type="submit" className="h-12 text-lg px-6 glow-button" disabled={isPending || !form.formState.isValid}>
                         {isPending ? <Loader2 className="animate-spin" /> : <Search />} Search
                     </Button>
                     </form>

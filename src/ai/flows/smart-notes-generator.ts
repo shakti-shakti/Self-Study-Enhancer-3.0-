@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview AI flow that generates summarized notes, key formulas, or mnemonics after a test or reading a chapter.
+ * @fileOverview AI flow that generates summarized notes, key formulas, or mnemonics after a test or reading a chapter, specifically for NEET preparation.
  *
  * - generateSmartNotes - A function that generates smart notes based on the input content.
  * - GenerateSmartNotesInput - The input type for the generateSmartNotes function.
@@ -14,18 +14,22 @@ import {z} from 'genkit';
 const GenerateSmartNotesInputSchema = z.object({
   content: z
     .string()
+    .min(100, {message: "Content should be at least 100 characters for effective note generation."})
     .describe(
-      'The content (test answers, chapter text) from which to generate smart notes.'
+      'The content (e.g., text from an NCERT chapter, a set of solved quiz questions with answers, or a student own study material) from which to generate smart notes.'
     ),
   contentType: z
-    .enum(['test', 'chapter'])
-    .describe('The type of content provided: either test answers or chapter text.'),
+    .enum(['test_review', 'chapter_summary', 'concept_clarification'])
+    .describe('The type of content provided: "test_review" (for analyzing solved questions/answers), "chapter_summary" (for summarizing a chapter text), "concept_clarification" (for breaking down a specific concept).'),
+  subject: z.enum(['Physics', 'Chemistry', 'Biology', 'General']).optional().describe("Optional: Specify the subject to help tailor the notes (e.g., focus on formulas for Physics, pathways for Biology)."),
+  noteFormatPreferences: z.array(z.enum(['summary', 'key_formulas', 'mnemonics', 'bullet_points', 'flowchart_points'])).optional().describe("Optional: Preferred formats for the notes. AI will try to incorporate these. E.g. ['key_formulas', 'bullet_points']")
 });
 
 export type GenerateSmartNotesInput = z.infer<typeof GenerateSmartNotesInputSchema>;
 
 const GenerateSmartNotesOutputSchema = z.object({
-  notes: z.string().describe('The generated summarized notes, key formulas, or mnemonics.'),
+  notes: z.string().describe('The generated smart notes. This could be a combination of summarized text, bullet points, identified key formulas (if applicable), or mnemonic suggestions, tailored for NEET aspirants.'),
+  titleSuggestion: z.string().optional().describe("A suggested title for these notes, e.g., 'Key Concepts: Newton's Laws' or 'Chapter 5 Biology Summary'.")
 });
 
 export type GenerateSmartNotesOutput = z.infer<typeof GenerateSmartNotesOutputSchema>;
@@ -38,14 +42,34 @@ const prompt = ai.definePrompt({
   name: 'generateSmartNotesPrompt',
   input: {schema: GenerateSmartNotesInputSchema},
   output: {schema: GenerateSmartNotesOutputSchema},
-  prompt: `You are a helpful AI assistant designed to generate smart notes for students.
+  prompt: `You are an expert AI assistant for NEET (medical entrance exam) aspirants. Your task is to generate "smart notes" from the provided content. These notes should be highly effective for revision and understanding.
 
-  Based on the content provided, generate summarized notes, key formulas, or mnemonics to help the student quickly review the important information.
+Content Type: "{{contentType}}"
+{{#if subject}}Subject: "{{subject}}"{{/if}}
 
-  Content Type: {{{contentType}}}
-  Content: {{{content}}}
+Provided Content:
+"""
+{{{content}}}
+"""
 
-  Notes:`,
+{{#if noteFormatPreferences}}
+The student prefers notes in the following formats if applicable: {{#each noteFormatPreferences}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}.
+{{/if}}
+
+Based on the content type and subject (if provided):
+1.  **Summarize**: Extract the most critical information.
+2.  **Identify Key Elements**:
+    *   If Physics or Chemistry, identify and list key formulas, equations, or important reactions.
+    *   If Biology, identify key terms, pathways, classifications, or biological processes.
+    *   If content type is 'test_review', focus on the principles tested by the questions and common error points if evident.
+3.  **Structure for Clarity**: Organize the notes logically. Use bullet points, concise paragraphs, or numbered lists as appropriate. If "bullet_points" or "flowchart_points" are preferred, try to use them.
+4.  **Mnemonics (If applicable and preferred)**: If "mnemonics" is in preferences and the content lends itself to it (e.g., lists, sequences), suggest a simple mnemonic.
+5.  **NEET Focus**: Ensure all notes are highly relevant to the NEET syllabus and help in quick recall and understanding of concepts important for the exam.
+6.  **Title Suggestion**: Provide a concise, descriptive title for the generated notes.
+
+Generate the notes in the 'notes' field and a title in the 'titleSuggestion' field.
+If the content is too short or unclear for meaningful notes, state that in the 'notes' field.
+`,
 });
 
 const generateSmartNotesFlow = ai.defineFlow(
@@ -56,6 +80,12 @@ const generateSmartNotesFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output || !output.notes) {
+        return {
+            notes: "Could not generate notes from the provided content. Please ensure the content is sufficient and clear.",
+            titleSuggestion: "Note Generation Error"
+        };
+    }
+    return output;
   }
 );

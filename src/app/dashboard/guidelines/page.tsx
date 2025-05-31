@@ -15,6 +15,7 @@ import { Info, Loader2, PlusCircle, Edit2, Trash2, Save } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { format, parseISO } from 'date-fns';
 
 type GuidelineTab = Tables<'neet_guidelines'>;
 
@@ -71,16 +72,19 @@ export default function GuidelinesPage() {
       } else {
         setTabs(data || []);
         if (data && data.length > 0 && !activeTab) {
-          setActiveTab(data[0].id); // Set first tab as active if none is set
+          setActiveTab(data[0].id); 
           contentForm.setValue('content', data[0].content);
         } else if (data && data.length > 0 && activeTab) {
             const currentActiveTabData = data.find(t => t.id === activeTab);
             if (currentActiveTabData) {
                 contentForm.setValue('content', currentActiveTabData.content);
-            } else { // If current active tab was deleted, default to first
+            } else { 
                  setActiveTab(data[0].id);
                  contentForm.setValue('content', data[0].content);
             }
+        } else if (data && data.length === 0) { // No tabs exist
+            setActiveTab(undefined);
+            contentForm.setValue('content', '');
         }
       }
     });
@@ -93,7 +97,8 @@ export default function GuidelinesPage() {
   const handleAddOrEditTab = async (values: TabFormData) => {
     if (!userId) return;
     startTransition(async () => {
-      if (editingTab) { // Editing existing tab name (not content)
+      let newActiveTabId = activeTab;
+      if (editingTab) { 
         const { error } = await supabase
           .from('neet_guidelines')
           .update({ tab_name: values.tab_name, updated_at: new Date().toISOString() })
@@ -101,7 +106,7 @@ export default function GuidelinesPage() {
           .eq('user_id', userId);
         if (error) toast({ variant: 'destructive', title: 'Error updating tab', description: error.message });
         else { toast({ title: 'Tab updated!' }); fetchTabs(); }
-      } else { // Adding new tab
+      } else { 
         const { data: newTab, error } = await supabase
           .from('neet_guidelines')
           .insert({ user_id: userId, tab_name: values.tab_name, content: 'Add your tips and guidelines here!' })
@@ -110,13 +115,19 @@ export default function GuidelinesPage() {
         if (error) toast({ variant: 'destructive', title: 'Error adding tab', description: error.message });
         else { 
             toast({ title: 'New tab added!', className: 'bg-primary/10 border-primary text-primary-foreground' });
-            fetchTabs();
-            if(newTab) setActiveTab(newTab.id); // Activate the new tab
+            if(newTab) {
+                newActiveTabId = newTab.id; // Prepare to set new tab as active
+                setTabs(prev => [...prev, newTab]); // Optimistic update
+                setActiveTab(newTab.id);
+                contentForm.setValue('content', newTab.content);
+            }
         }
       }
       setIsTabDialogOpen(false);
       setEditingTab(null);
       tabForm.reset();
+      // If a new tab was created, fetchTabs will be called, and it will set the active tab
+      // If only name was edited, fetchTabs will update list, activeTab remains
     });
   };
   
@@ -136,16 +147,22 @@ export default function GuidelinesPage() {
         } else {
             toast({ title: 'Content saved!', className: 'bg-primary/10 border-primary text-primary-foreground'});
             setIsContentEditing(false);
-            // Optimistically update local state or refetch
             setTabs(prevTabs => prevTabs.map(t => t.id === activeTab ? {...t, content: values.content, updated_at: new Date().toISOString()} : t));
+            const activityLog: TablesInsert<'activity_logs'> = {
+              user_id: userId,
+              activity_type: 'guideline_updated',
+              description: `Updated guideline tab: "${currentTab.tab_name}"`,
+              details: { tab_id: currentTab.id, tab_name: currentTab.tab_name }
+            };
+            await supabase.from('activity_logs').insert(activityLog);
         }
     });
   };
 
   const handleDeleteTab = async (tabId: string) => {
     if (!userId) return;
-    // Add confirmation dialog here if desired
     startTransition(async () => {
+      const tabToDelete = tabs.find(t => t.id === tabId);
       const { error } = await supabase
         .from('neet_guidelines')
         .delete()
@@ -154,8 +171,30 @@ export default function GuidelinesPage() {
       if (error) toast({ variant: 'destructive', title: 'Error deleting tab', description: error.message });
       else {
         toast({ title: 'Tab deleted.' });
-        if (activeTab === tabId) setActiveTab(undefined); // Reset active tab if deleted
-        fetchTabs();
+        if (tabToDelete) {
+           const activityLog: TablesInsert<'activity_logs'> = {
+            user_id: userId,
+            activity_type: 'guideline_deleted',
+            description: `Deleted guideline tab: "${tabToDelete.tab_name}"`,
+            details: { tab_name: tabToDelete.tab_name }
+          };
+          await supabase.from('activity_logs').insert(activityLog);
+        }
+        
+        // Adjust activeTab if the deleted tab was active
+        setTabs(prevTabs => {
+            const remainingTabs = prevTabs.filter(t => t.id !== tabId);
+            if (activeTab === tabId) {
+                if (remainingTabs.length > 0) {
+                    setActiveTab(remainingTabs[0].id);
+                    contentForm.setValue('content', remainingTabs[0].content);
+                } else {
+                    setActiveTab(undefined);
+                    contentForm.setValue('content', '');
+                }
+            }
+            return remainingTabs;
+        });
       }
     });
   };
@@ -173,7 +212,7 @@ export default function GuidelinesPage() {
     if (selectedTabData) {
         contentForm.setValue('content', selectedTabData.content);
     }
-    setIsContentEditing(false); // Exit editing mode when switching tabs
+    setIsContentEditing(false); 
   };
 
   const currentTabData = tabs.find(t => t.id === activeTab);
@@ -201,8 +240,13 @@ export default function GuidelinesPage() {
             <DialogDescription>{editingTab ? 'Rename your custom guideline tab.' : 'Enter a name for your new guideline tab.'}</DialogDescription>
           </DialogHeader>
           <form onSubmit={tabForm.handleSubmit(handleAddOrEditTab)} className="space-y-4">
-            <Input {...tabForm.register('tab_name')} placeholder="Tab name (e.g., Exam Strategy)" className="input-glow" />
-            {tabForm.formState.errors.tab_name && <p className="text-sm text-destructive">{tabForm.formState.errors.tab_name.message}</p>}
+            <FormField control={tabForm.control} name="tab_name" render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Tab Name</FormLabel>
+                    <FormControl><Input placeholder="Tab name (e.g., Exam Strategy)" {...field} className="input-glow" /></FormControl>
+                    <FormMessage />
+                </FormItem>
+            )}/>
             <DialogFooter className="pt-2">
               <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
               <Button type="submit" disabled={isPending} className="glow-button">
@@ -213,11 +257,10 @@ export default function GuidelinesPage() {
         </DialogContent>
       </Dialog>
 
-      {isPending && tabs.length === 0 && (
-         <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading guidelines...</p></div>
-      )}
+      {(isPending && tabs.length === 0 && !userId) && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Authenticating...</p></div>}
+      {(isPending && tabs.length === 0 && userId) && <div className="text-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /><p className="text-muted-foreground">Loading guidelines...</p></div>}
       
-      {tabs.length === 0 && !isPending && (
+      {tabs.length === 0 && !isPending && userId && (
         <Card className="interactive-card shadow-lg text-center">
           <CardContent className="pt-10">
             <Info className="mx-auto h-16 w-16 text-muted-foreground/50 my-4" />
@@ -242,7 +285,7 @@ export default function GuidelinesPage() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="font-headline text-2xl glow-text-primary">{tab.tab_name}</CardTitle>
-                    <CardDescription>Last updated: {format(parseISO(tab.updated_at), "PPP, p")}</CardDescription>
+                    <CardDescription>Last updated: {format(parseISO(tab.updated_at), "PPp")}</CardDescription>
                   </div>
                   <div className="flex gap-2">
                      <Button variant="outline" size="sm" onClick={() => { openTabDialog(tab); }} className="glow-button border-accent text-accent hover:bg-accent/10">
@@ -255,19 +298,28 @@ export default function GuidelinesPage() {
                 </CardHeader>
                 <CardContent>
                   {isContentEditing && activeTab === tab.id ? (
+                    <Form {...contentForm}>
                     <form onSubmit={contentForm.handleSubmit(handleSaveContent)} className="space-y-4">
-                      <Textarea {...contentForm.register('content')} rows={15} className="input-glow w-full min-h-[300px]" />
-                      {contentForm.formState.errors.content && <p className="text-sm text-destructive">{contentForm.formState.errors.content.message}</p>}
+                      <FormField control={contentForm.control} name="content" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="sr-only">Tab Content</FormLabel>
+                            <FormControl>
+                                <Textarea {...field} rows={15} className="input-glow w-full min-h-[300px]" />
+                            </FormControl>
+                            <FormMessage/>
+                        </FormItem>
+                      )}/>
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => {setIsContentEditing(false); contentForm.setValue('content', tab.content);}} className="glow-button">Cancel</Button>
-                        <Button type="submit" disabled={isPending} className="glow-button">
+                        <Button type="submit" disabled={isPending || !contentForm.formState.isValid} className="glow-button">
                           {isPending ? <Loader2 className="animate-spin" /> : <Save />} Save Content
                         </Button>
                       </div>
                     </form>
+                    </Form>
                   ) : (
                     <>
-                      <div className="prose dark:prose-invert max-w-none p-2 bg-background/30 rounded-md min-h-[300px] whitespace-pre-wrap border border-border/30">
+                      <div className="prose dark:prose-invert max-w-none p-4 bg-background/30 rounded-md min-h-[300px] whitespace-pre-wrap border border-border/30">
                         {tab.content || "No content yet. Click edit to add your notes!"}
                       </div>
                       <Button onClick={() => { setIsContentEditing(true); contentForm.setValue('content', tab.content); }} className="mt-4 glow-button">

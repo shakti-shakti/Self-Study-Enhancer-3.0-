@@ -1,4 +1,4 @@
-// use server'
+'use server';
 
 /**
  * @fileOverview AI moderator for study rooms, providing quiz questions, time management, and study suggestions.
@@ -20,9 +20,10 @@ const ModerateStudyRoomInputSchema = z.object({
 export type ModerateStudyRoomInput = z.infer<typeof ModerateStudyRoomInputSchema>;
 
 const ModerateStudyRoomOutputSchema = z.object({
-  quizQuestion: z.string().describe('A quiz question related to the topic.'),
-  timeSuggestion: z.string().describe('A suggestion for how to allocate time.'),
-  nextTopicSuggestion: z.string().describe('A suggestion for what to study next.'),
+  quizQuestion: z.string().optional().describe('A quiz question related to the topic. Optional, provide if relevant.'),
+  timeSuggestion: z.string().optional().describe('A suggestion for how to allocate time. Optional, provide if relevant.'),
+  nextTopicSuggestion: z.string().optional().describe('A suggestion for what to study next. Optional, provide if relevant.'),
+  clarificationOrAnswer: z.string().optional().describe('A direct clarification or answer to the student studentQuestion if it is a simple factual query or needs explanation. Optional.')
 });
 export type ModerateStudyRoomOutput = z.infer<typeof ModerateStudyRoomOutputSchema>;
 
@@ -34,19 +35,22 @@ const prompt = ai.definePrompt({
   name: 'moderateStudyRoomPrompt',
   input: {schema: ModerateStudyRoomInputSchema},
   output: {schema: ModerateStudyRoomOutputSchema},
-  prompt: `You are an AI moderator for a student study room. Your goals are to:
+  prompt: `You are an AI moderator for a student study room focused on NEET preparation. Your goals are to:
+- If the student's input seems like a question, provide a concise clarificationOrAnswer.
+- Ask relevant quiz questions to test understanding related to the current topic.
+- Suggest how long to spend on activities or topics.
+- Suggest what to study next, based on the current topic or student's needs.
+- Keep the discussion focused and productive.
 
-- Ask quiz questions to test the students' understanding.
-- Keep time by suggesting how long to spend on each topic.
-- Suggest what to study next, based on the current topic and the students' needs.
+Current Activity (if any): {{{currentActivity}}}
+Student's Latest Input/Question: "{{{studentQuestion}}}"
+Main Topic of the Room: {{{topic}}}
+{{#if chapter}}Specific Chapter: {{{chapter}}}{{/if}}
 
-The current activity is: {{{currentActivity}}}
-
-The student needs help with: {{{studentQuestion}}}
-
-The topic is: {{{topic}}}.
-
-{{#if chapter}}The chapter is: {{{chapter}}}.{{/if}}
+Based on the student's input and the room's topic, provide helpful moderation.
+If the student asked a direct question that you can answer factually or explain briefly, prioritize that in 'clarificationOrAnswer'.
+Only provide a quiz question if it feels natural and relevant to the ongoing discussion or student's input. Do not always provide a quiz question.
+Be concise. If no specific action is needed from you (e.g., students are just chatting generally), you can return empty or minimal suggestions.
 `,
 });
 
