@@ -42,31 +42,39 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society'],
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
+      'Chapter 4: Laws of Motion': ['Newton\'s first law', 'Newton\'s second law', 'Newton\'s third law', 'Conservation of linear momentum'],
+      'Chapter 5: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Potential energy, conservative forces'],
     },
     'Chemistry': {
-      'Chapter 1: Some Basic Concepts of Chemistry': ['Topic C1.1', 'Topic C1.2'],
-      'Chapter 2: Structure of Atom': ['Topic C2.1', 'Topic C2.2'],
+      'Chapter 1: Some Basic Concepts of Chemistry': ['Importance of Chemistry', 'Laws of chemical combination', 'Dalton\'s atomic theory', 'Concept of elements, atoms and molecules'],
+      'Chapter 2: Structure of Atom': ['Discovery of electron, proton and neutron', 'Atomic number, isotopes and isobars', 'Thomson\'s model and its limitations', 'Rutherford\'s model and its limitations'],
+      'Chapter 3: Classification of Elements': ['Significance of classification', 'Brief history of the development of periodic table', 'Modern periodic law and the present form of periodic table'],
     },
     'Botany': {
-        'Chapter 1: The Living World (Botany Focus)': ['Topic B1.1', 'Topic B1.2'],
+        'Chapter 1: The Living World (Botany Focus)': ['What is living?', 'Diversity in the living world', 'Taxonomic categories', 'Taxonomical aids'],
+        'Chapter 8: Cell The Unit of Life': ['Cell Theory', 'Prokaryotic Cells', 'Eukaryotic Cells'],
     },
     'Zoology': {
-        'Chapter 1: Animal Kingdom (Zoology Focus)': ['Topic Z1.1', 'Topic Z1.2'],
+        'Chapter 1: Animal Kingdom (Zoology Focus)': ['Basis of Classification', 'Classification of Animals'],
+        'Chapter 7: Structural Organisation in Animals': ['Animal Tissues', 'Organ and Organ System'],
     }
   },
   '12': {
     'Physics': {
-      'Chapter 1: Electric Charges and Fields': ['Topic P12.1.1', 'Topic P12.1.2'],
-      'Chapter 2: Electrostatic Potential and Capacitance': ['Topic P12.2.1', 'Topic P12.2.2'],
+      'Chapter 1: Electric Charges and Fields': ['Electric Charge', 'Conductors and Insulators', 'Coulomb\'s Law', 'Electric Field'],
+      'Chapter 2: Electrostatic Potential and Capacitance': ['Electrostatic Potential', 'Potential due to a Point Charge', 'Capacitors and Capacitance'],
     },
     'Chemistry': {
-        'Chapter 1: The Solid State': ['Topic C12.1.1', 'Topic C12.1.2'],
+        'Chapter 1: The Solid State': ['Classification of solids', 'Crystal lattices and unit cells', 'Packing in solids'],
+        'Chapter 2: Solutions': ['Types of solutions', 'Expression of concentration of solutions of solids in liquids', 'Solubility of gases in liquids'],
     },
     'Botany': {
-        'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Topic B12.1.1', 'Topic B12.1.2'],
+        'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Asexual Reproduction', 'Sexual Reproduction'],
+        'Chapter 2: Sexual Reproduction in Flowering Plants': ['Flower - A Fascinating Organ of Angiosperms', 'Pollination'],
     },
     'Zoology': {
-         'Chapter 1: Human Reproduction (Zoology Focus)': ['Topic Z12.1.1', 'Topic Z12.1.2'],
+         'Chapter 1: Human Reproduction (Zoology Focus)': ['The Male Reproductive System', 'The Female Reproductive System', 'Gametogenesis'],
+         'Chapter 3: Human Health and Disease': ['Common Diseases in Humans', 'Immunity'],
     }
   }
 };
@@ -152,7 +160,7 @@ export default function QuizzesPage() {
       setAvailableTopics([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, selectedSubject, configForm.setValue]);
+  }, [selectedClass, selectedSubject]); // Removed configForm.setValue from dependency array
 
   useEffect(() => {
     if (selectedClass && selectedSubject && selectedChapter) {
@@ -163,7 +171,7 @@ export default function QuizzesPage() {
       setAvailableTopics([]);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChapter, selectedClass, selectedSubject, configForm.setValue]);
+  }, [selectedChapter, selectedClass, selectedSubject]); // Removed configForm.setValue from dependency array
 
 
   useEffect(() => {
@@ -216,6 +224,7 @@ export default function QuizzesPage() {
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
+            topic: values.chapter || values.subject, // Simplified topic for DB
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -261,7 +270,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1); // Corrected to decrement
+      setCurrentQuestionIndex(prev => prev - 1);
     }
   };
 
@@ -305,6 +314,21 @@ export default function QuizzesPage() {
 
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
         if (attemptError) throw attemptError;
+        
+        // Log activity
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: userId,
+          activity_type: 'quiz_attempted',
+          description: `Attempted quiz: "${currentGeneratedQuiz.quizData.subject} - ${currentGeneratedQuiz.quizData.difficulty}". Score: ${score}/${currentGeneratedQuiz.questions.length}`,
+          details: { 
+            quiz_id: currentGeneratedQuiz.quizData.id, 
+            score: score, 
+            total_questions: currentGeneratedQuiz.questions.length,
+            subject: currentGeneratedQuiz.quizData.subject,
+            difficulty: currentGeneratedQuiz.quizData.difficulty
+          }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
 
         setQuizResults({
             score,
@@ -355,25 +379,33 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id,
+                question_id: question.id, // Link to the original question if available
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: question.topic,
+                topic: question.topic, // This might be more specific like "Chapter X - Topic Y"
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') { 
+              if (error.code === '23505') { // Unique constraint violation
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
               } else {
                 throw error;
               }
             } else {
                toast({ title: "Question Saved!", description: "You can find it in your 'Saved Questions' dashboard."});
+               // Log activity
+                const activityLog: TablesInsert<'activity_logs'> = {
+                  user_id: userId,
+                  activity_type: 'question_saved',
+                  description: `Saved question: "${question.question_text.substring(0,50)}..."`,
+                  details: { question_id: question.id, subject: question.subject }
+                };
+                await supabase.from('activity_logs').insert(activityLog);
             }
         } catch(error: any) {
             toast({ variant: 'destructive', title: "Error Saving Question", description: error.message});
@@ -403,14 +435,12 @@ export default function QuizzesPage() {
             className="space-y-3"
           >
             {(question.options as string[]).map((option, index) => (
-              <FormItem key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
-                <FormControl>
-                  <RadioGroupItem value={index.toString()} id={`${question.id}-option-${index}`} />
-                </FormControl>
-                <FormLabel htmlFor={`${question.id}-option-${index}`} className="font-normal text-base flex-1 cursor-pointer">
+              <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
+                <RadioGroupItem value={index.toString()} id={`${question.id}-option-${index}`} />
+                <label htmlFor={`${question.id}-option-${index}`} className="font-normal text-base flex-1 cursor-pointer">
                   {String.fromCharCode(65 + index)}. {option}
-                </FormLabel>
-              </FormItem>
+                </label>
+              </div>
             ))}
           </RadioGroup>
         </CardContent>

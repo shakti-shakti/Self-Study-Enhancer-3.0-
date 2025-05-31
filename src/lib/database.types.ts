@@ -102,6 +102,7 @@ export type Database = {
           user_id: string | null 
           class_level: string | null
           subject: string | null
+          topic: string | null // Added for easier display
           topics: string[] | null
           question_source: string | null
           difficulty: string
@@ -113,6 +114,7 @@ export type Database = {
           user_id?: string | null 
           class_level?: string | null
           subject?: string | null
+          topic?: string | null // Added for easier display
           topics?: string[] | null
           question_source?: string | null
           difficulty: string
@@ -124,6 +126,7 @@ export type Database = {
           user_id?: string | null
           class_level?: string | null
           subject?: string | null
+          topic?: string | null // Added for easier display
           topics?: string[] | null
           question_source?: string | null
           difficulty?: string
@@ -1323,3 +1326,12 @@ export interface NEETLabEscapeState {
 }
 
 export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json; // Allow general Json for flexibility
+
+
+// Type for AI Chat session preview on dashboard
+export type ChatSessionPreview = {
+  session_id: string;
+  first_message_preview: string;
+  last_message_at: string;
+  user_id: string; 
+};
