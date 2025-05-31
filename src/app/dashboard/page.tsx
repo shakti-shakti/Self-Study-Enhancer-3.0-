@@ -1,3 +1,4 @@
+
 // src/app/dashboard/page.tsx
 'use client';
 
@@ -47,12 +48,14 @@ const CountdownTimer: React.FC<CountdownProps> = ({ targetDate, eventName }) => 
 
   const timerComponents: JSX.Element[] = [];
   Object.keys(timeLeft).forEach((interval) => {
-    if (!timeLeft[interval as keyof typeof timeLeft]) {
+    // Ensure that timeLeft[interval] is a number before rendering
+    const value = timeLeft[interval as keyof typeof timeLeft];
+    if (typeof value !== 'number' || isNaN(value)) {
       return;
     }
     timerComponents.push(
       <div key={interval} className="text-center p-2 bg-primary/10 rounded-lg shadow-md">
-        <span className="text-2xl md:text-3xl font-bold text-primary glow-text-primary">{timeLeft[interval as keyof typeof timeLeft]}</span>
+        <span className="text-2xl md:text-3xl font-bold text-primary glow-text-primary">{value}</span>
         <span className="block text-xs text-muted-foreground uppercase">{interval}</span>
       </div>
     );
@@ -146,6 +149,7 @@ export default function DashboardPage() {
 
     fetchUserAndProfile();
     fetchRandomFact();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, profile?.class_level]); // Refetch fact if class_level changes
 
   const quickAccessItems = [
@@ -251,3 +255,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

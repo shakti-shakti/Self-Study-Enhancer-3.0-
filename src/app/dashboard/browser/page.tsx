@@ -1,3 +1,4 @@
+
 // src/app/dashboard/browser/page.tsx
 'use client';
 
@@ -5,7 +6,8 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Globe, Search, ArrowLeft, ArrowRight, RotateCcw, Home } from 'lucide-react';
+import { Globe, Search, ArrowLeft, ArrowRight, RotateCcw, Home, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function InAppBrowserPage() {
   const [url, setUrl] = useState<string>("https://www.google.com/search?igu=1"); // igu=1 to prevent Google redirect loops in iframe sometimes
@@ -79,6 +81,15 @@ export default function InAppBrowserPage() {
           )}
         </CardContent>
       </Card>
+       <Alert variant="default" className="mt-4 bg-muted/30 border-primary/30">
+        <Info className="h-5 w-5 text-primary" />
+        <AlertTitle className="font-semibold text-primary">Browser Compatibility</AlertTitle>
+        <AlertDescription>
+          Please note that some websites may not load correctly or at all within this in-app browser due to their security settings (e.g., X-Frame-Options). This is a limitation of web embedding technology.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }
+
+    
