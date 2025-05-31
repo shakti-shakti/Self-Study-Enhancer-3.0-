@@ -16,7 +16,7 @@ const signupSchema = z.object({
   password: z.string().min(6),
 });
 
-export async function loginWithEmail(formData: z.infer<typeof loginSchema>): Promise<{ error: string; success?: never } | { success: true; error?: never }> {
+export async function loginWithEmail(formData: z.infer<typeof loginSchema>): Promise<{ error: string } | void> {
   console.log("loginWithEmail server action started");
   const supabase = createClient();
   const validatedFields = loginSchema.safeParse(formData);
@@ -40,8 +40,9 @@ export async function loginWithEmail(formData: z.infer<typeof loginSchema>): Pro
   }
   
   console.log("Supabase signInWithPassword successful for:", email);
-  return { success: true };
-  // redirect('/dashboard'); // Temporarily removed for client-side redirect test
+  // On successful sign-in, Supabase client (server-side) handles cookie setting.
+  // Then, redirect to the dashboard.
+  redirect('/dashboard');
 }
 
 export async function signupWithEmail(formData: z.infer<typeof signupSchema>) {
@@ -70,7 +71,7 @@ export async function signupWithEmail(formData: z.infer<typeof signupSchema>) {
      return { error: "User already exists with this email. Try logging in." };
   }
 
-  return { error: null };
+  return { error: null }; // Should indicate success or need for verification
 }
 
 export async function logout() {
