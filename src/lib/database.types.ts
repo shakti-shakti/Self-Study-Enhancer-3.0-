@@ -994,7 +994,7 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "users"; 
+            referencedRelation: "profiles"; // Changed from "users" to "profiles" to match previous similar select
             referencedColumns: ["id"];
           }
         ];

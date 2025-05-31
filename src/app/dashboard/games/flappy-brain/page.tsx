@@ -11,29 +11,56 @@ const CANVAS_WIDTH = 320;
 const CANVAS_HEIGHT = 480;
 const BIRD_X = 50;
 const BIRD_SIZE = 20;
-const GRAVITY = 0.4; // Adjusted for smoother fall
-const LIFT = -7; // Adjusted for snappier jump
+const GRAVITY = 0.4;
+const LIFT = -7;
 const PIPE_WIDTH = 50;
-const PIPE_GAP = 120; // Increased gap
-const PIPE_SPACING = 200; // Space between pipe pairs
-const PIPE_SPEED = 2;
+const INITIAL_PIPE_GAP = 120;
+const MIN_PIPE_GAP = 100; // Minimum gap for increased difficulty
+const PIPE_SPACING = 200;
+const INITIAL_PIPE_SPEED = 2;
+const MAX_PIPE_SPEED = 4;
+const SPEED_INCREASE_INTERVAL = 5; // Increase speed every 5 points
+const GAP_VARIATION_SCORE_THRESHOLD = 10; // Start varying gap after 10 points
 
 export default function FlappyBrainPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameOver'>('idle');
   const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
 
   // Game variables (using refs to persist across renders without causing re-renders for every change)
   const birdY = useRef(CANVAS_HEIGHT / 2);
   const birdVelocity = useRef(0);
-  const pipes = useRef<{ x: number; y: number; passed: boolean }[]>([]);
-  const frameCount = useRef(0); // Used for pipe generation timing
+  const pipes = useRef<{ x: number; y: number; gap: number; passed: boolean }[]>([]);
+  const frameCount = useRef(0);
+  const pipeSpeed = useRef(INITIAL_PIPE_SPEED);
+  const currentPipeGap = useRef(INITIAL_PIPE_GAP);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedHighScore = localStorage.getItem('flappyBrainHighScore');
+      if (storedHighScore) {
+        setHighScore(parseInt(storedHighScore, 10));
+      }
+    }
+  }, []);
+
+  const updateHighScore = (currentScore: number) => {
+    if (currentScore > highScore) {
+      setHighScore(currentScore);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('flappyBrainHighScore', currentScore.toString());
+      }
+    }
+  };
 
   const resetGame = () => {
     birdY.current = CANVAS_HEIGHT / 2;
     birdVelocity.current = 0;
     pipes.current = [];
     frameCount.current = 0;
+    pipeSpeed.current = INITIAL_PIPE_SPEED;
+    currentPipeGap.current = INITIAL_PIPE_GAP;
     setScore(0);
     setGameState('idle');
   };
@@ -48,7 +75,7 @@ export default function FlappyBrainPage() {
       birdVelocity.current = LIFT;
     } else if (gameState === 'idle') {
       startGame();
-      birdVelocity.current = LIFT; // Jump on first tap to start
+      birdVelocity.current = LIFT; 
     }
   };
 
@@ -63,41 +90,45 @@ export default function FlappyBrainPage() {
     const gameLoop = () => {
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       
-      // Background
       ctx.fillStyle = 'hsl(var(--primary)/0.1)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-
       if (gameState === 'playing') {
-        // Bird physics
         birdVelocity.current += GRAVITY;
         birdY.current += birdVelocity.current;
 
-        // Pipe logic
+        // Adjust difficulty based on score
+        if (score > 0 && score % SPEED_INCREASE_INTERVAL === 0) {
+          pipeSpeed.current = Math.min(MAX_PIPE_SPEED, INITIAL_PIPE_SPEED + (score / SPEED_INCREASE_INTERVAL) * 0.25);
+        }
+        if (score >= GAP_VARIATION_SCORE_THRESHOLD) {
+          // Make gap slightly variable, ensuring it doesn't get too small
+          currentPipeGap.current = MIN_PIPE_GAP + Math.random() * (INITIAL_PIPE_GAP - MIN_PIPE_GAP);
+        } else {
+          currentPipeGap.current = INITIAL_PIPE_GAP;
+        }
+
+
         frameCount.current++;
-        if (frameCount.current % Math.floor(PIPE_SPACING / PIPE_SPEED) === 0) {
-          const pipeY = Math.random() * (CANVAS_HEIGHT - PIPE_GAP - 150) + 75; // Ensure gap is not too close to top/bottom
-          pipes.current.push({ x: CANVAS_WIDTH, y: pipeY, passed: false });
+        if (frameCount.current % Math.floor(PIPE_SPACING / pipeSpeed.current) === 0) {
+          const pipeY = Math.random() * (CANVAS_HEIGHT - currentPipeGap.current - 150) + 75;
+          pipes.current.push({ x: CANVAS_WIDTH, y: pipeY, gap: currentPipeGap.current, passed: false });
         }
 
         pipes.current.forEach(pipe => {
-          pipe.x -= PIPE_SPEED;
-          // Scoring
+          pipe.x -= pipeSpeed.current;
           if (!pipe.passed && pipe.x + PIPE_WIDTH < BIRD_X) {
             pipe.passed = true;
             setScore(s => s + 1);
           }
         });
 
-        // Remove off-screen pipes
         pipes.current = pipes.current.filter(pipe => pipe.x + PIPE_WIDTH > 0);
 
-        // Collision detection
-        // Ground collision
         if (birdY.current + BIRD_SIZE / 2 > CANVAS_HEIGHT || birdY.current - BIRD_SIZE / 2 < 0) {
+          updateHighScore(score);
           setGameState('gameOver');
         }
-        // Pipe collision
         for (const pipe of pipes.current) {
           const birdTop = birdY.current - BIRD_SIZE / 2;
           const birdBottom = birdY.current + BIRD_SIZE / 2;
@@ -105,10 +136,11 @@ export default function FlappyBrainPage() {
           const birdRight = BIRD_X + BIRD_SIZE / 2;
 
           const pipeTopY = pipe.y;
-          const pipeBottomY = pipe.y + PIPE_GAP;
+          const pipeBottomY = pipe.y + pipe.gap;
 
           if (birdRight > pipe.x && birdLeft < pipe.x + PIPE_WIDTH) {
             if (birdTop < pipeTopY || birdBottom > pipeBottomY) {
+              updateHighScore(score);
               setGameState('gameOver');
               break;
             }
@@ -116,40 +148,46 @@ export default function FlappyBrainPage() {
         }
       }
 
-      // Draw pipes
       ctx.fillStyle = 'hsl(var(--accent))';
       pipes.current.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); // Top pipe
-        ctx.fillRect(pipe.x, pipe.y + PIPE_GAP, PIPE_WIDTH, CANVAS_HEIGHT - (pipe.y + PIPE_GAP)); // Bottom pipe
+        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); 
+        ctx.fillRect(pipe.x, pipe.y + pipe.gap, PIPE_WIDTH, CANVAS_HEIGHT - (pipe.y + pipe.gap));
       });
       
-      // Draw bird (simple circle for now)
       ctx.beginPath();
       ctx.arc(BIRD_X, birdY.current, BIRD_SIZE / 2, 0, Math.PI * 2);
       ctx.fillStyle = 'hsl(var(--primary))';
       ctx.fill();
       ctx.closePath();
       
-      // Draw score
       ctx.fillStyle = 'hsl(var(--foreground))';
-      ctx.font = '24px var(--font-headline)';
+      ctx.font = '20px var(--font-headline)';
       ctx.textAlign = 'left';
       ctx.fillText(`Score: ${score}`, 10, 30);
+      ctx.textAlign = 'right';
+      ctx.fillText(`High: ${highScore}`, CANVAS_WIDTH - 10, 30);
+
 
       if (gameState === 'gameOver') {
         ctx.fillStyle = 'hsl(var(--destructive-foreground))';
         ctx.textAlign = 'center';
         ctx.font = '36px var(--font-headline)';
-        ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
-        ctx.font = '20px var(--font-headline)';
-        ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+        ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+        ctx.font = '24px var(--font-headline)';
+        ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
+        if (score === highScore && score > 0) {
+           ctx.fillStyle = 'hsl(var(--primary))';
+           ctx.font = '20px var(--font-headline)';
+           ctx.fillText('New High Score!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+        }
+        ctx.fillStyle = 'hsl(var(--muted-foreground))';
         ctx.font = '16px var(--font-body)';
-        ctx.fillText('Click to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+        ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
       } else if (gameState === 'idle') {
         ctx.fillStyle = 'hsl(var(--foreground))';
         ctx.textAlign = 'center';
         ctx.font = '24px var(--font-headline)';
-        ctx.fillText('Click to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+        ctx.fillText('Click or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
       }
 
       if (gameState !== 'gameOver') {
@@ -160,36 +198,34 @@ export default function FlappyBrainPage() {
     if (gameState === 'playing' || gameState === 'idle') {
       animationFrameId = requestAnimationFrame(gameLoop);
     } else if (gameState === 'gameOver') {
-       // Redraw one last time to show game over screen
        gameLoop();
     }
-
 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [gameState, score]); // Rerun effect when gameState changes
+  }, [gameState, score, highScore]);
 
   const handleCanvasClick = () => {
     if (gameState === 'playing') {
       birdJump();
     } else if (gameState === 'gameOver' || gameState === 'idle') {
       startGame();
-      birdJump(); // Jump on first tap to start
+      birdJump();
     }
   };
   
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.key === ' ') {
-        e.preventDefault(); // Prevent page scrolling
+        e.preventDefault();
         handleCanvasClick();
       }
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]); // Re-attach if gameState changes to ensure correct handler context
+  }, [gameState]);
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -198,7 +234,7 @@ export default function FlappyBrainPage() {
           <Bird className="mr-3 h-10 w-10 text-primary" /> Flappy Brain
         </h1>
         <p className="text-lg text-muted-foreground">
-          Navigate the brainy bird through the obstacles! Click or tap spacebar to flap.
+          Navigate the brainy bird! Click or tap spacebar to flap. Difficulty increases with score.
         </p>
       </header>
       <Card className="interactive-card shadow-xl overflow-hidden">
@@ -216,7 +252,7 @@ export default function FlappyBrainPage() {
             </Button>
         </div>
       <p className="text-sm text-muted-foreground">
-        This is a very basic prototype. More features and polish can be added!
+        Pipe speed and gap size will change as you score higher!
       </p>
     </div>
   );

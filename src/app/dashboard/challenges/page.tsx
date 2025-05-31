@@ -1,4 +1,3 @@
-
 // src/app/dashboard/challenges/page.tsx
 'use client';
 
