@@ -120,12 +120,16 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles!user_id(email, full_name, avatar_url)') // Explicit join hint
+        .select('*, profiles!inner!user_id(email, full_name, avatar_url)') // Explicit inner join hint
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100); 
-      if (error) toast({ variant: 'destructive', title: 'Error fetching messages', description: error.message });
-      else setMessages(data as StudyRoomMessageWithProfile[] || []);
+      if (error) {
+        console.error("Error fetching messages:", JSON.stringify(error, null, 2));
+        toast({ variant: 'destructive', title: 'Error fetching messages', description: error.message });
+      } else {
+        setMessages(data as StudyRoomMessageWithProfile[] || []);
+      }
     });
   };
 
@@ -171,8 +175,10 @@ export default function StudyRoomsPage() {
                 studentQuestion: values.message_text, 
                 currentActivity: 'Chatting / Discussion',
             };
+            console.log('AI Moderation Call Input:', aiInput);
             try {
                 const modResult = await moderateStudyRoom(aiInput);
+                console.log('AI Moderation Result:', modResult);
                 setAiModeration(modResult); 
             } catch (aiError: any) {
                 console.warn("AI Moderation Error:", aiError.message);

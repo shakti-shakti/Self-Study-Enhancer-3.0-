@@ -80,10 +80,13 @@ export default async function DashboardLayout({
   // if (!user) {
   //   redirect('/login');
   // }
-
+  
+  // Fetch user profile data
+  // Note: Profile table has 'custom_countdown_event_name' and 'custom_countdown_target_date'
+  // Ensure any profile fetches select correct column names.
   const profile = user ? (await supabase
     .from('profiles')
-    .select('full_name, avatar_url, email')
+    .select('full_name, avatar_url, email') 
     .eq('id', user.id)
     .single()).data : null;
 
@@ -252,9 +255,10 @@ export default async function DashboardLayout({
 
 
         <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
-          NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
+          Developed by POWER⚡⚡⚡ | NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
         </footer>
       </SidebarInset>
     </SidebarProvider>
   );
 }
+

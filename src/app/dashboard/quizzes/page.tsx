@@ -36,15 +36,29 @@ import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/c
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Expanded sample syllabus data
+// DEVELOPER NOTE: This is SAMPLE syllabus data. For full functionality, 
+// this object MUST be populated with the complete and accurate NCERT syllabus 
+// for all relevant classes, subjects, chapters, and topics.
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   '11': {
     'Physics': {
       'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society', 'Fundamental forces in nature'],
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
-      'Chapter 4: Motion in a Plane': ['Scalars and vectors', 'Position and displacement vectors', 'General vectors and their notations', 'Equality of vectors, multiplication of vectors by a real number', 'Addition and subtraction of vectors', 'Relative velocity', 'Unit vector', 'Resolution of a vector in a plane - rectangular components', 'Scalar and Vector products of Vectors', 'Motion in a plane', 'Cases of uniform velocity and uniform acceleration-projectile motion', 'Uniform circular motion'],
-      'Chapter 5: Laws of Motion': ['Intuitive concept of force', 'Inertia, Newton\'s first law of motion', 'Momentum and Newton\'s second law of motion; impulse', 'Newton\'s third law of motion', 'Law of conservation of linear momentum and its applications', 'Equilibrium of concurrent forces', 'Static and kinetic friction, laws of friction, rolling friction, lubrication', 'Dynamics of uniform circular motion: Centripetal force, examples of circular motion (vehicle on a level circular road, vehicle on a banked road)'],
+      'Chapter 4: Motion in a Plane': [
+        'Scalars and vectors', 'Position and displacement vectors', 'General vectors and their notations', 
+        'Equality of vectors, multiplication of vectors by a real number', 'Addition and subtraction of vectors', 
+        'Relative velocity', 'Unit vector', 'Resolution of a vector in a plane - rectangular components', 
+        'Scalar and Vector products of Vectors', 'Motion in a plane', 
+        'Cases of uniform velocity and uniform acceleration-projectile motion', 'Uniform circular motion'
+      ],
+      'Chapter 5: Laws of Motion': [
+        'Intuitive concept of force', 'Inertia, Newton\'s first law of motion', 
+        'Momentum and Newton\'s second law of motion; impulse', 'Newton\'s third law of motion', 
+        'Law of conservation of linear momentum and its applications', 'Equilibrium of concurrent forces', 
+        'Static and kinetic friction, laws of friction, rolling friction, lubrication', 
+        'Dynamics of uniform circular motion: Centripetal force, examples of circular motion (vehicle on a level circular road, vehicle on a banked road)'
+      ],
       'Chapter 6: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Notion of potential energy, potential energy of a spring, conservative forces: conservation of mechanical energy (kinetic and potential energies)', 'Non-conservative forces: motion in a vertical circle', 'Elastic and inelastic collisions in one and two dimensions'],
       'Chapter 7: System of Particles and Rotational Motion': ['Centre of mass of a two-particle system, momentum conservation and centre of mass motion', 'Centre of mass of a rigid body; centre of mass of a uniform rod', 'Moment of a force, torque, angular momentum, conservation of angular momentum with some examples', 'Equilibrium of rigid bodies, rigid body rotation and equations of rotational motion, comparison of linear and rotational motions', 'Moment of inertia, radius of gyration', 'Values of M.I. for simple geometrical objects (no derivation)', 'Statement of parallel and perpendicular axes theorems and their applications'],
       'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
@@ -229,11 +243,11 @@ export default function QuizzesPage() {
             user_id: userId,
             class_level: values.class_level,
             subject: values.subject,
-            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null, // This is an array for the DB
+            topics: allTopicsForDB.length > 0 ? allTopicsForDB : null, 
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            display_topic: displayTopicString, // For UI, not directly for quiz.topic
+            display_topic: displayTopicString, 
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -245,9 +259,9 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            // No singular 'topic' field here as per schema discussion
+            topic: null, // Singular topic field in questions table is not being populated
             source: values.question_source || null,
-            neet_syllabus_year: 2026, // Example, could be dynamic
+            neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
         }));
 
@@ -279,7 +293,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1); // Corrected to decrement
+      setCurrentQuestionIndex(prev => prev - 1); 
     }
   };
 
@@ -288,13 +302,13 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { display_topic, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
         
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase, 
             user_id: userId,
-            // 'topic' (singular text field) is intentionally omitted here based on prior discussions
-            // 'topics' (text array) is already correctly included in quizDataForDbBase
+            topic: null, // Explicitly set singular topic to null as it's not in use or might not exist
         };
         
         console.log("Attempting to insert quiz:", JSON.stringify(quizToInsert, null, 2));
@@ -302,10 +316,9 @@ export default function QuizzesPage() {
         if (quizError) {
             console.error("Supabase error inserting quiz:", JSON.stringify(quizError, null, 2));
             toast({ variant: 'destructive', title: 'DB Error: Quiz Save', description: `Code: ${quizError.code}. ${quizError.message}` });
-            return; // Stop further execution if quiz insert fails
+            return; 
         }
         console.log("Quiz inserted successfully.");
-
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
             id: q.id,
@@ -316,12 +329,20 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            // 'topic' (singular) is omitted here
+            topic: null, // Explicitly set singular topic to null
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
         }));
+
+        if (questionsToInsert.length === 0) {
+          console.error("No questions to insert. Aborting quiz submission.");
+          toast({ variant: 'destructive', title: 'Quiz Error', description: 'No questions were generated or found to save. Please try configuring the quiz again.' });
+          return;
+        }
+        console.log("Using quiz_id for questions:", quizToInsert.id);
         console.log("Attempting to insert questions:", JSON.stringify(questionsToInsert, null, 2));
+
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
         if (questionsError) {
              console.error("Supabase error inserting questions:", JSON.stringify(questionsError, null, 2));
@@ -428,7 +449,7 @@ export default function QuizzesPage() {
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                // 'topic' (singular) is omitted here
+                topic: null, // Singular topic not used here for saved_questions
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
@@ -498,7 +519,7 @@ export default function QuizzesPage() {
           <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0} className="glow-button">
             <ChevronLeft className="mr-2" /> Previous
           </Button>
-          {/* Save button removed from here as requested */}
+          
           {currentQuestionIndex < currentGeneratedQuiz.questions.length - 1 ? (
             <Button onClick={handleNextQuestion} className="glow-button bg-primary hover:bg-primary/90">
               Next <ChevronRight className="ml-2" />
@@ -605,7 +626,6 @@ export default function QuizzesPage() {
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
           Forge your knowledge! Configure a quiz, test your skills, and get AI-powered insights.
-          {/* Developer Note: Syllabus data below is a sample. For a full app, this data should be comprehensive and ideally from a database. */}
         </p>
       </header>
 
@@ -730,3 +750,4 @@ export default function QuizzesPage() {
     </div>
   );
 }
+
