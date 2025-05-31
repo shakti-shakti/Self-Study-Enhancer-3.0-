@@ -33,12 +33,13 @@ import type { Database, Tables, TablesInsert, QuizAttemptWithQuizTopic, Question
 import { generateQuiz, type GenerateQuizInput, type QuizQuestion as AIQuizQuestion } from '@/ai/flows/quiz-generator';
 import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/customizable-quiz-explanation';
 
-import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
+import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // DEVELOPER NOTE: This is SAMPLE syllabus data. For full functionality, 
 // this object MUST be populated with the complete and accurate NCERT syllabus 
 // for all relevant classes, subjects, chapters, and topics.
+// I have expanded Physics Class 11 to show more detail.
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   '11': {
     'Physics': {
@@ -62,6 +63,14 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       'Chapter 6: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Notion of potential energy, potential energy of a spring, conservative forces: conservation of mechanical energy (kinetic and potential energies)', 'Non-conservative forces: motion in a vertical circle', 'Elastic and inelastic collisions in one and two dimensions'],
       'Chapter 7: System of Particles and Rotational Motion': ['Centre of mass of a two-particle system, momentum conservation and centre of mass motion', 'Centre of mass of a rigid body; centre of mass of a uniform rod', 'Moment of a force, torque, angular momentum, conservation of angular momentum with some examples', 'Equilibrium of rigid bodies, rigid body rotation and equations of rotational motion, comparison of linear and rotational motions', 'Moment of inertia, radius of gyration', 'Values of M.I. for simple geometrical objects (no derivation)', 'Statement of parallel and perpendicular axes theorems and their applications'],
       'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
+      // Part II Chapters for Class 11 Physics
+      'Chapter 9: Mechanical Properties of Solids': ['Elastic behaviour, Stress-strain relationship, Hooke\'s law, Young\'s modulus, bulk modulus, shear modulus of rigidity, Poisson\'s ratio; elastic energy.'],
+      'Chapter 10: Mechanical Properties of Fluids': ['Pressure due to a fluid column; Pascal\'s law and its applications (hydraulic lift and hydraulic brakes)', 'Effect of gravity on fluid pressure', 'Viscosity, Stokes\' law, terminal velocity, streamline and turbulent flow, critical velocity, Bernoulli\'s theorem and its applications', 'Surface energy and surface tension, angle of contact, excess of pressure across a curved surface, application of surface tension ideas to drops, bubbles and capillary rise.'],
+      'Chapter 11: Thermal Properties of Matter': ['Heat, temperature, thermal expansion; thermal expansion of solids, liquids and gases', 'Anomalous expansion of water; specific heat capacity: Cp, Cv - calorimetry; change of state - latent heat capacity', 'Heat transfer-conduction, convection and radiation, thermal conductivity, qualitative ideas of Blackbody radiation, Wein\'s displacement Law, Stefan\'s law, Greenhouse effect.'],
+      'Chapter 12: Thermodynamics': ['Thermal equilibrium and definition of temperature (zeroth law of Thermodynamics)', 'Heat, work and internal energy', 'First law of thermodynamics, isothermal and adiabatic processes', 'Second law of thermodynamics: reversible and irreversible processes', 'Heat engine and refrigerator.'],
+      'Chapter 13: Kinetic Theory': ['Equation of state of a perfect gas, work done on compressing a gas', 'Kinetic theory of gases: Assumptions, concept of pressure', 'Kinetic energy and temperature; rms speed of gas molecules; degrees of freedom, law of equipartition of energy (statement only) and application to specific heat capacities of gases; concept of mean free path, Avogadro\'s number.'],
+      'Chapter 14: Oscillations': ['Periodic motion - period, frequency, displacement as a function of time', 'Periodic functions', 'Simple harmonic motion (SHM) and its equation; phase; oscillations of a loaded spring-restoring force and force constant; energy in SHM - kinetic and potential energies; simple pendulum derivation of expression for its time period', 'Free, forced and damped oscillations (qualitative ideas only), resonance.'],
+      'Chapter 15: Waves': ['Wave motion', 'Longitudinal and transverse waves, speed of wave motion', 'Displacement relation for a progressive wave', 'Principle of superposition of waves, reflection of waves, standing waves in strings and organ pipes, fundamental mode and harmonics, Beats, Doppler effect.'],
     },
     'Chemistry': {
       'Chapter 1: Some Basic Concepts of Chemistry': ['Importance of Chemistry', 'Laws of chemical combination', 'Dalton\'s atomic theory', 'Concept of elements, atoms and molecules', 'Atomic and molecular masses', 'Mole concept and molar mass', 'Percentage composition, empirical and molecular formula', 'Chemical reactions, stoichiometry and calculations based on stoichiometry'],
@@ -78,7 +87,6 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
     }
   },
   '12': {
-    // Add more Class 12 data here similarly if needed for full dropdown population
     'Physics': {
       'Chapter 1: Electric Charges and Fields': ['Electric Charge', 'Conductors and Insulators', 'Basic properties of electric charge: additivity, quantisation, conservation', 'Coulomb\'s Law', 'Forces between multiple charges', 'Superposition principle', 'Continuous charge distribution', 'Electric Field', 'Electric field due to a point charge', 'Electric field lines', 'Electric dipole, electric field due to a dipole', 'Torque on a dipole in uniform electric field', 'Electric flux', 'Statement of Gauss\'s theorem and its applications to find field due to infinitely long straight wire, uniformly charged infinite plane sheet and uniformly charged thin spherical shell (field inside and outside)'],
       'Chapter 2: Electrostatic Potential and Capacitance': ['Electrostatic Potential', 'Potential due to a Point Charge, a dipole and system of charges', 'Equipotential surfaces', 'Electrical potential energy of a system of two point charges and of electric dipoles in an external field', 'Conductors and insulators, free charges and bound charges inside a conductor', 'Dielectrics and electric polarisation, capacitors and capacitance, combination of capacitors in series and in parallel', 'Capacitance of a parallel plate capacitor with and without dielectric medium between the plates, energy stored in a capacitor'],
@@ -302,13 +310,13 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { display_topic, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
         
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase, 
             user_id: userId,
-            topic: null, // Explicitly set singular topic to null as it's not in use or might not exist
+            // topic field is intentionally not set here as it doesn't exist in the user's DB schema
+            // topic: null, 
         };
         
         console.log("Attempting to insert quiz:", JSON.stringify(quizToInsert, null, 2));
@@ -318,18 +326,18 @@ export default function QuizzesPage() {
             toast({ variant: 'destructive', title: 'DB Error: Quiz Save', description: `Code: ${quizError.code}. ${quizError.message}` });
             return; 
         }
-        console.log("Quiz inserted successfully.");
+        console.log("Quiz inserted successfully. ID:", quizToInsert.id);
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
             id: q.id,
-            quiz_id: q.quiz_id,
+            quiz_id: quizToInsert.id, // Use the ID from the just-inserted quiz
             question_text: q.question_text,
             options: q.options,
             correct_option_index: q.correct_option_index,
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            topic: null, // Explicitly set singular topic to null
+            // topic field is intentionally not set here
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
@@ -449,7 +457,7 @@ export default function QuizzesPage() {
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: null, // Singular topic not used here for saved_questions
+                topic: null, 
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
@@ -457,7 +465,7 @@ export default function QuizzesPage() {
               if (error.code === '23505') { 
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
               } else if (error.code === '23503') { 
-                toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save question. The original question might not have been saved to the database correctly. Please try submitting the quiz again or ensure quiz data is properly saved first."});
+                toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save question. The original question might not have been saved to the database correctly. Please ensure quiz data is properly saved first."});
                 console.error("FK violation saving question:", error);
               }
               else {
@@ -479,6 +487,11 @@ export default function QuizzesPage() {
         }
     });
   }
+
+  const handleCopyQuestionText = (questionText: string) => {
+    navigator.clipboard.writeText(questionText);
+    toast({ title: "Question Copied!", description: "Question text copied to clipboard." });
+  };
 
   const renderQuizTaker = () => {
     if (!currentGeneratedQuiz) return null;
@@ -581,27 +594,32 @@ export default function QuizzesPage() {
                   <AccordionContent className="space-y-3 pt-3">
                     <p><strong>Your Answer:</strong> {q.userAnswerIndex !== null && q.userAnswerIndex !== undefined && q.options ? String.fromCharCode(65 + q.userAnswerIndex) + '. ' + (q.options as string[])[q.userAnswerIndex] : 'Not Answered'}</p>
                     <p className="text-green-400"><strong>Correct Answer:</strong> {q.options ? String.fromCharCode(65 + q.correct_option_index) + '. ' + (q.options as string[])[q.correct_option_index] : 'N/A'}</p>
-                    <Button variant="ghost" size="sm" onClick={() => handleSaveQuestion(q)} disabled={isSavingQuestion} className="text-accent hover:text-accent/80 mr-2">
-                         {isSavingQuestion ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4 mr-1"/>} Save Question
-                    </Button>
-                    {explanation ? (
-                      <Alert variant="default" className="bg-card-foreground/5 border-accent/30">
-                        <Lightbulb className="h-5 w-5 text-accent" />
-                        <AlertTitle className="text-accent">AI Explanation</AlertTitle>
-                        <AlertDescription className="text-sm whitespace-pre-wrap">{explanation}</AlertDescription>
-                      </Alert>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGetExplanation(q, q.userAnswerIndex)}
-                        disabled={isExplanationLoading}
-                        className="glow-button border-accent text-accent hover:bg-accent/10 hover:text-accent"
-                      >
-                        {isExplanationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HelpCircle className="mr-2 h-4 w-4" />}
-                        Get AI Explanation
-                      </Button>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleSaveQuestion(q)} disabled={isSavingQuestion} className="text-accent hover:text-accent/80">
+                            {isSavingQuestion ? <Loader2 className="animate-spin" /> : <Save className="w-4 h-4 mr-1"/>} Save Question
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleCopyQuestionText(q.question_text)} className="text-accent hover:text-accent/80">
+                            <ClipboardCopy className="w-4 h-4 mr-1"/> Copy Question
+                        </Button>
+                        {explanation ? (
+                        <Alert variant="default" className="bg-card-foreground/5 border-accent/30 w-full mt-2">
+                            <Lightbulb className="h-5 w-5 text-accent" />
+                            <AlertTitle className="text-accent">AI Explanation</AlertTitle>
+                            <AlertDescription className="text-sm whitespace-pre-wrap">{explanation}</AlertDescription>
+                        </Alert>
+                        ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGetExplanation(q, q.userAnswerIndex)}
+                            disabled={isExplanationLoading}
+                            className="glow-button border-accent text-accent hover:bg-accent/10 hover:text-accent"
+                        >
+                            {isExplanationLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <HelpCircle className="mr-2 h-4 w-4" />}
+                            Get AI Explanation
+                        </Button>
+                        )}
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );
@@ -751,3 +769,4 @@ export default function QuizzesPage() {
   );
 }
 
+    

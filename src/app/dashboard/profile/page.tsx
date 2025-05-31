@@ -1,3 +1,4 @@
+
 // src/app/dashboard/profile/page.tsx
 'use client';
 
@@ -14,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
-import { Loader2, UserCircle, Save, UploadCloud, Music, KeyRound, Palette, Edit, ShieldQuestion } from 'lucide-react';
+import { Loader2, UserCircle, Save, UploadCloud, Music, KeyRound, Palette, Edit, ShieldQuestion, SaveIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const MAX_FILE_SIZE_MB = 2;
@@ -37,18 +38,18 @@ const profileSchema = z.object({
       "Only MP3, WAV, OGG formats are supported."
     ),
   custom_countdown_event_name: z.string().max(50).optional().or(z.literal('')),
-  custom_countdown_target_date: z.string().optional().or(z.literal('')), // Store as ISO string, validate as date if provided
+  custom_countdown_target_date: z.string().optional().or(z.literal('')),
 }).refine(data => {
     if (data.custom_countdown_target_date && !data.custom_countdown_event_name) {
-        return false; // If date is set, name must be set
+        return false; 
     }
     if (data.custom_countdown_event_name && !data.custom_countdown_target_date) {
-        return false; // If name is set, date must be set
+        return false; 
     }
     return true;
 }, {
     message: "Both event name and target date are required for custom countdown, or neither.",
-    path: ["custom_countdown_event_name"], // Or path: ["custom_countdown_target_date"]
+    path: ["custom_countdown_event_name"], 
 });
 
 
@@ -57,11 +58,13 @@ type ProfileData = Tables<'profiles'>;
 
 export default function ProfileSettingsPage() {
   const [isPending, startTransition] = useTransition();
+  const [isAlarmSaving, startAlarmSavingTransition] = useTransition();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [currentAlarmToneUrl, setCurrentAlarmToneUrl] = useState<string | null>(null);
+  const [selectedAlarmFile, setSelectedAlarmFile] = useState<File | null>(null);
   const { toast } = useToast();
   const supabase = createClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const alarmFileInputRef = useRef<HTMLInputElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   const form = useForm<ProfileFormData>({
@@ -87,7 +90,7 @@ export default function ProfileSettingsPage() {
             .eq('id', user.id)
             .single();
 
-          if (error && error.code !== 'PGRST116') { // PGRST116: single row not found
+          if (error && error.code !== 'PGRST116') { 
             toast({ variant: 'destructive', title: 'Error fetching profile', description: error.message });
           } else if (data) {
             setProfileData(data);
@@ -115,24 +118,74 @@ export default function ProfileSettingsPage() {
     fetchProfile();
   }, [supabase, toast, form]);
 
+  const handleAlarmFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            toast({ variant: "destructive", title: "Audio file too large", description: `Max ${MAX_FILE_SIZE_MB}MB.` });
+            setSelectedAlarmFile(null);
+            if(alarmFileInputRef.current) alarmFileInputRef.current.value = "";
+            return;
+        }
+        if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
+            toast({ variant: "destructive", title: "Invalid audio file type", description: "Use MP3, WAV, OGG." });
+            setSelectedAlarmFile(null);
+            if(alarmFileInputRef.current) alarmFileInputRef.current.value = "";
+            return;
+        }
+        setSelectedAlarmFile(file);
+        form.setValue('alarm_tone_upload', event.target.files as FileList); // Keep RHF informed if needed
+    } else {
+        setSelectedAlarmFile(null);
+        form.resetField('alarm_tone_upload');
+    }
+  };
+
+  const handleSaveAlarmTone = async () => {
+    if (!userId || !selectedAlarmFile) {
+      toast({ variant: 'destructive', title: 'No alarm file selected or not authenticated.' });
+      return;
+    }
+    startAlarmSavingTransition(async () => {
+      try {
+        const file = selectedAlarmFile;
+        const filePath = `${userId}/alarm_tones/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('user-uploads')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage.from('user-uploads').getPublicUrl(filePath);
+        
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .update({ alarm_tone_url: publicUrl, updated_at: new Date().toISOString() })
+          .eq('id', userId);
+        
+        if (profileUpdateError) throw profileUpdateError;
+
+        setCurrentAlarmToneUrl(publicUrl);
+        setSelectedAlarmFile(null);
+        if(alarmFileInputRef.current) alarmFileInputRef.current.value = "";
+        form.resetField('alarm_tone_upload');
+        toast({ title: 'Alarm Tone Updated!', description: 'Your new alarm tone has been saved.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error saving alarm tone', description: error.message });
+      }
+    });
+  };
+
+
   const onSubmit = async (values: ProfileFormData) => {
     if (!userId) return;
 
     startTransition(async () => {
       try {
-        let newAlarmToneUrl = currentAlarmToneUrl;
-        if (values.alarm_tone_upload && values.alarm_tone_upload.length > 0) {
-          const file = values.alarm_tone_upload[0];
-          const filePath = `${userId}/alarm_tones/${Date.now()}_${file.name}`;
-          const { error: uploadError } = await supabase.storage
-            .from('user_uploads') // Assuming a bucket named 'user_uploads'
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-          
-          const { data: { publicUrl } } = supabase.storage.from('user_uploads').getPublicUrl(filePath);
-          newAlarmToneUrl = publicUrl;
-        }
+        // Note: Alarm tone is now handled by handleSaveAlarmTone if a new file is selected.
+        // This main save will only save other profile fields.
+        // If a file was selected via form.setValue('alarm_tone_upload', ...) but NOT uploaded via the dedicated button,
+        // it will be ignored by this main save logic to prevent accidental overwrites without explicit save.
         
         const updateData: Partial<TablesUpdate<'profiles'>> = {
           username: values.username,
@@ -140,7 +193,7 @@ export default function ProfileSettingsPage() {
           class_level: values.class_level,
           target_year: values.target_year,
           theme: values.theme,
-          alarm_tone_url: newAlarmToneUrl,
+          // alarm_tone_url is NOT updated here, handled by dedicated button
           custom_countdown_event_name: values.custom_countdown_event_name || null,
           custom_countdown_target_date: values.custom_countdown_target_date ? new Date(values.custom_countdown_target_date).toISOString() : null,
           updated_at: new Date().toISOString(),
@@ -153,8 +206,7 @@ export default function ProfileSettingsPage() {
 
         if (error) throw error;
 
-        toast({ title: 'Profile Updated!', description: 'Your settings have been saved.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
-        setCurrentAlarmToneUrl(newAlarmToneUrl); // Update displayed URL if changed
+        toast({ title: 'Profile Settings Updated!', description: 'Your general settings have been saved.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
         if (values.theme === 'light') {
             document.documentElement.classList.remove('dark');
         } else {
@@ -162,14 +214,9 @@ export default function ProfileSettingsPage() {
         }
         
       } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error updating profile', description: error.message });
+        toast({ variant: 'destructive', title: 'Error updating profile settings', description: error.message });
       }
     });
-  };
-
-  // TODO: Implement change password functionality
-  const handleChangePassword = () => {
-    toast({ title: 'Password Change', description: 'This feature will be implemented via Supabase Auth UI or custom flow.'});
   };
   
   const handleRequestPasswordReset = async () => {
@@ -179,7 +226,7 @@ export default function ProfileSettingsPage() {
     }
     startTransition(async () => {
         const { error } = await supabase.auth.resetPasswordForEmail(profileData.email, {
-            redirectTo: `${window.location.origin}/auth/update-password`, // You'll need to create this page
+            redirectTo: `${window.location.origin}/auth/update-password`,
         });
         if (error) {
             toast({ variant: 'destructive', title: 'Error sending reset email', description: error.message });
@@ -209,7 +256,7 @@ export default function ProfileSettingsPage() {
         <CardHeader>
             <div className="flex items-center space-x-4">
                 <Avatar className="h-20 w-20 border-2 border-primary shadow-lg">
-                    <AvatarImage src={profileData?.avatar_url || undefined} alt={profileData?.full_name || 'User'} data-ai-hint="user avatar" />
+                    <AvatarImage src={profileData?.avatar_url || undefined} alt={profileData?.full_name || 'User'} data-ai-hint="user avatar"/>
                     <AvatarFallback className="text-3xl bg-primary/20 text-primary">
                         {profileData?.full_name ? profileData.full_name.charAt(0).toUpperCase() : profileData?.username?.charAt(0).toUpperCase() || 'U'}
                     </AvatarFallback>
@@ -277,22 +324,23 @@ export default function ProfileSettingsPage() {
               <Card className="bg-card/50 border-border/50 shadow-inner">
                 <CardHeader><CardTitle className="flex items-center text-xl font-headline glow-text-accent"><Music className="mr-2" /> Alarm Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                    <FormField control={form.control} name="alarm_tone_upload" render={() => (
-                        <FormItem>
-                            <FormLabel className="text-base font-medium">Upload Custom Alarm Tone</FormLabel>
-                            <FormControl>
-                                <Input type="file" accept={ACCEPTED_AUDIO_TYPES.join(',')} ref={fileInputRef} onChange={(e) => form.setValue('alarm_tone_upload', e.target.files)} className="input-glow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30" />
-                            </FormControl>
-                            <FormDescription>Upload an MP3, WAV, or OGG file ({MAX_FILE_SIZE_MB}MB max).</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
+                    <FormItem> {/* Not a FormField as it's handled separately */}
+                        <FormLabel className="text-base font-medium">Upload Custom Alarm Tone</FormLabel>
+                        <FormControl>
+                            <Input type="file" accept={ACCEPTED_AUDIO_TYPES.join(',')} ref={alarmFileInputRef} onChange={handleAlarmFileChange} className="input-glow file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30" />
+                        </FormControl>
+                        <FormDescription>Upload an MP3, WAV, or OGG file ({MAX_FILE_SIZE_MB}MB max).</FormDescription>
+                        {/* FormMessage for alarm_tone_upload would come from RHF if it was a direct FormField */}
+                    </FormItem>
                     {currentAlarmToneUrl && (
                         <div>
                             <p className="text-sm text-muted-foreground">Current alarm tone:</p>
                             <audio controls src={currentAlarmToneUrl} className="w-full mt-1 rounded-md">Your browser does not support the audio element.</audio>
                         </div>
                     )}
+                    <Button type="button" onClick={handleSaveAlarmTone} className="w-full sm:w-auto glow-button" disabled={isAlarmSaving || !selectedAlarmFile}>
+                        {isAlarmSaving ? <Loader2 className="animate-spin mr-2" /> : <SaveIcon className="mr-2" />} Save Alarm Tone
+                    </Button>
                 </CardContent>
               </Card>
               
@@ -319,8 +367,8 @@ export default function ProfileSettingsPage() {
               </Card>
 
 
-              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending}>
-                {isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Save Changes
+              <Button type="submit" className="w-full font-semibold text-lg py-6 glow-button" disabled={isPending || isAlarmSaving}>
+                {isPending ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2" />} Save General Settings
               </Button>
 
               <Card className="bg-card/50 border-border/50 shadow-inner mt-8">
@@ -340,3 +388,5 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
+
+    
