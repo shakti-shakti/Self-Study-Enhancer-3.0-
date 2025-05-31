@@ -24,6 +24,7 @@ export type Database = {
           alarm_tone_url: string | null
           custom_countdown_event_name: string | null
           custom_countdown_target_date: string | null
+          dataAiHint?: string | null // Added for NCERT books
         }
         Insert: {
           id: string // user_id from auth.users
@@ -38,6 +39,7 @@ export type Database = {
           alarm_tone_url?: string | null
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
+          dataAiHint?: string | null
         }
         Update: {
           id?: string
@@ -52,6 +54,7 @@ export type Database = {
           alarm_tone_url?: string | null
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
+          dataAiHint?: string | null
         }
         Relationships: [
           {
@@ -1004,6 +1007,7 @@ export type Database = {
           book_name: string 
           chapters: Json 
           cover_image_url: string | null
+          dataAiHint?: string | null // Added for NCERT books
         }
         Insert: {
           id?: string
@@ -1012,6 +1016,7 @@ export type Database = {
           book_name: string
           chapters: Json
           cover_image_url?: string | null
+          dataAiHint?: string | null
         }
         Update: {
           id?: string
@@ -1020,6 +1025,7 @@ export type Database = {
           book_name?: string
           chapters?: Json
           cover_image_url?: string | null
+          dataAiHint?: string | null
         }
         Relationships: []
       }
@@ -1327,3 +1333,8 @@ export type ChatSessionPreview = {
   last_message_at: string;
   user_id: string; 
 };
+
+// Added this for type consistency in NcertBookMetadata
+export interface NcertBookMetadataRow extends Tables<'ncert_books_metadata'> {
+  dataAiHint?: string | null;
+}

@@ -1,9 +1,8 @@
-
 // src/app/dashboard/games/layout.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, ArrowLeft } from 'lucide-react';
+import { Home, ArrowLeft, Bird } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'NEET Prep+ Games',
@@ -20,7 +19,7 @@ export default function GamesLayout({
       <header className="sticky top-0 z-50 p-4 bg-background/80 backdrop-blur-md shadow-lg">
         <div className="container mx-auto flex items-center justify-between">
           <Link href="/dashboard/games" className="text-2xl font-headline font-bold text-primary glow-text-primary hover:opacity-80 transition-opacity">
-            NEET Games Arcade
+            <Bird className="inline-block mr-2 h-7 w-7"/> NEET Games Arcade
           </Link>
           <Button variant="outline" asChild className="glow-button">
             <Link href="/dashboard">
@@ -38,4 +37,3 @@ export default function GamesLayout({
     </div>
   );
 }
-    

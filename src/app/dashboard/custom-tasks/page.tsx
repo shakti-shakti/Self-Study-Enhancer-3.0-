@@ -1,4 +1,3 @@
-
 // src/app/dashboard/custom-tasks/page.tsx
 'use client';
 
@@ -295,7 +294,7 @@ export default function CustomTasksPage() {
                   <span className="flex-1 break-words mr-2">{task.title}</span>
                 </CardTitle>
                 <CardDescription className={cn(task.completed ? "text-green-500/80" : "text-muted-foreground")}>
-                  {task.due_date ? `Due: ${format(parseISO(task.due_date), "PPP")}` : 'No due date'}
+                  {task.due_date && isValid(parseISO(task.due_date)) ? `Due: ${format(parseISO(task.due_date), "PPP")}` : 'No due date'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -326,4 +325,3 @@ export default function CustomTasksPage() {
     </div>
   );
 }
-    

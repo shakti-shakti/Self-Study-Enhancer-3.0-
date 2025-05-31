@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award // Added Gift, Award
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award, Bird // Added Bird
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -103,7 +103,7 @@ export default async function DashboardLayout({
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Planner', href: '/dashboard/planner', icon: Edit3 },
     { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: Bot },
-    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 },
+    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 }, // Gamepad2 might be better than Bird for general games
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
   ];
 

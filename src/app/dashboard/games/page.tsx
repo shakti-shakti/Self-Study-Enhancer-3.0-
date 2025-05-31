@@ -1,11 +1,10 @@
-
 // src/app/dashboard/games/page.tsx
 'use client';
 
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle } from 'lucide-react';
+import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird } from 'lucide-react';
 import Image from 'next/image';
 
 const games = [
@@ -27,14 +26,23 @@ const games = [
     imageUrl: 'https://placehold.co/600x400/003d2d/aaffdd.png?text=Lab+Escape', 
     dataAiHint: 'science lab escape'
   },
+  {
+    id: 'flappy-brain',
+    title: 'Flappy Brain',
+    description: 'Navigate the brainy bird through obstacles. A simple, fun reflex game. How high can you score?',
+    genre: 'Arcade Reflex Game',
+    icon: <Bird className="h-12 w-12 text-secondary" />,
+    imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Flappy+Brain',
+    dataAiHint: 'bird game simple'
+  },
 ];
 
 export default function GamesHubPage() {
   return (
     <div className="space-y-12">
       <header className="text-center">
-        <h1 className="text-5xl font-headline font-bold glow-text-primary mb-4">
-          Games Arcade
+        <h1 className="text-5xl font-headline font-bold glow-text-primary mb-4 flex items-center justify-center">
+          <Bird className="mr-2 h-10 w-10" />Games Arcade
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           Sharpen your mind and test your NEET knowledge with these engaging mini-games!
@@ -48,8 +56,9 @@ export default function GamesHubPage() {
               <Image 
                 src={game.imageUrl} 
                 alt={game.title} 
-                layout="fill" 
-                objectFit="cover" 
+                fill // Changed from layout="fill"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Added sizes attribute
+                style={{ objectFit: "cover" }} // Changed from objectFit="cover"
                 className="transition-transform duration-500 group-hover:scale-110"
                 data-ai-hint={game.dataAiHint || 'game banner'}
               />
@@ -73,4 +82,3 @@ export default function GamesHubPage() {
     </div>
   );
 }
-    
