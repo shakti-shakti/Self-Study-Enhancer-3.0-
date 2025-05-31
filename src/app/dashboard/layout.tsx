@@ -6,7 +6,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -30,7 +30,7 @@ const mainNavItems = [
   { name: 'Quizzes', href: '/dashboard/quizzes', icon: <TargetIcon /> },
   { name: 'Challenges', href: '/dashboard/challenges', icon: <Trophy /> },
   { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: <Bot /> },
-  { name: 'Games', href: '/dashboard/games', icon: <Gamepad2 /> },
+  { name: 'Games Arcade', href: '/dashboard/games', icon: <Gamepad2 /> },
 ];
 
 const toolsNavItems = [
@@ -40,6 +40,7 @@ const toolsNavItems = [
   { name: 'Dictionary', href: '/dashboard/dictionary', icon: <SpellCheck /> },
   { name: 'Translator', href: '/dashboard/translator', icon: <Languages /> },
   { name: 'Calculator', href: '/dashboard/calculator', icon: <Calculator /> },
+  { name: 'Meditation Mentor', href: '/dashboard/meditation-mentor', icon: <BrainCog /> },
 ];
 
 const resourcesNavItems = [
@@ -51,6 +52,7 @@ const resourcesNavItems = [
   { name: 'Custom Tasks', href: '/dashboard/custom-tasks', icon: <FolderOpen /> },
   { name: 'Task Reminders', href: '/dashboard/task-reminders', icon: <AlarmClock /> },
   { name: 'NCERT Viewer', href: '/dashboard/ncert-viewer', icon: <BookOpenIcon /> },
+  { name: 'Story Syllabus', href: '/dashboard/story-syllabus', icon: <ScrollText /> },
 ];
 
 const accountNavItems = [
@@ -58,6 +60,7 @@ const accountNavItems = [
   { name: 'Activity History', href: '/dashboard/activity-history', icon: <History /> },
   { name: 'Mind & Focus Hub', href: '/dashboard/mental-health', icon: <Brain /> },
   { name: 'Study Rooms', href: '/dashboard/study-rooms', icon: <Users /> },
+  { name: 'Study Store', href: '/dashboard/study-store', icon: <ShoppingCart /> },
   { name: 'App Customization', href: '/dashboard/app-customization', icon: <SlidersHorizontal /> },
   { name: 'Profile Settings', href: '/dashboard/profile', icon: <Settings /> },
 ];
@@ -261,4 +264,3 @@ export default async function DashboardLayout({
     </SidebarProvider>
   );
 }
-

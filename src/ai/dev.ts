@@ -14,3 +14,4 @@ import '@/ai/flows/random-fact-generator.ts';
 import '@/ai/flows/dictionary-flow.ts';
 import '@/ai/flows/translation-flow.ts';
 import '@/ai/flows/calculator-flow.ts';
+import '@/ai/flows/meditation-mentor-flow.ts'; // Added new flow
