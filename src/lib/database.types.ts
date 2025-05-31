@@ -102,7 +102,7 @@ export type Database = {
           user_id: string | null 
           class_level: string | null
           subject: string | null
-          topic: string | null // Added for easier display
+          topic: string | null 
           topics: string[] | null
           question_source: string | null
           difficulty: string
@@ -114,7 +114,7 @@ export type Database = {
           user_id?: string | null 
           class_level?: string | null
           subject?: string | null
-          topic?: string | null // Added for easier display
+          topic?: string | null 
           topics?: string[] | null
           question_source?: string | null
           difficulty: string
@@ -126,7 +126,7 @@ export type Database = {
           user_id?: string | null
           class_level?: string | null
           subject?: string | null
-          topic?: string | null // Added for easier display
+          topic?: string | null 
           topics?: string[] | null
           question_source?: string | null
           difficulty?: string
@@ -1276,13 +1276,10 @@ export type Enums<
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
     
-// Helper type for joined data, e.g. Quiz Attempts with Quiz Topic
 export type QuizAttemptWithQuizTopic = Tables<'quiz_attempts'> & {
-  quizzes: { topic: string | null, class_level: string | null, subject: string | null } | null; // Allow topic to be null
+  quizzes: { topic: string | null, class_level: string | null, subject: string | null } | null;
 };
 
-
-// Extending StudyRoomMessage to include profile information
 export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
   profiles: { email: string | null; full_name: string | null; avatar_url: string | null } | null;
 };
@@ -1290,7 +1287,6 @@ export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
 export type StudyPlanWithAlarm = Tables<'study_plans'>; 
 export type Question = Tables<'questions'>;
 
-// Game specific types
 export type GameMetadata = Tables<'game_metadata'>;
 export type UserGameProgress = Tables<'user_game_progress'>;
 export type GameLeaderboardEntry = Tables<'game_leaderboard'>;
@@ -1302,15 +1298,13 @@ export interface ChronoMindState {
     timeDilationSolved: boolean;
     projectileMotionSolved: boolean;
   };
-  // Add more chapter progress states here
-  // e.g. chapter2Progress: { puzzleA: boolean, puzzleB: boolean }
-  playerChoices: Record<string, any>; // To store decisions that might affect story/puzzles
-  memoryLossEvents: number; // Example of a game-specific stat
+  playerChoices: Record<string, any>; 
+  memoryLossEvents: number; 
 }
 
 export interface NEETLabEscapeState {
   currentRoom: 'intro' | 'physics' | 'chemistry' | 'botany' | 'zoology' | 'final_hallway' | 'escaped' | 'failed';
-  physicsPuzzlesSolved: boolean[]; // e.g., [false, false, false, false, false] for 5 puzzles
+  physicsPuzzlesSolved: boolean[]; 
   chemistryPuzzlesSolved: boolean[];
   botanyPuzzlesSolved: boolean[];
   zoologyPuzzlesSolved: boolean[];
@@ -1320,15 +1314,13 @@ export interface NEETLabEscapeState {
     botany: boolean;
     zoology: boolean;
   };
-  remainingTime: number; // in seconds
-  retriesUsed: number; // Count of incorrect attempts on major puzzles
-  finalQuestionAnsweredCorrectly?: boolean; // For the final hallway
+  remainingTime: number; 
+  retriesUsed: number; 
+  finalQuestionAnsweredCorrectly?: boolean; 
 }
 
-export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json; // Allow general Json for flexibility
+export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json; 
 
-
-// Type for AI Chat session preview on dashboard
 export type ChatSessionPreview = {
   session_id: string;
   first_message_preview: string;

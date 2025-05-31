@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+// RadioGroup and RadioGroupItem are used for the config form, but NOT for rendering quiz options
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -27,9 +28,9 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
-import type { Database, Tables, TablesInsert, QuizAttemptWithQuizTopic, Question } from '@/lib/database.types'; // Question type imported
+import type { Database, Tables, TablesInsert, QuizAttemptWithQuizTopic, Question } from '@/lib/database.types';
 
-import { generateQuiz, type GenerateQuizInput, type QuizQuestion as AIQuizQuestion } from '@/ai/flows/quiz-generator'; // Renamed AIQuizQuestion
+import { generateQuiz, type GenerateQuizInput, type QuizQuestion as AIQuizQuestion } from '@/ai/flows/quiz-generator';
 import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/customizable-quiz-explanation';
 
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
@@ -84,7 +85,7 @@ const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Botany', 'Zoology'], { required_error: 'Please select a subject.' }),
   chapter: z.string().optional(),
-  topic: z.string().optional(), // Single topic selection for now
+  topic: z.string().optional(),
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   numQuestions: z.coerce.number().int().min(1).max(10),
@@ -152,26 +153,24 @@ export default function QuizzesPage() {
     if (selectedClass && selectedSubject) {
       const chapters = syllabusData[selectedClass]?.[selectedSubject] ? Object.keys(syllabusData[selectedClass][selectedSubject]) : [];
       setAvailableChapters(chapters);
-      configForm.setValue('chapter', ''); // Reset chapter when class/subject changes
-      setAvailableTopics([]); // Reset topics
-      configForm.setValue('topic', ''); // Reset topic
+      configForm.setValue('chapter', ''); 
+      setAvailableTopics([]); 
+      configForm.setValue('topic', ''); 
     } else {
       setAvailableChapters([]);
       setAvailableTopics([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, selectedSubject]); // Removed configForm.setValue from dependency array
+  }, [selectedClass, selectedSubject, configForm]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject && selectedChapter) {
       const topics = syllabusData[selectedClass]?.[selectedSubject]?.[selectedChapter] || [];
       setAvailableTopics(topics);
-      configForm.setValue('topic', ''); // Reset topic when chapter changes
+      configForm.setValue('topic', ''); 
     } else {
       setAvailableTopics([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChapter, selectedClass, selectedSubject]); // Removed configForm.setValue from dependency array
+  }, [selectedChapter, selectedClass, selectedSubject, configForm]);
 
 
   useEffect(() => {
@@ -224,7 +223,7 @@ export default function QuizzesPage() {
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            topic: values.chapter || values.subject, // Simplified topic for DB
+            topic: values.chapter || values.subject, 
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -315,7 +314,6 @@ export default function QuizzesPage() {
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
         if (attemptError) throw attemptError;
         
-        // Log activity
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: userId,
           activity_type: 'quiz_attempted',
@@ -379,26 +377,25 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id, // Link to the original question if available
+                question_id: question.id, 
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: question.topic, // This might be more specific like "Chapter X - Topic Y"
+                topic: question.topic, 
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') { // Unique constraint violation
+              if (error.code === '23505') { 
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
               } else {
                 throw error;
               }
             } else {
                toast({ title: "Question Saved!", description: "You can find it in your 'Saved Questions' dashboard."});
-               // Log activity
                 const activityLog: TablesInsert<'activity_logs'> = {
                   user_id: userId,
                   activity_type: 'question_saved',
@@ -429,20 +426,25 @@ export default function QuizzesPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-lg font-semibold">{question.question_text}</p>
-          <RadioGroup
-            value={userAnswer?.selectedOptionIndex !== null && userAnswer?.selectedOptionIndex !== undefined ? userAnswer.selectedOptionIndex.toString() : ""}
-            onValueChange={(value) => handleAnswerChange(question.id, parseInt(value))}
-            className="space-y-3"
-          >
+          {/* This section now uses plain HTML radio inputs */}
+          <div className="space-y-3">
             {(question.options as string[]).map((option, index) => (
               <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
-                <RadioGroupItem value={index.toString()} id={`${question.id}-option-${index}`} />
+                <input
+                  type="radio"
+                  name={question.id} // Group radio buttons by question
+                  value={index.toString()}
+                  id={`${question.id}-option-${index}`}
+                  checked={userAnswer?.selectedOptionIndex === index}
+                  onChange={() => handleAnswerChange(question.id, index)}
+                  className="form-radio h-4 w-4 text-primary border-border focus:ring-primary cursor-pointer" // Basic Tailwind classes
+                />
                 <label htmlFor={`${question.id}-option-${index}`} className="font-normal text-base flex-1 cursor-pointer">
                   {String.fromCharCode(65 + index)}. {option}
                 </label>
               </div>
             ))}
-          </RadioGroup>
+          </div>
         </CardContent>
         <CardFooter className="flex justify-between items-center">
           <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0} className="glow-button">
@@ -686,4 +688,3 @@ export default function QuizzesPage() {
     </div>
   );
 }
-

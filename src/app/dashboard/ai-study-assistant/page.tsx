@@ -1,3 +1,4 @@
+
 // src/app/dashboard/ai-study-assistant/page.tsx
 'use client';
 
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { studyAssistant, type StudyAssistantInput, type StudyAssistantOutput } from '@/ai/flows/ai-study-assistant';
-import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft, Trash2 } from 'lucide-react';
+import { Bot, Loader2, Send, MessageSquare, User, Lightbulb, List, CornerDownLeft, Trash2, Paperclip } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { createClient } from '@/lib/supabase/client';
 import type { Tables, TablesInsert } from '@/lib/database.types';
@@ -30,10 +31,23 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const MAX_IMAGE_SIZE_MB = 5;
+const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES_FOR_CHAT = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+
 const assistantSchema = z.object({
   query: z.string().min(3, { message: 'Query must be at least 3 characters.' }),
   context: z.string().optional(),
   studyTipsPreferences: z.string().optional(),
+  imageUpload: z
+    .custom<FileList>()
+    .optional()
+    .refine((files) => !files || files.length === 0 || files?.[0]?.size <= MAX_IMAGE_SIZE_BYTES, `Max image size is ${MAX_IMAGE_SIZE_MB}MB.`)
+    .refine(
+      (files) => !files || files.length === 0 || ACCEPTED_IMAGE_TYPES_FOR_CHAT.includes(files?.[0]?.type),
+      "Only .jpg, .jpeg, .png and .webp formats are supported for image upload."
+    ),
 });
 
 type AssistantFormData = z.infer<typeof assistantSchema>;
@@ -43,12 +57,13 @@ interface ChatMessage {
   session_id: string;
   role: 'user' | 'ai' | 'ai-tips';
   content: string | string[]; 
-  timestamp: string; // ISO string
+  timestamp: string; 
+  image_preview_url?: string;
 }
 
 interface ChatSession {
     session_id: string;
-    last_message_at: string; // ISO string
+    last_message_at: string; 
     first_message_preview: string;
 }
 
@@ -59,6 +74,9 @@ export default function AiStudyAssistantPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
 
   const { toast } = useToast();
   const supabase = createClient();
@@ -95,7 +113,6 @@ export default function AiStudyAssistantPage() {
   
     const sessionsMap = new Map<string, ChatSession>();
     if (data) {
-      // Sort logs by session_id and then by created_at ascending to find the true first message
       const sortedLogs = [...data].sort((a, b) => {
         if (a.session_id < b.session_id) return -1;
         if (a.session_id > b.session_id) return 1;
@@ -106,19 +123,18 @@ export default function AiStudyAssistantPage() {
         const existingSession = sessionsMap.get(log.session_id);
         let firstMessagePreview = 'Chat...';
   
-        if (!existingSession) { // This log is the first encountered for this session_id
+        if (!existingSession) { 
           if (log.role === 'user' && log.content) {
             firstMessagePreview = log.content.substring(0, 50) + (log.content.length > 50 ? '...' : '');
-          } else if (log.query) { // Fallback to query if content is not user's first message
+          } else if (log.query) { 
             firstMessagePreview = log.query.substring(0, 50) + (log.query.length > 50 ? '...' : '');
           }
           sessionsMap.set(log.session_id, {
             session_id: log.session_id,
-            last_message_at: log.created_at, // Temporarily set, will be updated by later messages in this session
+            last_message_at: log.created_at, 
             first_message_preview: firstMessagePreview,
           });
         } else {
-          // Update last_message_at if this log is newer
           if (new Date(log.created_at) > new Date(existingSession.last_message_at)) {
             sessionsMap.set(log.session_id, { ...existingSession, last_message_at: log.created_at });
           }
@@ -159,6 +175,7 @@ export default function AiStudyAssistantPage() {
                     role: 'user',
                     content: log.content,
                     timestamp: log.created_at,
+                    // image_preview_url: log.image_data_uri_preview || undefined // Placeholder for when image storage is setup
                 });
             } else if (log.role === 'ai') {
                 if (log.ai_answer) {
@@ -198,6 +215,33 @@ export default function AiStudyAssistantPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory]);
 
+  const handleImageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        toast({ variant: "destructive", title: "Image too large", description: `Max ${MAX_IMAGE_SIZE_MB}MB.`});
+        setImagePreview(null);
+        form.resetField('imageUpload');
+        if(imageInputRef.current) imageInputRef.current.value = "";
+        return;
+      }
+      if (!ACCEPTED_IMAGE_TYPES_FOR_CHAT.includes(file.type)) {
+        toast({ variant: "destructive", title: "Invalid image type", description: "Use JPG, PNG, WEBP."});
+        setImagePreview(null);
+        form.resetField('imageUpload');
+        if(imageInputRef.current) imageInputRef.current.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+      form.setValue('imageUpload', event.target.files as FileList);
+    } else {
+      setImagePreview(null);
+      form.resetField('imageUpload');
+    }
+  };
+
   async function onSubmit(values: AssistantFormData) {
     if (!userId) return;
     const activeSessionId = currentSessionId || uuidv4();
@@ -221,6 +265,7 @@ export default function AiStudyAssistantPage() {
         context: values.context,
         preferences: values.studyTipsPreferences,
         created_at: userTimestamp,
+        // image_data_uri_preview: imagePreview // Placeholder for image storage/handling
     };
     
     setChatHistory(prev => [...prev, {
@@ -228,17 +273,30 @@ export default function AiStudyAssistantPage() {
         session_id: activeSessionId, 
         role: 'user', 
         content: values.query, 
-        timestamp: userTimestamp
+        timestamp: userTimestamp,
+        image_preview_url: imagePreview || undefined
     }]);
     
     form.resetField('query');
+    form.resetField('imageUpload');
+    setImagePreview(null);
+    if(imageInputRef.current) imageInputRef.current.value = "";
+
 
     startTransition(async () => {
       try {
         const { error: userLogError } = await supabase.from('study_assistant_logs').insert(userMessageLog);
         if (userLogError) throw userLogError;
 
-        const result = await studyAssistant(values);
+        // NOTE: Image data is not yet passed to the AI flow. This is a UI addition for now.
+        // To pass image, studyAssistant input and flow would need to be updated.
+        const aiInputPayload: StudyAssistantInput = {
+            query: values.query,
+            context: values.context,
+            studyTipsPreferences: values.studyTipsPreferences,
+            // Add image_data_uri: imagePreview if AI flow supports it
+        };
+        const result = await studyAssistant(aiInputPayload);
         
         const aiTimestamp = new Date().toISOString();
         const aiResponseLog: TablesInsert<'study_assistant_logs'> = {
@@ -272,7 +330,6 @@ export default function AiStudyAssistantPage() {
                 timestamp: aiTimestamp 
             }]);
         }
-        // Update last message time for the session
         setChatSessions(prevSessions => prevSessions.map(s => 
             s.session_id === activeSessionId ? {...s, last_message_at: aiTimestamp} : s
         ).sort((a,b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()));
@@ -295,6 +352,8 @@ export default function AiStudyAssistantPage() {
     setCurrentSessionId(null);
     setChatHistory([]);
     form.reset();
+    setImagePreview(null);
+    if(imageInputRef.current) imageInputRef.current.value = "";
   }
 
   const deleteChatSession = async (sessionId: string) => {
@@ -381,7 +440,7 @@ export default function AiStudyAssistantPage() {
             <Bot className="mr-3 h-8 w-8" /> AI Study Assistant
             </h1>
             <p className="text-md text-muted-foreground max-w-xl">
-            Your personal AI tutor. Ask questions, get explanations, and receive personalized study tips.
+            Your personal AI tutor. Ask questions, get explanations, and receive personalized study tips. Upload an image for context if needed.
             </p>
         </header>
 
@@ -410,6 +469,9 @@ export default function AiStudyAssistantPage() {
                                 <span>{msg.role === 'user' ? 'You' : (msg.role === 'ai-tips' ? 'AI Study Tips' : 'AI Assistant')}</span>
                                 <span className="ml-2">{formatDistanceToNow(parseISO(msg.timestamp), { addSuffix: true })}</span>
                             </div>
+                            {msg.image_preview_url && (
+                                <img src={msg.image_preview_url} alt="Uploaded context" className="my-2 rounded-md max-h-40" />
+                            )}
                             {typeof msg.content === 'string' ? (
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                             ) : ( 
@@ -443,17 +505,29 @@ export default function AiStudyAssistantPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-                <div className="flex flex-col sm:flex-row gap-4">
+                {imagePreview && <img src={imagePreview} alt="Preview" className="mt-2 rounded-md max-h-32" />}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <FormField control={form.control} name="context" render={({ field }) => (
-                        <FormItem className="flex-1">
+                        <FormItem>
                             <FormLabel className="text-sm">Context (Optional)</FormLabel>
-                            <FormControl><Input placeholder="E.g., Chapter name, related topic" {...field} className="h-10 input-glow" /></FormControl>
+                            <FormControl><Input placeholder="E.g., Chapter name" {...field} className="h-10 input-glow" /></FormControl>
                         </FormItem>
                     )} />
                     <FormField control={form.control} name="studyTipsPreferences" render={({ field }) => (
-                        <FormItem className="flex-1">
+                        <FormItem>
                             <FormLabel className="text-sm">Study Tip Preferences (Optional)</FormLabel>
-                            <FormControl><Input placeholder="E.g., Visual learner, Biology" {...field} className="h-10 input-glow" /></FormControl>
+                            <FormControl><Input placeholder="E.g., Visual learner" {...field} className="h-10 input-glow" /></FormControl>
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="imageUpload" render={() => (
+                        <FormItem>
+                            <FormLabel className="text-sm">Attach Image (Optional)</FormLabel>
+                             <FormControl>
+                                <div className="relative">
+                                    <Input type="file" accept={ACCEPTED_IMAGE_TYPES_FOR_CHAT.join(',')} ref={imageInputRef} onChange={handleImageInputChange} className="input-glow file:mr-2 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 h-10" />
+                                </div>
+                            </FormControl>
+                            <FormMessage />
                         </FormItem>
                     )} />
                 </div>
@@ -469,3 +543,4 @@ export default function AiStudyAssistantPage() {
     </div>
   );
 }
+

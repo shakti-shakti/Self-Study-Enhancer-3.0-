@@ -1,3 +1,4 @@
+
 // src/app/dashboard/task-reminders/page.tsx
 'use client';
 
@@ -7,6 +8,7 @@ import type { StudyPlanWithAlarm, TablesInsert } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlarmClock, BellOff, BellRing, Loader2, Info, Edit3 } from 'lucide-react';
 import { format, parseISO, isFuture, isPast } from 'date-fns';
 import Link from 'next/link';
@@ -45,15 +47,14 @@ export default function TaskRemindersPage() {
           .eq('id', userId)
           .single();
         
-        // Use profile alarm tone or fallback to default public one
         const toneUrl = profile?.alarm_tone_url || '/alarms/default_alarm.mp3';
         setProfileAlarmToneUrl(toneUrl);
 
-        if (toneUrl && !audioRef.current) { // Initialize audio only once or if tone changes
+        if (toneUrl && !audioRef.current) { 
             const newAudio = new Audio(toneUrl);
             newAudio.loop = true;
             audioRef.current = newAudio;
-        } else if (audioRef.current && audioRef.current.src !== toneUrl) { // Update src if tone changed
+        } else if (audioRef.current && audioRef.current.src !== toneUrl) { 
             audioRef.current.src = toneUrl;
         }
       };
@@ -91,12 +92,11 @@ export default function TaskRemindersPage() {
         prevTasks.map(task => {
           if (task.alarm_set_at && !task.completed && !task.isRinging) {
             const alarmTime = parseISO(task.alarm_set_at);
-            if (isPast(alarmTime) && !task.isRinging) { // Check if current time is past alarm time
+            if (isPast(alarmTime) && !task.isRinging) { 
               anyRingingNow = true;
               return { ...task, isRinging: true };
             }
           }
-          // If task was ringing but is now completed or alarm dismissed externally, stop its ringing state
           if (task.isRinging && (task.completed || !task.alarm_set_at)) {
               return {...task, isRinging: false};
           }
@@ -129,21 +129,20 @@ export default function TaskRemindersPage() {
 
   const dismissAlarm = async (taskId: string) => {
     setAlarmTasks(prevTasks => 
-      prevTasks.map(task => task.id === taskId ? { ...task, isRinging: false, alarm_set_at: null } : task) // Clear alarm_set_at to prevent re-trigger
+      prevTasks.map(task => task.id === taskId ? { ...task, isRinging: false, alarm_set_at: null } : task) 
     );
     stopAudioIfNeeded();
-    // Also update in DB
     if(!userId) return;
     startTransition(async () => {
         const { error } = await supabase
             .from('study_plans')
-            .update({ alarm_set_at: null }) // Clear the alarm in DB
+            .update({ alarm_set_at: null }) 
             .eq('id', taskId)
             .eq('user_id', userId);
         if (error) toast({ variant: 'destructive', title: "Error dismissing alarm in DB", description: error.message });
         else {
             toast({ title: "Alarm Dismissed."});
-            fetchAlarmTasks(); // Re-fetch to get the updated list
+            fetchAlarmTasks(); 
         }
     });
   };
@@ -163,10 +162,10 @@ export default function TaskRemindersPage() {
             .eq('user_id', userId);
         if (error) {
             toast({ variant: 'destructive', title: "Error snoozing alarm", description: error.message });
-            fetchAlarmTasks(); // Re-fetch to revert optimistic update if DB fails
+            fetchAlarmTasks(); 
         } else {
             toast({ title: "Alarm Snoozed!", description: "Reminder set for 5 minutes later." });
-            fetchAlarmTasks(); // Re-fetch to confirm update and re-sort
+            fetchAlarmTasks(); 
         }
     });
   };
@@ -176,7 +175,7 @@ export default function TaskRemindersPage() {
      startTransition(async () => {
         const { error } = await supabase
             .from('study_plans')
-            .update({ completed: true, isRinging: false, alarm_set_at: null }) // Mark complete and clear alarm
+            .update({ completed: true, isRinging: false, alarm_set_at: null }) 
             .eq('id', task.id)
             .eq('user_id', userId);
         if (error) {
@@ -271,8 +270,8 @@ export default function TaskRemindersPage() {
                                         </p>
                                         {task.subject && <p className="text-xs text-muted-foreground">Subject: {task.subject}</p>}
                                     </div>
-                                     <Link href={`/dashboard/planner?edit=${task.id}`} passHref>
-                                        <Button variant="ghost" size="sm"><Edit3 className="h-4 w-4"/></Button>
+                                     <Link href={`/dashboard/planner?edit=${task.id}`} passHref legacyBehavior>
+                                        <Button asChild variant="ghost" size="sm"><a href={`/dashboard/planner?edit=${task.id}`}><Edit3 className="h-4 w-4"/></a></Button>
                                      </Link>
                                 </div>
                                 {task.description && <p className="mt-1 text-sm text-foreground line-clamp-2">{task.description}</p>}
@@ -295,3 +294,4 @@ export default function TaskRemindersPage() {
     </div>
   );
 }
+

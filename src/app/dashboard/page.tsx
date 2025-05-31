@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   if (user) {
     const { data, error } = await supabase
       .from('quiz_attempts')
-      .select('*, quizzes(topic, subject, class_level)')
+      .select('id, score, total_questions, completed_at, created_at, quizzes!inner(id, topic, subject, class_level)')
       .eq('user_id', user.id)
       .order('completed_at', { ascending: false })
       .limit(3);
@@ -40,27 +40,25 @@ export default async function DashboardPage() {
     if (user) {
     const { data: rawMessages, error: messagesError } = await supabase
       .from('study_assistant_logs')
-      .select('session_id, content, created_at, user_id')
+      .select('session_id, content, created_at, user_id, role') 
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false }) // Fetch latest messages first
-      .limit(20); // Fetch a decent number to find a few unique sessions
+      .order('created_at', { ascending: false }) 
+      .limit(30); 
 
     if (messagesError) {
       console.error("[ Server ] Error fetching recent chat messages for dashboard:", messagesError.message);
     } else if (rawMessages) {
       const sessionsMap = new Map<string, ChatSessionPreview>();
-      // Iterate in reverse to process older messages first for correct 'first_message_preview'
       for (let i = rawMessages.length - 1; i >= 0; i--) {
         const msg = rawMessages[i];
-        if (!sessionsMap.has(msg.session_id) && sessionsMap.size < 3) { // Limit to 3 unique sessions
+        if (msg.role === 'user' && !sessionsMap.has(msg.session_id) && sessionsMap.size < 3) { 
           sessionsMap.set(msg.session_id, {
             session_id: msg.session_id,
             first_message_preview: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
-            last_message_at: msg.created_at, // Will be updated by newer messages for this session
+            last_message_at: msg.created_at, 
             user_id: msg.user_id,
           });
         }
-         // Update last_message_at if this message is newer for an existing session
         if (sessionsMap.has(msg.session_id)) {
            const existingSession = sessionsMap.get(msg.session_id)!;
            if (new Date(msg.created_at) > new Date(existingSession.last_message_at)) {
@@ -146,7 +144,7 @@ export default async function DashboardPage() {
               <ul className="space-y-3">
                 {recentChatSessions.map(session => (
                   <li key={session.session_id} className="p-3 bg-card-foreground/5 rounded-md border border-border/30 hover:bg-accent/10 transition-colors">
-                    <Link href={`/dashboard/ai-study-assistant?session=${session.session_id}`}>
+                    <Link href={`/dashboard/ai-study-assistant?session_id=${session.session_id}`}>
                       <p className="font-medium text-foreground truncate">{session.first_message_preview}</p>
                       <p className="text-xs text-muted-foreground">
                         Last message: {formatDistanceToNow(parseISO(session.last_message_at), { addSuffix: true })}
@@ -167,3 +165,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+

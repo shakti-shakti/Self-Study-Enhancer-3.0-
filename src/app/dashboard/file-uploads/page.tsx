@@ -1,3 +1,4 @@
+
 // src/app/dashboard/file-uploads/page.tsx
 'use client';
 
@@ -99,7 +100,11 @@ export default function FileUploadsPage() {
         .upload(filePath, selectedFile);
 
       if (uploadError) {
-        toast({ variant: 'destructive', title: 'Upload failed', description: uploadError.message });
+        let description = uploadError.message;
+        if (uploadError.message.toLowerCase().includes('bucket not found')) {
+            description = "Upload failed: The 'user_uploads' storage bucket was not found. Please ensure it's created in your Supabase project storage with appropriate policies."
+        }
+        toast({ variant: 'destructive', title: 'Upload failed', description: description, duration: 10000 });
         return;
       }
 
@@ -271,3 +276,4 @@ export default function FileUploadsPage() {
     </div>
   );
 }
+

@@ -1,3 +1,4 @@
+
 // src/app/dashboard/activity-history/page.tsx
 'use client';
 
@@ -7,7 +8,7 @@ import type { Tables } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { History, Loader2, Trash2, Filter, CalendarDays, ListChecks, Bot, Zap, Edit3, Star, Music, Download, FolderOpen, AlarmClock, SlidersHorizontal } from 'lucide-react';
+import { History, Loader2, Trash2, Filter, CalendarDays, ListChecks, Bot, Zap, Edit3, Star, Music, Download, FolderOpen, AlarmClock, SlidersHorizontal, Search } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -24,7 +25,9 @@ export default function ActivityHistoryPage() {
   const [userId, setUserId] = useState<string|null>(null);
 
   const [filterType, setFilterType] = useState('');
-  const [filterDate, setFilterDate] = useState(''); // YYYY-MM-DD
+  const [filterDate, setFilterDate] = useState(''); 
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -46,7 +49,7 @@ export default function ActivityHistoryPage() {
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(100); // Limit to recent 100 activities for performance
+        .limit(100); 
 
       if (error) {
         toast({ variant: 'destructive', title: 'Error fetching activity history', description: error.message });
@@ -69,8 +72,14 @@ export default function ActivityHistoryPage() {
     if (filterDate) {
       tempActivities = tempActivities.filter(act => format(parseISO(act.created_at), 'yyyy-MM-dd') === filterDate);
     }
+    if (searchTerm) {
+        tempActivities = tempActivities.filter(act => 
+            act.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (act.details && typeof act.details === 'object' && JSON.stringify(act.details).toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }
     setFilteredActivities(tempActivities);
-  }, [filterType, filterDate, activities]);
+  }, [filterType, filterDate, searchTerm, activities]);
 
   const handleDeleteActivity = async (activityId: string) => {
     if(!userId) return;
@@ -102,6 +111,20 @@ export default function ActivityHistoryPage() {
     {value: "alarm_set", label: "Alarm Set/Modified", icon: <AlarmClock/>},
     {value: "app_customized", label: "App Customization", icon: <SlidersHorizontal/>},
     {value: "profile_updated", label: "Profile Updated", icon: <SlidersHorizontal/>},
+    {value: "mood_logged", label: "Mood Logged", icon: <Bot />},
+    {value: "dictionary_lookup", label: "Dictionary Lookup", icon: <Zap />},
+    {value: "text_translated", label: "Text Translated", icon: <Zap />},
+    {value: "calculator_used", label: "Calculator Used", icon: <Zap />},
+    {value: "mission_completed", label: "Mission Completed", icon: <ListChecks />},
+    {value: "file_deleted", label: "File Deleted", icon: <Trash2 />},
+    {value: "ncert_explorer_used", label: "NCERT Explorer Used", icon: <Bot />},
+    {value: "smart_notes_generated", label: "Smart Notes Generated", icon: <Bot />},
+    {value: "doubt_resolved", label: "Doubt Resolved", icon: <Bot />},
+    {value: "music_player_visited", label: "Music Player Visited", icon: <Music />},
+    {value: "guideline_deleted", label: "Guideline Deleted", icon: <Trash2 />},
+    {value: "custom_task_updated", label: "Custom Task Updated", icon: <Edit3 />},
+    {value: "custom_task_deleted", label: "Custom Task Deleted", icon: <Trash2 />},
+    {value: "custom_task_status_changed", label: "Custom Task Status Changed", icon: <ListChecks />},
   ];
   
   const getActivityIcon = (type: string) => {
@@ -129,16 +152,16 @@ export default function ActivityHistoryPage() {
         <CardHeader>
           <CardTitle className="text-2xl font-headline glow-text-accent flex items-center justify-between">
             <span>Your Recent Activities</span>
-            <Button variant="outline" size="sm" onClick={() => {setFilterDate(''); setFilterType('');}} className="glow-button">
+            <Button variant="outline" size="sm" onClick={() => {setFilterDate(''); setFilterType(''); setSearchTerm('');}} className="glow-button">
               <Filter className="mr-2 h-4 w-4" /> Clear Filters
             </Button>
           </CardTitle>
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
+          <div className="grid md:grid-cols-3 gap-4 mt-4">
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="input-glow h-11"><SelectValue placeholder="Filter by type..." /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                {activityTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                {/* Removed "All Types" - value="" causes issues */}
+                {activityTypeOptions.sort((a,b) => a.label.localeCompare(b.label)).map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
               </SelectContent>
             </Select>
             <Input 
@@ -147,6 +170,16 @@ export default function ActivityHistoryPage() {
               onChange={(e) => setFilterDate(e.target.value)} 
               className="input-glow h-11"
             />
+            <div className="relative">
+                 <Input 
+                    type="text" 
+                    placeholder="Search descriptions/details..."
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="input-glow h-11 pl-10"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground"/>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -196,3 +229,4 @@ export default function ActivityHistoryPage() {
     </div>
   );
 }
+
