@@ -2,22 +2,22 @@
 // src/app/dashboard/page.tsx
 'use client';
 
-import { createClient } from '@/lib/supabase/client'; // Use client for client-side fetching
+import { createClient } from '@/lib/supabase/client'; 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { 
   Edit3, Target as TargetIcon, Trophy, Bot, BookOpen as BookOpenIcon, Brain, 
   Lightbulb, FileText as FileTextIcon, SlidersHorizontal, Sparkles, Zap, CalendarDays, 
-  Clock, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock, SpellCheck, Languages, Calculator, Users, BarChart3, History, Settings, UserCircle
+  Clock, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock, SpellCheck, Languages, Calculator, Users, BarChart3, History, Settings, UserCircle,
+  Gamepad2 // New icon for Games
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Tables } from '@/lib/database.types';
-
-// For Random Fact AI Flow
 import { generateSyllabusFact, GenerateSyllabusFactInput } from '@/ai/flows/random-fact-generator'; 
+import { Loader2 } from 'lucide-react';
 
 interface CountdownProps {
-  targetDate: string; // ISO string
+  targetDate: string; 
   eventName: string;
 }
 
@@ -48,7 +48,6 @@ const CountdownTimer: React.FC<CountdownProps> = ({ targetDate, eventName }) => 
 
   const timerComponents: JSX.Element[] = [];
   Object.keys(timeLeft).forEach((interval) => {
-    // Ensure that timeLeft[interval] is a number before rendering
     const value = timeLeft[interval as keyof typeof timeLeft];
     if (typeof value !== 'number' || isNaN(value)) {
       return;
@@ -78,12 +77,11 @@ const CountdownTimer: React.FC<CountdownProps> = ({ targetDate, eventName }) => 
 
 export default function DashboardPage() {
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null); // Replace any with actual User type from Supabase
+  const [user, setUser] = useState<any>(null); 
   const [profile, setProfile] = useState<Tables<'profiles'> | null>(null);
   const [randomFact, setRandomFact] = useState<string | null>(null);
   const [isLoadingFact, setIsLoadingFact] = useState(true);
 
-  // Placeholder data - this would ideally come from Supabase queries
   const [tasksToday, setTasksToday] = useState(0); 
   const [upcomingExams, setUpcomingExams] = useState(0); 
   const [studyHoursLogged, setStudyHoursLogged] = useState(0);
@@ -104,8 +102,6 @@ export default function DashboardPage() {
           console.error('Error fetching profile:', error);
         }
 
-        // Fetch dashboard stats
-        // Example: Fetch today's tasks count
         const today = new Date().toISOString().split('T')[0];
         const { count: tasksCount } = await supabase
             .from('study_plans')
@@ -116,7 +112,6 @@ export default function DashboardPage() {
             .lte('due_date', `${today}T23:59:59Z`);
         setTasksToday(tasksCount || 0);
         
-        // Fetch upcoming exams (e.g., in next 7 days)
         const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
          const { count: examsCount } = await supabase
             .from('study_plans')
@@ -127,7 +122,6 @@ export default function DashboardPage() {
             .lte('due_date', nextWeek);
         setUpcomingExams(examsCount || 0);
         
-        // Placeholder for study hours - this would need dedicated logging
         setStudyHoursLogged(18.5); 
       }
     };
@@ -135,7 +129,6 @@ export default function DashboardPage() {
     const fetchRandomFact = async () => {
       setIsLoadingFact(true);
       try {
-        // Assuming class_level is available from profile or default to "11/12"
         const input: GenerateSyllabusFactInput = { class_level: profile?.class_level || "11/12" };
         const factResult = await generateSyllabusFact(input);
         setRandomFact(factResult.fact);
@@ -149,32 +142,31 @@ export default function DashboardPage() {
 
     fetchUserAndProfile();
     fetchRandomFact();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, profile?.class_level]); // Refetch fact if class_level changes
+  }, [supabase, profile?.class_level]);
 
   const quickAccessItems = [
     { name: 'Planner', href: '/dashboard/planner', icon: Edit3, description: "Map your study journey.", color: "primary" },
     { name: 'Quizzes', href: '/dashboard/quizzes', icon: TargetIcon, description: "Test your knowledge.", color: "accent" },
     { name: 'Challenges', href: '/dashboard/challenges', icon: Trophy, description: "Missions & Leaderboard.", color: "secondary" },
     { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: Bot, description: "Your personal AI tutor.", color: "primary" },
-    { name: 'NCERT Explorer', href: '/dashboard/ncert-explorer', icon: BookOpenIcon, description: "AI-powered chapter insights.", color: "accent" },
-    { name: 'Notes Generator', href: '/dashboard/smart-notes-generator', icon: FileTextIcon, description: "Concise AI study notes.", color: "secondary" },
-    { name: 'Doubt Resolver', href: '/dashboard/smart-doubt-resolver', icon: Lightbulb, description: "AI help for tough questions.", color: "primary" },
-    { name: 'Progress Tracker', href: '/dashboard/progress', icon: BarChart3, description: "Visualize your growth.", color: "accent" },
-    { name: 'File Uploads', href: '/dashboard/file-uploads', icon: UploadCloud, description: "Your personal document cloud.", color: "secondary" },
-    { name: 'Saved Questions', href: '/dashboard/saved-questions', icon: Star, description: "Revisit important questions.", color: "primary" },
-    { name: 'Custom Tasks', href: '/dashboard/custom-tasks', icon: FolderOpen, description: "Manage personal to-dos.", color: "accent"},
-    { name: 'Task Reminders', href: '/dashboard/task-reminders', icon: AlarmClock, description: "Set study alarms.", color: "secondary"},
-
+    { name: 'Games Arcade', href: '/dashboard/games', icon: Gamepad2, description: "NEET prep mini-games.", color: "accent" }, // New Games Arcade
+    { name: 'NCERT Explorer', href: '/dashboard/ncert-explorer', icon: BookOpenIcon, description: "AI-powered chapter insights.", color: "secondary" },
+    { name: 'Notes Generator', href: '/dashboard/smart-notes-generator', icon: FileTextIcon, description: "Concise AI study notes.", color: "primary" },
+    { name: 'Doubt Resolver', href: '/dashboard/smart-doubt-resolver', icon: Lightbulb, description: "AI help for tough questions.", color: "accent" },
+    { name: 'Progress Tracker', href: '/dashboard/progress', icon: BarChart3, description: "Visualize your growth.", color: "secondary" },
+    { name: 'File Uploads', href: '/dashboard/file-uploads', icon: UploadCloud, description: "Your personal document cloud.", color: "primary" },
+    { name: 'Saved Questions', href: '/dashboard/saved-questions', icon: Star, description: "Revisit important questions.", color: "accent"},
+    { name: 'Custom Tasks', href: '/dashboard/custom-tasks', icon: FolderOpen, description: "Manage personal to-dos.", color: "secondary"},
+    { name: 'Task Reminders', href: '/dashboard/task-reminders', icon: AlarmClock, description: "Set study alarms.", color: "primary"},
   ];
 
   const userDisplayName = profile?.full_name || user?.email?.split('@')[0] || 'Aspirant';
-  const neetTargetDate = "2026-05-03T00:00:00Z"; // Example NEET 2026 date, first Sunday of May
+  const neetTargetDate = "2026-05-03T00:00:00Z"; 
   const countdownEventName = profile?.custom_countdown_event_name || "NEET Exam";
   const countdownTargetDate = profile?.custom_countdown_target_date || neetTargetDate;
 
   return (
-    <div className="space-y-10 pb-16 md:pb-0"> {/* Added padding-bottom for mobile nav */}
+    <div className="space-y-10 pb-16 md:pb-0"> 
       <header className="relative p-6 md:p-8 rounded-xl bg-gradient-to-br from-card via-primary/10 to-secondary/10 overflow-hidden shadow-2xl shadow-primary/20 border border-primary/20">
         <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/worn-dots.png')] bg-repeat"></div>
         <div className="relative z-10">

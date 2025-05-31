@@ -1,10 +1,12 @@
+
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { 
   LayoutDashboard, Edit3, Target as TargetIcon, Trophy, Users, 
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
-  Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock
+  Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
+  Gamepad2 // New icon for Games
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -28,6 +30,7 @@ const mainNavItems = [
   { name: 'Quizzes', href: '/dashboard/quizzes', icon: <TargetIcon /> },
   { name: 'Challenges', href: '/dashboard/challenges', icon: <Trophy /> },
   { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: <Bot /> },
+  { name: 'Games', href: '/dashboard/games', icon: <Gamepad2 /> }, // New Games link
 ];
 
 const toolsNavItems = [
@@ -47,6 +50,7 @@ const resourcesNavItems = [
   { name: 'Saved Questions', href: '/dashboard/saved-questions', icon: <Star /> },
   { name: 'Custom Tasks', href: '/dashboard/custom-tasks', icon: <FolderOpen /> },
   { name: 'Task Reminders', href: '/dashboard/task-reminders', icon: <AlarmClock /> },
+  { name: 'NCERT Viewer', href: '/dashboard/ncert-viewer', icon: <BookOpenIcon /> },
 ];
 
 const accountNavItems = [
@@ -84,7 +88,7 @@ export default async function DashboardLayout({
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Planner', href: '/dashboard/planner', icon: Edit3 },
     { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: Bot },
-    { name: 'Challenges', href: '/dashboard/challenges', icon: Trophy },
+    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 }, // Added Games to bottom nav
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
   ];
 
@@ -175,7 +179,7 @@ export default async function DashboardLayout({
         <SidebarFooter className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-2 group-data-[collapsible=icon]:hidden">
              <Avatar className="h-9 w-9">
-                <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar" />
+                <AvatarImage src={userAvatarUrl || undefined} alt={userDisplayName} data-ai-hint="user avatar"/>
                 <AvatarFallback>{userDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div>
@@ -206,14 +210,12 @@ export default async function DashboardLayout({
         <header className="sticky top-0 z-30 w-full border-b border-border/30 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 hidden md:block">
           <div className="container flex h-16 items-center justify-start">
              <SidebarTrigger />
-             {/* Potentially add breadcrumbs or current page title here */}
           </div>
         </header>
         <main className="flex-1 container py-6 md:py-8 relative">
             {children}
         </main>
         
-        {/* Bottom Navigation for Mobile */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-sidebar border-t border-sidebar-border shadow-t-lg z-40">
           <div className="flex justify-around items-center h-16">
             {bottomNavItems.map(item => {
@@ -227,7 +229,6 @@ export default async function DashboardLayout({
             })}
           </div>
         </nav>
-        {/* Spacer for bottom nav on mobile */}
         <div className="h-16 md:hidden"></div>
 
 
@@ -238,3 +239,5 @@ export default async function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -99,10 +100,10 @@ export type Database = {
         Row: {
           id: string
           user_id: string | null 
-          class_level: string | null // "11" or "12"
-          subject: string | null // Physics, Chemistry, Botany, Zoology
-          topics: string[] | null // Array of topics
-          question_source: string | null // NCERT, PYQ, Mixed
+          class_level: string | null
+          subject: string | null
+          topics: string[] | null
+          question_source: string | null
           difficulty: string
           num_questions: number
           created_at: string
@@ -141,7 +142,7 @@ export type Database = {
       questions: {
         Row: {
           id: string
-          quiz_id: string | null // Can be null if saved independently
+          quiz_id: string | null 
           question_text: string
           options: Json 
           correct_option_index: number 
@@ -150,8 +151,8 @@ export type Database = {
           class_level: string | null
           subject: string | null
           topic: string | null
-          source: string | null // NCERT, PYQ etc.
-          neet_syllabus_year: number | null // e.g. 2026
+          source: string | null 
+          neet_syllabus_year: number | null 
         }
         Insert: {
           id?: string
@@ -194,7 +195,7 @@ export type Database = {
         Row: {
             id: string
             user_id: string
-            question_id: string | null // FK to original question if applicable, or stores the question data directly
+            question_id: string | null 
             question_text: string
             options: Json
             correct_option_index: number
@@ -731,12 +732,12 @@ export type Database = {
           user_id: string
           session_id: string 
           role: "user" | "ai" | "ai-tips" 
-          query: string | null // The user's initial query for this exchange, if applicable
-          content: string // The actual message text (user's query or AI's full response)
-          ai_answer: string | null // Specific part of AI response that is the direct answer
-          ai_study_tips: Json | null // Specific part of AI response that are tips
-          context: string | null // User-provided context for the query
-          preferences: string | null // User-provided preferences for tips
+          query: string | null 
+          content: string 
+          ai_answer: string | null 
+          ai_study_tips: Json | null 
+          context: string | null 
+          preferences: string | null 
           created_at: string
         }
         Insert: {
@@ -1064,6 +1065,119 @@ export type Database = {
           }
         ]
       }
+      // Game related tables
+      game_metadata: {
+        Row: {
+          id: string; // e.g., "chronomind", "neet_lab_escape"
+          title: string;
+          description: string;
+          genre: string;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          title: string;
+          description: string;
+          genre: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          genre?: string;
+        };
+        Relationships: [];
+      }
+      user_game_progress: {
+        Row: {
+          id: string; // Composite key or UUID
+          user_id: string;
+          game_id: string; // FK to game_metadata
+          current_chapter: string | null; // e.g., "chapter1_time_chamber"
+          current_room: string | null; // e.g., "physics_room_1"
+          game_specific_state: Json | null; // For storing puzzle states, inventory, choices
+          score: number | null;
+          last_played: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          game_id: string;
+          current_chapter?: string | null;
+          current_room?: string | null;
+          game_specific_state?: Json | null;
+          score?: number | null;
+          last_played?: string;
+          completed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          game_id?: string;
+          current_chapter?: string | null;
+          current_room?: string | null;
+          game_specific_state?: Json | null;
+          score?: number | null;
+          last_played?: string;
+          completed_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_game_progress_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_game_progress_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "game_metadata";
+            referencedColumns: ["id"];
+          }
+        ];
+      }
+      game_leaderboard: { // Specifically for NEET Lab Escape or any game with a leaderboard
+        Row: {
+          id: string;
+          user_id: string;
+          game_id: string; // FK to game_metadata, e.g. "neet_lab_escape"
+          score: number;
+          time_taken_seconds: number | null;
+          completed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          game_id: string;
+          score: number;
+          time_taken_seconds?: number | null;
+          completed_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          game_id?: string;
+          score?: number;
+          time_taken_seconds?: number | null;
+          completed_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "game_leaderboard_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_leaderboard_game_id_fkey";
+            columns: ["game_id"];
+            referencedRelation: "game_metadata";
+            referencedColumns: ["id"];
+          }
+        ];
+      }
     }
     Views: {
       [_ in never]: never
@@ -1162,7 +1276,7 @@ export type Enums<
     
 // Helper type for joined data, e.g. Quiz Attempts with Quiz Topic
 export type QuizAttemptWithQuizTopic = Tables<'quiz_attempts'> & {
-  quizzes: { topic: string } | null;
+  quizzes: { topic: string, class_level: string | null, subject: string | null } | null;
 };
 
 // Extending StudyRoomMessage to include profile information
@@ -1171,5 +1285,42 @@ export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
 };
 
 export type StudyPlanWithAlarm = Tables<'study_plans'>; 
+export type Question = Tables<'questions'>;
 
-```
+// Game specific types
+export type GameMetadata = Tables<'game_metadata'>;
+export type UserGameProgress = Tables<'user_game_progress'>;
+export type GameLeaderboardEntry = Tables<'game_leaderboard'>;
+
+export interface ChronoMindState {
+  currentChapter: 'intro' | 'chapter1' | 'chapter2' | 'chapter3' | 'chapter4' | 'chapter5' | 'completed';
+  chapter1Progress: {
+    kinematicsSolved: boolean;
+    timeDilationSolved: boolean;
+    projectileMotionSolved: boolean;
+  };
+  // Add more chapter progress states here
+  playerChoices: Record<string, any>; // To store decisions that might affect story/puzzles
+  memoryLossEvents: number;
+}
+
+export interface NEETLabEscapeState {
+  currentRoom: 'intro' | 'physics' | 'chemistry' | 'botany' | 'zoology' | 'final_hallway' | 'escaped' | 'failed';
+  physicsPuzzlesSolved: boolean[]; // e.g., [false, false, false, false, false]
+  chemistryPuzzlesSolved: boolean[];
+  botanyPuzzlesSolved: boolean[];
+  zoologyPuzzlesSolved: boolean[];
+  masterLocksSolved: {
+    physics: boolean;
+    chemistry: boolean;
+    botany: boolean;
+    zoology: boolean;
+  };
+  remainingTime: number; // in seconds
+  retriesUsed: number;
+  finalQuestionAnsweredCorrectly?: boolean;
+}
+
+export type GameSpecificState = ChronoMindState | NEETLabEscapeState;
+
+    

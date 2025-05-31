@@ -1,14 +1,42 @@
+
 import { NextResponse, type NextRequest } from 'next/server';
-import { createMiddlewareClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { Database } from '@/lib/database.types';
 
 export async function middleware(request: NextRequest) {
-  const res = NextResponse.next(); // Create the response object once
-  const supabase = createMiddlewareClient<Database>({ req: request, res }); // Pass it to Supabase
+  // Create an unmodified response object
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // If the cookie is set, update the request cookies and the response cookies.
+          request.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          // If the cookie is removed, update the request cookies and the response cookies.
+          request.cookies.set({ name, value: '', ...options });
+          response.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired - this will update cookies if necessary.
   const {
     data: { session },
-  } = await supabase.auth.getSession(); // Supabase reads/writes cookies to `res`
+  } = await supabase.auth.getSession();
 
   const { pathname } = request.nextUrl;
 
@@ -30,9 +58,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   
-  // The getSession() call above also refreshes the session if needed.
-
-  return res; // Return the same response object that Supabase has modified
+  // Return the response (it might have been modified by supabase.auth.getSession() to set cookies)
+  return response;
 }
 
 export const config = {
@@ -42,6 +69,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - auth/callback (Supabase auth callback)
      * Feel free to modify this pattern to include more paths.
      */
     '/((?!_next/static|_next/image|favicon.ico|auth/callback).*)',
