@@ -1,5 +1,4 @@
 // src/app/dashboard/page.tsx
-// VERY SIMPLIFIED VERSION FOR INITIAL TESTING AFTER REBUILD
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,9 +13,9 @@ export default async function DashboardPage() {
   let randomFact = { fact: "Loading your daily fact...", source_hint: "" };
   try {
     randomFact = await generateSyllabusFact({ class_level: "11/12" });
-  } catch (error) {
-    console.error("Error fetching random fact for dashboard:", error);
-    randomFact = { fact: "Could not load a fact. Check your AI flow setup.", source_hint: "Error" };
+  } catch (error: any) {
+    console.error("[ Server ] Error fetching random fact for dashboard:", error.message || JSON.stringify(error));
+    randomFact = { fact: "Could not load a random fact at this moment. Please ensure your Google AI API key is correctly set up.", source_hint: "Error" };
   }
 
 

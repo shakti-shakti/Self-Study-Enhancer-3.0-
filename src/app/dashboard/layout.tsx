@@ -14,10 +14,10 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { 
   SidebarProvider, Sidebar, SidebarTrigger, SidebarRail, SidebarInset, 
-  SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter 
+  SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
+// Separator was removed from here, but SidebarSeparator from sidebar.tsx is used.
 
 export const metadata: Metadata = {
   title: 'Dashboard - NEET Prep+',
@@ -245,4 +245,3 @@ export default async function DashboardLayout({
     </SidebarProvider>
   );
 }
-
