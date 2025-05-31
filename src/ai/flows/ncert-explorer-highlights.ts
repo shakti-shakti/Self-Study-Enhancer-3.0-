@@ -34,6 +34,7 @@ export async function getHighlights(input: GetHighlightsInput): Promise<GetHighl
 
 const prompt = ai.definePrompt({
   name: 'getHighlightsPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: GetHighlightsInputSchema},
   output: {schema: GetHighlightsOutputSchema},
   prompt: `You are an expert AI assistant for NEET (medical entrance exam) aspirants. Your task is to analyze the provided NCERT chapter text and extract key information.

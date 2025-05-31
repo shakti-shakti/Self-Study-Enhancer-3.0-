@@ -27,6 +27,7 @@ export async function calculateExpression(input: CalculatorInput): Promise<Calcu
 
 const prompt = ai.definePrompt({
   name: 'calculatorPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: CalculatorInputSchema},
   output: {schema: CalculatorOutputSchema},
   prompt: `You are an advanced AI calculator and math solver.

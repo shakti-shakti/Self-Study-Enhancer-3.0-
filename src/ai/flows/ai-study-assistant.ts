@@ -30,6 +30,7 @@ export async function studyAssistant(input: StudyAssistantInput): Promise<StudyA
 
 const studyAssistantPrompt = ai.definePrompt({
   name: 'studyAssistantPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: StudyAssistantInputSchema},
   output: {schema: StudyAssistantOutputSchema},
   prompt: `You are an expert AI study assistant for NEET (medical entrance exam) aspirants. Your goal is to explain concepts clearly, answer questions accurately, and provide personalized, actionable study tips.

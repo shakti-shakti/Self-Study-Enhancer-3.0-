@@ -40,6 +40,7 @@ export async function generateSmartNotes(input: GenerateSmartNotesInput): Promis
 
 const prompt = ai.definePrompt({
   name: 'generateSmartNotesPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: GenerateSmartNotesInputSchema},
   output: {schema: GenerateSmartNotesOutputSchema},
   prompt: `You are an expert AI assistant for NEET (medical entrance exam) aspirants. Your task is to generate "smart notes" from the provided content. These notes should be highly effective for revision and understanding.

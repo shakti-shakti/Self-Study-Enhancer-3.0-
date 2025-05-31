@@ -37,6 +37,7 @@ export async function generateQuiz(input: GenerateQuizInput): Promise<GenerateQu
 
 const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
   prompt: `You are an expert NEET (Indian medical entrance exam) question setter. Generate a quiz with {{numQuestions}} multiple-choice questions on the topic "{{topic}}" with "{{difficulty}}" difficulty.

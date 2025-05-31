@@ -29,6 +29,7 @@ export async function translateText(input: TranslationInput): Promise<Translatio
 
 const prompt = ai.definePrompt({
   name: 'translationPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: TranslationInputSchema},
   output: {schema: TranslationOutputSchema},
   prompt: `You are a highly proficient multilingual translator.

@@ -33,6 +33,7 @@ export async function moderateStudyRoom(input: ModerateStudyRoomInput): Promise<
 
 const prompt = ai.definePrompt({
   name: 'moderateStudyRoomPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: ModerateStudyRoomInputSchema},
   output: {schema: ModerateStudyRoomOutputSchema},
   prompt: `You are an AI moderator for a student study room focused on NEET preparation. Your goals are to:

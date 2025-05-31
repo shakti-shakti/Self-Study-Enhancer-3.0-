@@ -30,6 +30,7 @@ export async function getDictionaryEntry(input: DictionaryInput): Promise<Dictio
 
 const prompt = ai.definePrompt({
   name: 'dictionaryPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: DictionaryInputSchema},
   output: {schema: DictionaryOutputSchema},
   prompt: `You are an expert lexicographer. Provide a dictionary entry for the word "{{word}}".

@@ -37,6 +37,7 @@ export async function resolveDoubt(input: ResolveDoubtInput): Promise<ResolveDou
 
 const prompt = ai.definePrompt({
   name: 'resolveDoubtPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: ResolveDoubtInputSchema},
   output: {schema: ResolveDoubtOutputSchema},
   prompt: `You are an expert NEET (Indian medical entrance exam) tutor. A student has uploaded an image of a question they are struggling with. Your task is to:

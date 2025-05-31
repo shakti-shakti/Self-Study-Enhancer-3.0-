@@ -39,6 +39,7 @@ export async function customizeApp(input: CustomizeAppInput): Promise<CustomizeA
 
 const prompt = ai.definePrompt({
   name: 'customizeAppPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: CustomizeAppInputSchema},
   output: {schema: CustomizeAppOutputSchema},
   prompt: `You are an AI assistant that helps students understand how their NEET Prep+ app could be customized. The student will provide a command, and you should return conceptual instructions on how such a change might be implemented, an explanation, and a feasibility assessment. You DO NOT write or execute code.

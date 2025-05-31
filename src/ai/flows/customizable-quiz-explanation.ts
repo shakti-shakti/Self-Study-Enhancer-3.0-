@@ -29,6 +29,7 @@ export async function explainQuizQuestion(input: ExplainQuizQuestionInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'explainQuizQuestionPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: ExplainQuizQuestionInputSchema},
   output: {schema: ExplainQuizQuestionOutputSchema},
   prompt: `You are an expert AI tutor for NEET (medical entrance exam) aspirants. Your job is to explain quiz questions clearly and thoroughly.

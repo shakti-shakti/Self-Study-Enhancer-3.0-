@@ -38,6 +38,7 @@ export async function getSuggestions(input: MentalHealthInput): Promise<MentalHe
 
 const prompt = ai.definePrompt({
   name: 'mentalHealthPrompt',
+  model: 'googleai/gemini-1.5-flash-latest',
   input: {schema: MentalHealthInputSchema},
   output: {schema: MentalHealthOutputSchema},
   prompt: `You are an AI mental health assistant for students preparing for NEET. Based on the student's current mood and focus level, provide 2-4 personalized, actionable, and concise suggestions to improve their well-being and focus.
