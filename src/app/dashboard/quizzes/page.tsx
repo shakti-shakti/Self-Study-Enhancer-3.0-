@@ -35,11 +35,48 @@ import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/c
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Simplified syllabus data structure (example)
+const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
+  '11': {
+    'Physics': {
+      'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society'],
+      'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
+      'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
+    },
+    'Chemistry': {
+      'Chapter 1: Some Basic Concepts of Chemistry': ['Topic C1.1', 'Topic C1.2'],
+      'Chapter 2: Structure of Atom': ['Topic C2.1', 'Topic C2.2'],
+    },
+    'Botany': {
+        'Chapter 1: The Living World (Botany Focus)': ['Topic B1.1', 'Topic B1.2'],
+    },
+    'Zoology': {
+        'Chapter 1: Animal Kingdom (Zoology Focus)': ['Topic Z1.1', 'Topic Z1.2'],
+    }
+  },
+  '12': {
+    'Physics': {
+      'Chapter 1: Electric Charges and Fields': ['Topic P12.1.1', 'Topic P12.1.2'],
+      'Chapter 2: Electrostatic Potential and Capacitance': ['Topic P12.2.1', 'Topic P12.2.2'],
+    },
+    'Chemistry': {
+        'Chapter 1: The Solid State': ['Topic C12.1.1', 'Topic C12.1.2'],
+    },
+    'Botany': {
+        'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Topic B12.1.1', 'Topic B12.1.2'],
+    },
+    'Zoology': {
+         'Chapter 1: Human Reproduction (Zoology Focus)': ['Topic Z12.1.1', 'Topic Z12.1.2'],
+    }
+  }
+};
+
+
 const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Botany', 'Zoology'], { required_error: 'Please select a subject.' }),
-  chapter: z.string().optional(), // Added chapter field
-  topics: z.string().optional(), // comma-separated topics
+  chapter: z.string().optional(),
+  topic: z.string().optional(), // Single topic selection for now
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   numQuestions: z.coerce.number().int().min(1).max(10),
@@ -48,8 +85,8 @@ const quizConfigSchema = z.object({
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
 
 type CurrentGeneratedQuiz = {
-  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at'> & { id: string, user_id: string, topics: string[] | null }; // ensure topics is string[] | null
-  questions: Question[]; // Use DB Question type
+  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at'> & { id: string, user_id: string, topics: string[] | null };
+  questions: Question[];
 };
 
 type UserAnswer = {
@@ -79,6 +116,10 @@ export default function QuizzesPage() {
   const [quizResults, setQuizResults] = useState<QuizResult | null>(null);
   const [explanations, setExplanations] = useState<Record<string, string>>({});
 
+  const [availableChapters, setAvailableChapters] = useState<string[]>([]);
+  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
+
+
   const { toast } = useToast();
   const supabase = createClient();
 
@@ -90,10 +131,40 @@ export default function QuizzesPage() {
       class_level: undefined,
       subject: undefined,
       chapter: '',
-      topics: '',
+      topic: '',
       question_source: undefined,
     },
   });
+
+  const selectedClass = configForm.watch('class_level');
+  const selectedSubject = configForm.watch('subject');
+  const selectedChapter = configForm.watch('chapter');
+
+  useEffect(() => {
+    if (selectedClass && selectedSubject) {
+      const chapters = syllabusData[selectedClass]?.[selectedSubject] ? Object.keys(syllabusData[selectedClass][selectedSubject]) : [];
+      setAvailableChapters(chapters);
+      configForm.setValue('chapter', ''); // Reset chapter when class/subject changes
+      setAvailableTopics([]); // Reset topics
+      configForm.setValue('topic', ''); // Reset topic
+    } else {
+      setAvailableChapters([]);
+      setAvailableTopics([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass, selectedSubject, configForm.setValue]);
+
+  useEffect(() => {
+    if (selectedClass && selectedSubject && selectedChapter) {
+      const topics = syllabusData[selectedClass]?.[selectedSubject]?.[selectedChapter] || [];
+      setAvailableTopics(topics);
+      configForm.setValue('topic', ''); // Reset topic when chapter changes
+    } else {
+      setAvailableTopics([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChapter, selectedClass, selectedSubject, configForm.setValue]);
+
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -117,7 +188,7 @@ export default function QuizzesPage() {
       setCurrentQuestionIndex(0);
 
       try {
-        const topicForAI = `${values.subject} - Class ${values.class_level}${values.chapter ? ` - Chapter: ${values.chapter}` : ''}${values.topics ? ` - Topics: ${values.topics}` : ''} ${values.question_source ? `- Source: ${values.question_source}` : ''}`;
+        const topicForAI = `${values.subject} - Class ${values.class_level}${values.chapter ? ` - Chapter: ${values.chapter}` : ''}${values.topic ? ` - Topic: ${values.topic}` : ''} ${values.question_source ? `- Source: ${values.question_source}` : ''}`;
         const aiInput: GenerateQuizInput = {
           topic: topicForAI,
           difficulty: values.difficulty,
@@ -133,7 +204,8 @@ export default function QuizzesPage() {
         const quizId = uuidv4();
         const allTopicsForDB: string[] = [];
         if (values.chapter) allTopicsForDB.push(`Chapter: ${values.chapter.trim()}`);
-        if (values.topics) allTopicsForDB.push(...values.topics.split(',').map(t => t.trim()).filter(t => t));
+        if (values.topic) allTopicsForDB.push(`Topic: ${values.topic.trim()}`);
+
 
         const quizDataForState: CurrentGeneratedQuiz['quizData'] = {
             id: quizId,
@@ -157,7 +229,7 @@ export default function QuizzesPage() {
             subject: values.subject,
             topic: allTopicsForDB.length > 0 ? allTopicsForDB.join('; ') : values.subject || null,
             source: values.question_source || null,
-            neet_syllabus_year: 2026, // Assuming a default, can be made configurable
+            neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
         }));
 
@@ -189,7 +261,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev + 1);
+      setCurrentQuestionIndex(prev => prev - 1); // Corrected to decrement
     }
   };
 
@@ -443,7 +515,7 @@ export default function QuizzesPage() {
           </Accordion>
         </CardContent>
         <CardFooter className="flex justify-center">
-           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset({ difficulty: 'medium', numQuestions: 5, chapter: '', topics: ''}); }} className="glow-button">
+           <Button onClick={() => { setCurrentGeneratedQuiz(null); setQuizResults(null); configForm.reset({ difficulty: 'medium', numQuestions: 5, chapter: '', topic: ''}); }} className="glow-button">
             <RotateCcw className="mr-2"/> Take Another Quiz
           </Button>
         </CardFooter>
@@ -470,7 +542,7 @@ export default function QuizzesPage() {
               <Wand2 className="mr-3 h-8 w-8 text-primary" /> Configure Your Challenge
             </CardTitle>
             <CardDescription>
-              Set the parameters for your personalized quiz (NEET 2026 Syllabus).
+              Set the parameters for your personalized quiz (NEET 2026 Syllabus based on example data).
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -489,7 +561,7 @@ export default function QuizzesPage() {
                  <FormField control={configForm.control} name="subject" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-base font-medium">Subject</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedClass}>
                             <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select subject..." /></SelectTrigger></FormControl>
                             <SelectContent>
                                 <SelectItem value="Physics">Physics</SelectItem>
@@ -504,14 +576,25 @@ export default function QuizzesPage() {
                  <FormField control={configForm.control} name="chapter" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-base font-medium">Chapter (Optional)</FormLabel>
-                      <FormControl><Input placeholder="E.g., Cell - The Unit of Life" {...field} className="h-11 text-base input-glow"/></FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedSubject || availableChapters.length === 0}>
+                        <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select chapter..." /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {availableChapters.map(chap => <SelectItem key={chap} value={chap}>{chap}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={configForm.control} name="topics" render={({ field }) => (
+                <FormField control={configForm.control} name="topic" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium">Specific Topics (Optional, comma-separated)</FormLabel>
-                      <FormControl><Input placeholder="E.g., Mitochondria, Ribosomes" {...field} className="h-11 text-base input-glow"/></FormControl>
+                      <FormLabel className="text-base font-medium">Specific Topic (Optional)</FormLabel>
+                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedChapter || availableTopics.length === 0}>
+                        <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select topic..." /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {availableTopics.map(top => <SelectItem key={top} value={top}>{top}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Select a specific topic within the chosen chapter.</FormDescription>
                       <FormMessage />
                     </FormItem>
                 )} />
@@ -573,3 +656,4 @@ export default function QuizzesPage() {
     </div>
   );
 }
+

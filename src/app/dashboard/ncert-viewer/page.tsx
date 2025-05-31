@@ -1,3 +1,4 @@
+
 // src/app/dashboard/ncert-viewer/page.tsx
 'use client';
 
@@ -13,6 +14,7 @@ import { BookOpen, Loader2, Download, Edit, Info, ChevronRight, FileText, Save, 
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import Image from 'next/image';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 type NcertBookMetadata = Tables<'ncert_books_metadata'> & { parsed_chapters?: Array<{name: string, pdf_filename: string}> };
@@ -63,21 +65,6 @@ export default function NcertViewerPage() {
 
   useEffect(() => {
     startTransition(async () => {
-      // In a real app, fetch this from `ncert_books_metadata` table in Supabase
-      // const { data: fetchedBooks, error } = await supabase
-      //   .from('ncert_books_metadata')
-      //   .select('*')
-      //   .eq('class_level', selectedClass)
-      //   .eq('subject', selectedSubject);
-      // if (error) toast({ variant: 'destructive', title: 'Error fetching books', description: error.message });
-      // else {
-      //    const parsedBooks = (fetchedBooks || []).map(book => ({
-      //       ...book,
-      //       parsed_chapters: typeof book.chapters === 'string' ? JSON.parse(book.chapters) : book.chapters
-      //   }));
-      //   setBooksForSelection(parsedBooks);
-      // }
-      // For now, using the hardcoded ncertBooksData
       const filtered = ncertBooksData
         .filter(book => book.class_level === selectedClass && book.subject === selectedSubject)
         .map(book => ({
@@ -232,6 +219,15 @@ export default function NcertViewerPage() {
             <CardDescription>Select a chapter to view its content (opens PDF) and manage your notes.</CardDescription>
           </CardHeader>
           <CardContent>
+            <Alert variant="default" className="mb-6 bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="font-semibold text-blue-700 dark:text-blue-300">PDF Viewing & Note-Taking</AlertTitle>
+              <AlertDescription>
+                Clicking "View/Download Chapter PDF" will open the official NCERT PDF in a new browser tab.
+                Use the "Your Notes for this Chapter" section below to type and save your personal notes, summaries, or key points related to the chapter content.
+                Directly marking or writing on the PDF itself within this app is an advanced feature and not currently available.
+              </AlertDescription>
+            </Alert>
             <Accordion type="single" collapsible className="w-full" value={selectedChapter?.name} onValueChange={(value) => {
                 const chap = selectedBook.parsed_chapters?.find((c: any) => c.name === value);
                 setSelectedChapter(chap || null);
@@ -287,16 +283,10 @@ export default function NcertViewerPage() {
                 </AccordionItem>
               ))}
             </Accordion>
-             <Alert className="mt-6 bg-primary/5 border-primary/20">
-                <Info className="h-5 w-5 text-primary" />
-                <AlertTitle className="text-primary font-semibold">PDF Viewing & Notes</AlertTitle>
-                <AlertDescription>
-                    Chapter PDFs will open in a new tab from the official NCERT source. You can take digital notes related to each chapter here, which will be saved to your account. In-app PDF viewing/annotation is a complex feature; for now, external viewing is used.
-                </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
+
