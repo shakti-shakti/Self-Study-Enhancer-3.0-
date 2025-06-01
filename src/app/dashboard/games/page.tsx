@@ -1,11 +1,10 @@
-
 // src/app/dashboard/games/page.tsx
 'use client';
 
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird, AlignCenter, HelpCircle, Hash, BrainCircuit } from 'lucide-react'; // Added Hash, BrainCircuit
+import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird, AlignCenter, HelpCircle, Hash, BrainCircuit } from 'lucide-react'; 
 import Image from 'next/image';
 
 const games = [
@@ -38,33 +37,33 @@ const games = [
   },
   {
     id: 'guess-the-number',
-    title: 'Guess the Number (Conceptual)',
+    title: 'Guess the Number',
     description: 'A classic number guessing game. The AI thinks of a number, and you try to guess it with hints. Simple but good for logical thinking.',
     genre: 'Logic / Number Game',
     icon: <Hash className="h-12 w-12 text-green-500" />,
     imageUrl: 'https://placehold.co/600x400/4CAF50/FFFFFF.png?text=Guess+It!',
     dataAiHint: 'number question mark',
-    isConceptual: true,
+    isConceptual: false, // Now implemented
   },
   {
     id: 'science-trivia-challenge',
-    title: 'Science Trivia Challenge (Conceptual)',
+    title: 'Science Trivia Challenge',
     description: 'Test your general science knowledge with rapid-fire trivia questions across Physics, Chemistry, and Biology. Fast-paced and fun!',
     genre: 'Trivia / Quiz',
     icon: <BrainCircuit className="h-12 w-12 text-blue-500" />,
     imageUrl: 'https://placehold.co/600x400/2196F3/FFFFFF.png?text=Trivia!',
     dataAiHint: 'quiz brain lightbulb',
-    isConceptual: true,
+    isConceptual: false, // Now implemented
   },
   {
     id: 'element-match-memory',
-    title: 'Element Match Memory (Conceptual)',
+    title: 'Element Match Memory',
     description: 'A memory game where you match chemical elements to their symbols or properties. Improves recall and association.',
     genre: 'Memory / Educational',
     icon: <Atom className="h-12 w-12 text-red-500" />,
     imageUrl: 'https://placehold.co/600x400/F44336/FFFFFF.png?text=Element+Match',
     dataAiHint: 'chemistry memory cards',
-    isConceptual: true,
+    isConceptual: false, // Now implemented
   },
 ];
 
@@ -101,7 +100,7 @@ export default function GamesHubPage() {
             </div>
             <CardContent className="p-6 space-y-4">
               <CardDescription className="text-base text-muted-foreground min-h-[60px]">{game.description}</CardDescription>
-              {game.isConceptual ? (
+              {game.isConceptual ? ( // This flag can be removed if all are now linked
                  <Button className="w-full text-lg py-3" variant="outline" disabled>
                     <PlayCircle className="mr-2" /> Play Game (Conceptual)
                 </Button>

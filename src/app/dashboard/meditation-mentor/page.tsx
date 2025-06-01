@@ -4,15 +4,24 @@
 import { useState, useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import * as z from 'zod'; // Import z
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
-import { generateMeditation, GenerateMeditationInputSchema, type GenerateMeditationInput, type GenerateMeditationOutput } from '@/ai/flows/meditation-mentor-flow';
+// Import only the function and types, not the schema object itself from the flow
+import { generateMeditation, type GenerateMeditationInput, type GenerateMeditationOutput } from '@/ai/flows/meditation-mentor-flow';
 import { BrainCog, Loader2, Sparkles, Wind } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Define the schema locally for client-side form validation
+const GenerateMeditationInputSchema = z.object({
+  stressLevel: z.number().min(1).max(10).describe('The student\'s current stress level (1=low, 10=high).'),
+  durationPreference: z.enum(['1 minute', '3 minutes', '5 minutes']).describe('Preferred duration for the meditation.'),
+  focusArea: z.enum(['calm', 'focus', 'motivation', 'exam_prep', 'general_wellbeing']).optional().describe('Optional area to focus the meditation on.'),
+});
 
 type MeditationFormData = z.infer<typeof GenerateMeditationInputSchema>;
 
@@ -22,7 +31,7 @@ export default function AiMeditationMentorPage() {
   const { toast } = useToast();
 
   const form = useForm<MeditationFormData>({
-    resolver: zodResolver(GenerateMeditationInputSchema),
+    resolver: zodResolver(GenerateMeditationInputSchema), // Use the locally defined schema
     defaultValues: {
       stressLevel: 5,
       durationPreference: '3 minutes',
@@ -34,7 +43,8 @@ export default function AiMeditationMentorPage() {
     setMeditation(null);
     startTransition(async () => {
       try {
-        const result = await generateMeditation(values);
+        // The 'values' object already matches GenerateMeditationInput type due to shared Zod definition
+        const result = await generateMeditation(values as GenerateMeditationInput);
         setMeditation(result);
         toast({
           title: 'Meditation Ready!',
