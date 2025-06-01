@@ -15,17 +15,18 @@ const YOUTUBE_URL = "https://www.youtube.com";
 const NCERT_BOOKS_URL = "https://ncert.nic.in/textbook.php";
 const GOOGLE_HOME_URL = "https://www.google.com/webhp?igu=1"; // igu=1 attempts to bypass some embedding restrictions for Google homepage
 
-// Helper to check if a string could be a valid URL structure
 const isPotentiallyValidUrl = (string: string): boolean => {
   try {
-    // Check for common protocols or www. start
-    if (string.startsWith('http://') || string.startsWith('https://') || string.startsWith('www.')) {
-      new URL(string.startsWith('www.') ? `https://${string}` : string);
+    const s = string.trim();
+    if (s.startsWith('http://') || s.startsWith('https://')) {
+      new URL(s);
       return true;
     }
-    // Check for domain-like structure (e.g., example.com)
-    if (string.includes('.') && !string.includes(' ') && string.length > 3) {
+    // Check for domain-like structure (e.g., example.com) without protocol
+    if (s.includes('.') && !s.includes(' ') && !s.startsWith('/') && s.length > 3) {
        // Further refinement could be added, but for this basic check, it's a potential URL
+       // Let's assume https for these cases when actually forming the URL.
+       new URL(`https://${s}`);
        return true;
     }
   } catch (_) {
@@ -50,10 +51,13 @@ export default function InAppBrowserPage() {
       return;
     }
     try {
-      const fullUrl = url.startsWith('www.') ? `https://${url}` : (url.startsWith('http://') || url.startsWith('https://')) ? url : `https://${url}`;
+      let fullUrl = url.trim();
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = `https://${fullUrl}`;
+      }
       new URL(fullUrl); // Validate URL structure
       setCurrentDisplayUrl(fullUrl);
-      setIsLoadingIframe(true); // Start loading state for iframe
+      setIsLoadingIframe(true); 
     } catch (e) {
       console.error("Invalid URL for iframe:", url, e);
       setCurrentDisplayUrl("/iframe-error.html");
@@ -61,7 +65,7 @@ export default function InAppBrowserPage() {
       toast({
         variant: "destructive",
         title: "Invalid URL",
-        description: `The address "${url}" is not a valid URL to load in the browser.`,
+        description: `The address "${url}" is not a valid URL to load.`,
       });
     }
   }, [toast]);
@@ -72,33 +76,38 @@ export default function InAppBrowserPage() {
       toast({ variant: 'destructive', title: "Input Empty", description: "Please enter a URL or search query." });
       return;
     }
-    setSearchResults([]); // Clear previous search results
+    
+    setSearchResults([]); 
 
     if (isPotentiallyValidUrl(trimmedInput)) {
       setSafeCurrentDisplayUrl(trimmedInput);
     } else {
-      setCurrentDisplayUrl(null); // Hide iframe while searching
+      setCurrentDisplayUrl(null); 
       startSearchTransition(async () => {
+        setIsLoadingIframe(false); // Ensure iframe loading stops if it was active
         try {
           const result: GoogleSearchOutput = await googleSearch({ query: trimmedInput, numResults: 7 });
           if (result.error) {
             toast({ variant: 'destructive', title: "Search Error", description: result.error });
+            setSafeCurrentDisplayUrl("/iframe-error.html");
           } else if (result.items && result.items.length > 0) {
             setSearchResults(result.items);
           } else {
             toast({ title: "No Results", description: `Your search for "${trimmedInput}" returned no results.` });
+            setSafeCurrentDisplayUrl(null); // Keep iframe clear
           }
         } catch (e: any) {
           toast({ variant: 'destructive', title: "Search Request Failed", description: e.message || "Could not connect to search service." });
+          setSafeCurrentDisplayUrl("/iframe-error.html");
         }
       });
     }
   };
 
   const loadUrlInIframe = (url: string) => {
-    setSearchResults([]); // Clear search results
+    setSearchResults([]); 
     setSafeCurrentDisplayUrl(url);
-    setInputUrlOrQuery(url); // Update address bar
+    setInputUrlOrQuery(url); 
   };
   
   const goHome = () => { loadUrlInIframe(GOOGLE_HOME_URL); }
@@ -106,22 +115,19 @@ export default function InAppBrowserPage() {
   const goToNcert = () => { loadUrlInIframe(NCERT_BOOKS_URL); }
 
   useEffect(() => {
-    // Load Google by default if no other URL is active and not searching
     if (!currentDisplayUrl && searchResults.length === 0 && !isSearching) {
       goHome();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, []); 
 
   const handleIframeLoad = () => setIsLoadingIframe(false);
-  const handleIframeError = () => {
+  const handleIframeError = () => { // This catches general network errors for iframe, not X-Frame-Options
     setIsLoadingIframe(false);
-    // The browser itself will show "refused to connect" for X-Frame-Options issues.
-    // This error is more for general network errors or if the iframe source itself is totally invalid.
-    // We already use setSafeCurrentDisplayUrl to catch truly invalid URLs before setting src.
-    // So, this might not be triggered often for "refused to connect".
-    setCurrentDisplayUrl("/iframe-error.html"); // Show our custom error page
-    toast({variant: "destructive", title: "Content Load Error", description: "The requested content could not be loaded in the app window. Some sites prevent embedding."});
+    // The setSafeCurrentDisplayUrl already sets /iframe-error.html for invalid URLs passed to it.
+    // This error handler is a fallback for other iframe load issues.
+    // toast({variant: "destructive", title: "Content Load Error", description: "The requested content could not be loaded in the app window. Some sites prevent embedding."});
+    // No need to explicitly set /iframe-error.html here again if setSafeCurrentDisplayUrl handles it.
   };
 
   return (
@@ -131,7 +137,7 @@ export default function InAppBrowserPage() {
           <Globe className="mr-4 h-10 w-10" /> Web Explorer
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Enter a URL to view in-app, or search the web (results open in new tab).
+          Enter a URL to view in-app, or search the web. Some sites may prevent embedding.
         </p>
       </header>
 
@@ -148,7 +154,7 @@ export default function InAppBrowserPage() {
               className="flex-1 h-10 input-glow"
             />
             <Button onClick={handleNavigate} className="glow-button" disabled={isSearching || isLoadingIframe}>
-                {isSearching || isLoadingIframe ? <Loader2 className="animate-spin h-5 w-5"/> : <Search className="mr-1 sm:mr-2 h-5 w-5"/>}
+                {(isSearching && !isLoadingIframe) || isLoadingIframe ? <Loader2 className="animate-spin h-5 w-5"/> : <Search className="mr-1 sm:mr-2 h-5 w-5"/>}
                 <span className="hidden sm:inline">Go</span>
             </Button>
           </div>
@@ -164,14 +170,14 @@ export default function InAppBrowserPage() {
         <CardContent className="flex-1 p-0 relative overflow-hidden">
           {searchResults.length > 0 && (
             <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-10 p-4 overflow-y-auto space-y-4">
-              <h2 className="text-xl font-semibold glow-text-accent">Search Results for "{inputUrlOrQuery}":</h2>
+              <h2 className="text-xl font-semibold glow-text-accent">Search Results for "{inputUrlOrQuery.split(' ').slice(0,5).join(' ')}{inputUrlOrQuery.length > 30 ? '...' : ''}":</h2>
               {searchResults.map((result, index) => (
                 <Card key={index} className="bg-card/70 border-border/50 shadow-md hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg text-primary hover:underline">
-                       <a href={result.link} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                        {result.title} <ExternalLink className="inline h-4 w-4 ml-1 opacity-70 shrink-0"/>
-                      </a>
+                       <button onClick={() => loadUrlInIframe(result.link)} className="text-left flex items-center w-full">
+                        {result.title}
+                      </button>
                     </CardTitle>
                     <CardDescription className="text-xs text-green-600 dark:text-green-400 truncate">{result.displayLink || result.link}</CardDescription>
                   </CardHeader>
@@ -179,10 +185,8 @@ export default function InAppBrowserPage() {
                     <p className="text-sm text-muted-foreground line-clamp-2">{result.snippet}</p>
                   </CardContent>
                   <CardFooter className="pb-3 pt-0">
-                     <Button variant="default" size="sm" asChild className="glow-button">
-                           <a href={result.link} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-1.5 h-4 w-4"/> Open Link in New Tab
-                           </a>
+                     <Button variant="default" size="sm" onClick={() => loadUrlInIframe(result.link)} className="glow-button">
+                           <Eye className="mr-1.5 h-4 w-4"/> View Page in App
                      </Button>
                   </CardFooter>
                 </Card>
@@ -204,9 +208,9 @@ export default function InAppBrowserPage() {
                   src={currentDisplayUrl}
                   title="In-app browser content"
                   className="w-full h-full border-0"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" // Common sandbox attributes
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" 
                   onLoad={handleIframeLoad}
-                  onError={handleIframeError}
+                  onError={handleIframeError} 
                 />
               </>
             ) : (
@@ -220,8 +224,7 @@ export default function InAppBrowserPage() {
                   <Globe className="h-24 w-24 text-muted-foreground/30 mb-6" />
                   <p className="text-2xl text-muted-foreground">Enter a URL or search query above.</p>
                   <p className="text-md text-muted-foreground/70 mt-2">
-                    Use quick links or type an address like "wikipedia.org" to browse in this window.
-                    Search results will open in a new tab.
+                    Use quick links or type an address like "wikipedia.org" to browse.
                   </p>
                 </div>
               )
@@ -233,7 +236,7 @@ export default function InAppBrowserPage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary">Web Explorer Usage</AlertTitle>
         <AlertDescription>
-            Direct URLs and quick links attempt to load in this window. Search results will open in a new browser tab. Some websites may prevent in-app embedding.
+            Direct URLs and quick links attempt to load in this window. Clicking search results will also attempt to load in this window. Some websites may prevent in-app embedding and show a "refused to connect" error or a blank page.
         </AlertDescription>
       </Alert>
     </div>
