@@ -1,3 +1,4 @@
+
 // src/app/dashboard/layout.tsx
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -6,7 +7,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award, Bird // Added Bird
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award, Bird, Puzzle // Added Puzzle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -45,6 +46,7 @@ const toolsNavItems = [
   { name: 'Calculator', href: '/dashboard/calculator', icon: <Calculator /> },
   { name: 'Meditation Mentor', href: '/dashboard/meditation-mentor', icon: <BrainCog /> },
   { name: 'Focus Timer', href: '/dashboard/focus-timer', icon: <Timer /> },
+  { name: 'Puzzle Dashboard', href: '/dashboard/puzzles', icon: <Puzzle /> },
 ];
 
 const resourcesNavItems = [
@@ -69,6 +71,7 @@ const accountNavItems = [
   { name: 'Study Store', href: '/dashboard/study-store', icon: <ShoppingCart /> },
   { name: 'App Customization', href: '/dashboard/app-customization', icon: <SlidersHorizontal /> },
   { name: 'Profile Settings', href: '/dashboard/profile', icon: <Settings /> },
+  { name: 'Admin Panel (Conceptual)', href: '/dashboard/admin', icon: <ShieldHalf /> },
 ];
 
 // Helper for SidebarMenuButton to avoid repetition
@@ -85,9 +88,6 @@ export default async function DashboardLayout({
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
-  // Fetch user profile data
-  // Note: Profile table has 'custom_countdown_event_name' and 'custom_countdown_target_date'
-  // Ensure any profile fetches select correct column names.
   const profile = user ? (await supabase
     .from('profiles')
     .select('full_name, avatar_url, email, theme') 
@@ -97,13 +97,13 @@ export default async function DashboardLayout({
   const userDisplayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userAvatarUrl = profile?.avatar_url;
   const userEmail = profile?.email || user?.email;
-  const initialTheme = profile?.theme || 'dark'; // Get theme from profile or default to dark
+  const initialTheme = profile?.theme || 'dark'; 
 
   const bottomNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Planner', href: '/dashboard/planner', icon: Edit3 },
     { name: 'AI Assistant', href: '/dashboard/ai-study-assistant', icon: Bot },
-    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 }, // Gamepad2 might be better than Bird for general games
+    { name: 'Games', href: '/dashboard/games', icon: Gamepad2 }, 
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
   ];
 
@@ -260,7 +260,7 @@ export default async function DashboardLayout({
           <div className="h-16 md:hidden"></div> {/* Spacer for bottom nav */}
 
           <footer className="py-4 md:py-6 text-center text-muted-foreground text-sm border-t border-border/30">
-            Developed by POWER⚡⚡⚡ | NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
+            Developed by POWER⚡⚡⚡⚡⚡⚡ | NEET Prep+ &copy; {new Date().getFullYear()} - Maximize Your Potential.
           </footer>
         </SidebarInset>
       </SidebarProvider>

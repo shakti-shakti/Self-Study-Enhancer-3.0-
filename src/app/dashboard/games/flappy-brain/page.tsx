@@ -1,3 +1,4 @@
+
 // src/app/dashboard/games/flappy-brain/page.tsx
 'use client';
 
@@ -15,12 +16,18 @@ const GRAVITY = 0.4;
 const LIFT = -7;
 const PIPE_WIDTH = 50;
 const INITIAL_PIPE_GAP = 120;
-const MIN_PIPE_GAP = 90; // Made it a bit harder
-const PIPE_SPACING = 180; // Pipes closer together
+const MIN_PIPE_GAP = 90; 
+const PIPE_SPACING = 180; 
 const INITIAL_PIPE_SPEED = 2;
-const MAX_PIPE_SPEED = 4.5; // Slightly increased max speed
-const SPEED_INCREASE_INTERVAL = 3; // Increase speed every 3 points
-const GAP_VARIATION_SCORE_THRESHOLD = 5; // Start varying gap after 5 points
+const MAX_PIPE_SPEED = 4.5; 
+const SPEED_INCREASE_INTERVAL = 3; 
+const GAP_VARIATION_SCORE_THRESHOLD = 5;
+
+// Fallback colors if CSS variables are not available or problematic
+const FALLBACK_BACKGROUND_COLOR = 'hsl(240 17% 94%)'; // Light theme card default
+const FALLBACK_PIPE_COLOR = 'hsl(209 50% 50%)'; // Accent color
+const FALLBACK_BIRD_COLOR = 'hsl(298 42% 50%)'; // Primary color
+const FALLBACK_TEXT_COLOR = 'hsl(275 10% 20%)'; // Foreground color
 
 export default function FlappyBrainPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,7 +35,6 @@ export default function FlappyBrainPage() {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
 
-  // Game variables (using refs to persist across renders without causing re-renders for every change)
   const birdY = useRef(CANVAS_HEIGHT / 2);
   const birdVelocity = useRef(0);
   const pipes = useRef<{ x: number; y: number; gap: number; passed: boolean }[]>([]);
@@ -36,7 +42,6 @@ export default function FlappyBrainPage() {
   const pipeSpeed = useRef(INITIAL_PIPE_SPEED);
   const currentPipeGap = useRef(INITIAL_PIPE_GAP);
   const gameLoopId = useRef<number | null>(null);
-
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -75,10 +80,6 @@ export default function FlappyBrainPage() {
   const birdJump = () => {
     if (gameState === 'playing') {
       birdVelocity.current = LIFT;
-    } else if (gameState === 'idle') {
-      startGame(); // This will set gameState to 'playing'
-      // Apply lift immediately after starting if the first action is a jump
-      requestAnimationFrame(() => birdVelocity.current = LIFT);
     }
   };
 
@@ -87,40 +88,56 @@ export default function FlappyBrainPage() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-  
-    // Explicitly draw background
-    const themedBackgroundColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || 'hsl(240 17% 94%)' : 'hsl(240 17% 94%)';
+
+    let themedBackgroundColor = FALLBACK_BACKGROUND_COLOR;
+    let pipeColor = FALLBACK_PIPE_COLOR;
+    let birdColor = FALLBACK_BIRD_COLOR;
+    let textColor = FALLBACK_TEXT_COLOR;
+    let fontName = 'sans-serif';
+    let bodyFontName = 'sans-serif';
+
+    if (typeof window !== 'undefined') {
+        try {
+            themedBackgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || themedBackgroundColor;
+            pipeColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || pipeColor;
+            birdColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || birdColor;
+            textColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim() || textColor;
+            fontName = getComputedStyle(document.documentElement).getPropertyValue('--font-headline').trim() || fontName;
+            bodyFontName = getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || bodyFontName;
+        } catch (e) {
+            console.warn("Could not get themed colors for Flappy Bird canvas, using fallbacks.");
+        }
+    }
+    
     ctx.fillStyle = themedBackgroundColor;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  
-    // Draw Pipes
-    const pipeColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || 'hsl(209 50% 50%)' : 'hsl(209 50% 50%)';
+
     ctx.fillStyle = pipeColor;
     pipes.current.forEach(pipe => {
       ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y);
       ctx.fillRect(pipe.x, pipe.y + pipe.gap, PIPE_WIDTH, CANVAS_HEIGHT - (pipe.y + pipe.gap));
     });
-  
-    // Draw Bird
-    const birdColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || 'hsl(298 42% 50%)' : 'hsl(298 42% 50%)';
+
     ctx.beginPath();
     ctx.arc(BIRD_X, birdY.current, BIRD_SIZE / 2, 0, Math.PI * 2);
     ctx.fillStyle = birdColor;
     ctx.fill();
     ctx.closePath();
-  
-    // Draw Score
-    const textColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim() || 'hsl(275 10% 20%)' : 'hsl(275 10% 20%)';
+
     ctx.fillStyle = textColor;
-    const fontName = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--font-headline').trim() || 'sans-serif' : 'sans-serif';
     ctx.font = `20px ${fontName}`;
     ctx.textAlign = 'left';
     ctx.fillText(`Score: ${score}`, 10, 30);
     ctx.textAlign = 'right';
     ctx.fillText(`High: ${highScore}`, CANVAS_WIDTH - 10, 30);
-  
+
     if (gameState === 'gameOver') {
-      const destructiveColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--destructive').trim() || 'hsl(0 70% 60%)' : 'hsl(0 70% 60%)';
+      let destructiveColor = 'hsl(0 70% 60%)'; // Fallback destructive
+      if (typeof window !== 'undefined') {
+        try {
+            destructiveColor = getComputedStyle(document.documentElement).getPropertyValue('--destructive').trim() || destructiveColor;
+        } catch(e) { /* use fallback */ }
+      }
       ctx.fillStyle = destructiveColor;
       ctx.textAlign = 'center';
       ctx.font = `36px ${fontName}`;
@@ -133,8 +150,13 @@ export default function FlappyBrainPage() {
         ctx.font = `20px ${fontName}`;
         ctx.fillText('New High Score!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
       }
-       ctx.fillStyle = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim() || 'hsl(275 8% 40%)' : 'hsl(275 8% 40%)';
-      const bodyFontName = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--font-body').trim() || 'sans-serif' : 'sans-serif';
+      let mutedFgColor = 'hsl(275 8% 40%)'; // Fallback muted foreground
+       if (typeof window !== 'undefined') {
+        try {
+            mutedFgColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim() || mutedFgColor;
+        } catch(e) { /* use fallback */ }
+      }
+      ctx.fillStyle = mutedFgColor;
       ctx.font = `16px ${bodyFontName}`;
       ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
     } else if (gameState === 'idle') {
@@ -143,83 +165,83 @@ export default function FlappyBrainPage() {
       ctx.font = `24px ${fontName}`;
       ctx.fillText('Click or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, score, highScore]); // Dependencies for draw
+  }, [gameState, score, highScore]);
 
   useEffect(() => {
     const gameLoop = () => {
-      if (gameState === 'playing') {
-        // Bird physics
-        birdVelocity.current += GRAVITY;
-        birdY.current += birdVelocity.current;
+      if (gameState !== 'playing') return; // Ensure loop only runs when playing
 
-        // Pipe generation
-        if (frameCount.current % Math.floor(PIPE_SPACING / pipeSpeed.current) === 0) {
-          const pipeY = Math.random() * (CANVAS_HEIGHT - currentPipeGap.current - 150) + 75;
-          pipes.current.push({ x: CANVAS_WIDTH, y: pipeY, gap: currentPipeGap.current, passed: false });
-        }
+      // Bird physics
+      birdVelocity.current += GRAVITY;
+      birdY.current += birdVelocity.current;
 
-        // Move pipes and check for score
-        pipes.current.forEach(pipe => {
-          pipe.x -= pipeSpeed.current;
-          if (!pipe.passed && pipe.x + PIPE_WIDTH < BIRD_X) {
-            pipe.passed = true;
-            setScore(s => s + 1); // Update score
-          }
-        });
-        pipes.current = pipes.current.filter(pipe => pipe.x + PIPE_WIDTH > 0);
-
-
-        // Difficulty adjustment
-        if (score > 0 && score % SPEED_INCREASE_INTERVAL === 0) {
-          pipeSpeed.current = Math.min(MAX_PIPE_SPEED, INITIAL_PIPE_SPEED + (score / SPEED_INCREASE_INTERVAL) * 0.2); // Fine-tuned increment
-        }
-        if (score >= GAP_VARIATION_SCORE_THRESHOLD) {
-          currentPipeGap.current = MIN_PIPE_GAP + Math.random() * (INITIAL_PIPE_GAP - MIN_PIPE_GAP);
-        } else {
-          currentPipeGap.current = INITIAL_PIPE_GAP;
-        }
-
-        // Collision detection
-        if (birdY.current + BIRD_SIZE / 2 > CANVAS_HEIGHT || birdY.current - BIRD_SIZE / 2 < 0) {
-          updateHighScore(score);
-          setGameState('gameOver');
-        }
-        for (const pipe of pipes.current) {
-          const birdTop = birdY.current - BIRD_SIZE / 2;
-          const birdBottom = birdY.current + BIRD_SIZE / 2;
-          const birdLeft = BIRD_X - BIRD_SIZE / 2;
-          const birdRight = BIRD_X + BIRD_SIZE / 2;
-
-          const pipeTopY = pipe.y;
-          const pipeBottomY = pipe.y + pipe.gap;
-
-          if (birdRight > pipe.x && birdLeft < pipe.x + PIPE_WIDTH) {
-            if (birdTop < pipeTopY || birdBottom > pipeBottomY) {
-              updateHighScore(score);
-              setGameState('gameOver');
-              break;
-            }
-          }
-        }
-        frameCount.current++;
+      // Pipe generation
+      if (frameCount.current % Math.floor(PIPE_SPACING / pipeSpeed.current) === 0) {
+        const pipeY = Math.random() * (CANVAS_HEIGHT - currentPipeGap.current - 150) + 75;
+        pipes.current.push({ x: CANVAS_WIDTH, y: pipeY, gap: currentPipeGap.current, passed: false });
       }
-      
-      draw(); // Call draw in every frame
 
-      if (gameState === 'playing') {
+      // Move pipes and check for score
+      let newScore = score;
+      pipes.current.forEach(pipe => {
+        pipe.x -= pipeSpeed.current;
+        if (!pipe.passed && pipe.x + PIPE_WIDTH < BIRD_X) {
+          pipe.passed = true;
+          newScore++;
+        }
+      });
+      if (newScore !== score) setScore(newScore);
+      pipes.current = pipes.current.filter(pipe => pipe.x + PIPE_WIDTH > 0);
+
+      // Difficulty adjustment
+      if (newScore > 0 && newScore % SPEED_INCREASE_INTERVAL === 0 && newScore !== score ) { // only update if score actually changed to avoid repeated calculations
+        pipeSpeed.current = Math.min(MAX_PIPE_SPEED, INITIAL_PIPE_SPEED + (newScore / SPEED_INCREASE_INTERVAL) * 0.25);
+      }
+      if (newScore >= GAP_VARIATION_SCORE_THRESHOLD) {
+        currentPipeGap.current = MIN_PIPE_GAP + Math.random() * (INITIAL_PIPE_GAP - MIN_PIPE_GAP);
+      } else {
+        currentPipeGap.current = INITIAL_PIPE_GAP;
+      }
+
+      // Collision detection
+      if (birdY.current + BIRD_SIZE / 2 > CANVAS_HEIGHT || birdY.current - BIRD_SIZE / 2 < 0) {
+        updateHighScore(newScore);
+        setGameState('gameOver');
+      }
+      for (const pipe of pipes.current) {
+        const birdTop = birdY.current - BIRD_SIZE / 2;
+        const birdBottom = birdY.current + BIRD_SIZE / 2;
+        const birdLeft = BIRD_X - BIRD_SIZE / 2;
+        const birdRight = BIRD_X + BIRD_SIZE / 2;
+        const pipeTopY = pipe.y;
+        const pipeBottomY = pipe.y + pipe.gap;
+
+        if (birdRight > pipe.x && birdLeft < pipe.x + PIPE_WIDTH) {
+          if (birdTop < pipeTopY || birdBottom > pipeBottomY) {
+            updateHighScore(newScore);
+            setGameState('gameOver');
+            break;
+          }
+        }
+      }
+      frameCount.current++;
+      draw();
+      if (gameState === 'playing') { // Re-check because it might have changed to 'gameOver'
         gameLoopId.current = requestAnimationFrame(gameLoop);
       }
     };
-
+    
     if (gameState === 'playing') {
-        frameCount.current = 0; // Reset frameCount when game starts playing
-        gameLoopId.current = requestAnimationFrame(gameLoop);
+      frameCount.current = 0;
+      pipeSpeed.current = INITIAL_PIPE_SPEED;
+      currentPipeGap.current = INITIAL_PIPE_GAP;
+      gameLoopId.current = requestAnimationFrame(gameLoop);
     } else {
-      // If not playing, ensure we draw the current state (idle or gameOver) once.
+      // If not playing (idle or gameOver), ensure we draw the current state once.
       draw();
       if (gameLoopId.current) {
         cancelAnimationFrame(gameLoopId.current);
+        gameLoopId.current = null;
       }
     }
     
@@ -228,15 +250,15 @@ export default function FlappyBrainPage() {
         cancelAnimationFrame(gameLoopId.current);
       }
     };
-  }, [gameState, score, draw]); // Include `draw` in dependencies
+  }, [gameState, score, highScore, draw]); // Draw dependency is important here
 
   const handleCanvasClick = () => {
     if (gameState === 'playing') {
       birdJump();
-    } else { // idle or gameOver
+    } else { 
       startGame();
-      // Apply an initial jump to avoid immediate fall if space/click is to start AND jump
-      requestAnimationFrame(() => birdVelocity.current = LIFT);
+      // Small delay to ensure gameState is 'playing' before applying first jump
+      requestAnimationFrame(() => birdJump()); 
     }
   };
 
@@ -251,6 +273,14 @@ export default function FlappyBrainPage() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState]); // Re-bind if gameState changes for correct jump/start logic
+
+  // Ensure canvas is drawn when the component mounts or gameState changes to 'idle' or 'gameOver'
+  useEffect(() => {
+    if (gameState === 'idle' || gameState === 'gameOver') {
+      draw();
+    }
+  }, [gameState, draw]);
+
 
   return (
     <div className="flex flex-col items-center space-y-6">

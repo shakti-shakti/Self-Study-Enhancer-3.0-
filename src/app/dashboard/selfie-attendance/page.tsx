@@ -1,3 +1,4 @@
+
 // src/app/dashboard/selfie-attendance/page.tsx
 'use client';
 
@@ -5,7 +6,7 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle, AlertTriangle, Loader2, Timer } from 'lucide-react'; // Added Timer
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 // import { createClient } from '@/lib/supabase/client'; // For future image saving
 // import type { TablesInsert } from '@/lib/database.types';
@@ -14,6 +15,8 @@ export default function SelfieAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isProcessing, startProcessingTransition] = useTransition();
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   // const supabase = createClient(); // For future image saving
   // const [userId, setUserId] = useState<string | null>(null); // For future image saving
@@ -51,44 +54,37 @@ export default function SelfieAttendancePage() {
     };
     getCameraPermission();
 
-    return () => { // Cleanup: stop camera stream when component unmounts
+    return () => { 
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
+        }
+        if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
         }
     };
   }, [toast]);
 
   const handleMarkAttendance = () => {
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    setCountdown(3);
     startProcessingTransition(() => {
-      // Conceptual: In a real app, you'd capture a frame, upload to Supabase Storage,
-      // and save a record in a 'attendance_logs' table.
-      // For now, just a toast.
-      toast({
-        title: 'Attendance Marked (Conceptual)!',
-        description: 'Your presence has been noted. In a full version, an image might be saved.',
-        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
-      });
-      // Example of what saving might look like (commented out)
-      /*
-      if (!userId || !videoRef.current) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(async (blob) => {
-        if (blob) {
-          const filePath = `${userId}/attendance/${new Date().toISOString()}.png`;
-          // const { error: uploadError } = await supabase.storage.from('user-uploads').upload(filePath, blob);
-          // if (uploadError) toast error
-          // else {
-          //   // const { error: dbError } = await supabase.from('attendance_logs').insert({user_id: userId, image_path: filePath});
-          //   // if (dbError) toast error else toast success
-          // }
-        }
-      }, 'image/png');
-      */
+        countdownTimerRef.current = setInterval(() => {
+            setCountdown(prev => {
+                if (prev === null || prev <= 1) {
+                    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+                    setCountdown(null);
+                    // Conceptual: In a real app, you'd capture a frame here
+                    toast({
+                        title: 'Attendance Marked (Conceptual)!',
+                        description: 'Your presence has been noted. In a full version, an image might be saved.',
+                        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
+                    });
+                    return null;
+                }
+                return prev - 1;
+            });
+        }, 1000);
     });
   };
 
@@ -106,10 +102,10 @@ export default function SelfieAttendancePage() {
       <Card className="max-w-lg mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Camera View</CardTitle>
-          <CardDescription>Ensure your face is clearly visible.</CardDescription>
+          <CardDescription>Ensure your face is clearly visible. Smile!</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center">
+          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center relative">
             {hasCameraPermission === null && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
             {hasCameraPermission === false && (
               <div className="text-center p-4">
@@ -121,14 +117,21 @@ export default function SelfieAttendancePage() {
             {hasCameraPermission === true && (
               <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
             )}
+             {countdown !== null && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <span className="text-7xl font-bold text-white drop-shadow-lg">{countdown}</span>
+              </div>
+            )}
           </div>
           <Button 
             onClick={handleMarkAttendance} 
             className="w-full font-semibold text-lg py-3 glow-button"
-            disabled={hasCameraPermission !== true || isProcessing}
+            disabled={hasCameraPermission !== true || isProcessing || countdown !== null}
           >
-            {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
-            Mark Attendance
+            {isProcessing && countdown === null ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : 
+             countdown !== null ? <Timer className="mr-2 h-5 w-5 animate-pulse" /> : 
+             <CheckCircle className="mr-2 h-5 w-5" />}
+            {countdown !== null ? `Capturing in ${countdown}...` : 'Mark Attendance'}
           </Button>
         </CardContent>
       </Card>
@@ -136,7 +139,7 @@ export default function SelfieAttendancePage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary">Feature Note</AlertTitle>
         <AlertDescription>
-            This is a conceptual demonstration of selfie attendance. In a full implementation, the captured image would be saved and potentially analyzed for mood. Currently, it only activates the camera and shows a confirmation message.
+            This is a conceptual demonstration of selfie attendance. In a full implementation, the captured image would be saved and potentially analyzed. Currently, it only activates the camera, shows a countdown, and then a confirmation message.
         </AlertDescription>
       </Alert>
     </div>
