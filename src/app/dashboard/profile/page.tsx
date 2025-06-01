@@ -17,19 +17,144 @@ import { createClient } from '@/lib/supabase/client';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
 import { Loader2, UserCircle, Save, UploadCloud, Music, KeyRound, Palette, Edit, ShieldQuestion, SaveIcon, CalendarClock, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { changePassword } from '@/app/auth/actions'; // Import the server action
+import { changePassword } from '@/app/auth/actions'; 
 
 const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg"];
 
-// Sample avatars for selection - in a real app, these would come from a DB or be more sophisticated
+// Expanded sample avatars - 100 options
 const sampleAvatars = [
-  { id: 'robohash_male', name: 'RoboHash Male', url: 'https://robohash.org/male?set=set1&size=150x150', dataAiHint: 'robot male' },
-  { id: 'robohash_female', name: 'RoboHash Female', url: 'https://robohash.org/female?set=set2&size=150x150', dataAiHint: 'robot female' },
-  { id: 'dicebear_adventurer', name: 'DiceBear Adventurer', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Felix&size=150', dataAiHint: 'adventurer character' },
-  { id: 'dicebear_pixelart', name: 'DiceBear Pixel', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=Pixel&size=150', dataAiHint: 'pixel art character' },
-  { id: 'placeholder_cat', name: 'Placeholder Cat', url: 'https://placehold.co/150x150/7B59E0/FFFFFF.png?text=CAT', dataAiHint: 'cat illustration' },
+  // DiceBear - Adventurer
+  { id: 'db_adv_01', name: 'Adventurer Uno', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Uno&size=150', dataAiHint: 'adventurer male' },
+  { id: 'db_adv_02', name: 'Adventurer Duo', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Duo&size=150&flip=true', dataAiHint: 'adventurer female' },
+  { id: 'db_adv_03', name: 'Adventurer Tres', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Tres&size=150&skinColor=variant02', dataAiHint: 'adventurer dark' },
+  { id: 'db_adv_04', name: 'Adventurer Quat', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Quat&size=150&hair=long01', dataAiHint: 'adventurer longHair' },
+  { id: 'db_adv_05', name: 'Adventurer Cinq', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Cinq&size=150&mouth=variant05', dataAiHint: 'adventurer smile' },
+  // DiceBear - Pixel Art
+  { id: 'db_pix_01', name: 'Pixel Pal', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=PixelPal&size=150', dataAiHint: 'pixel human' },
+  { id: 'db_pix_02', name: 'Pixel Gem', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=PixelGem&size=150&hair=short02', dataAiHint: 'pixel shortHair' },
+  { id: 'db_pix_03', name: 'Pixel Bit', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=PixelBit&size=150&glasses=variant01', dataAiHint: 'pixel glasses' },
+  { id: 'db_pix_04', name: 'Pixel Byte', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=PixelByte&size=150&skinColor=variant03', dataAiHint: 'pixel character' },
+  { id: 'db_pix_05', name: 'Pixel Chip', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=PixelChip&size=150&mouth=variant03', dataAiHint: 'pixel happy' },
+  // DiceBear - Bottts
+  { id: 'db_bot_01', name: 'Bot Alpha', url: 'https://api.dicebear.com/8.x/bottts/svg?seed=AlphaBot&size=150', dataAiHint: 'robot head' },
+  { id: 'db_bot_02', name: 'Bot Beta', url: 'https://api.dicebear.com/8.x/bottts/svg?seed=BetaBot&size=150&colors=blue', dataAiHint: 'blue robot' },
+  { id: 'db_bot_03', name: 'Bot Gamma', url: 'https://api.dicebear.com/8.x/bottts/svg?seed=GammaBot&size=150&colorful=true', dataAiHint: 'colorful robot' },
+  { id: 'db_bot_04', name: 'Bot Delta', url: 'https://api.dicebear.com/8.x/bottts/svg?seed=DeltaBot&size=150&mouthChance=100', dataAiHint: 'robot mouth' },
+  { id: 'db_bot_05', name: 'Bot Epsilon', url: 'https://api.dicebear.com/8.x/bottts/svg?seed=EpsilonBot&size=150&textureChance=100', dataAiHint: 'robot texture' },
+  // DiceBear - Lorelei
+  { id: 'db_lor_01', name: 'Lorelei Hue', url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=LoreHue&size=150', dataAiHint: 'cartoon face' },
+  { id: 'db_lor_02', name: 'Lorelei Shade', url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=LoreShade&size=150&flip=true', dataAiHint: 'cartoon girl' },
+  { id: 'db_lor_03', name: 'Lorelei Tint', url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=LoreTint&size=150&hair=variant10', dataAiHint: 'cartoon boy' },
+  { id: 'db_lor_04', name: 'Lorelei Tone', url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=LoreTone&size=150&mouth=variant02', dataAiHint: 'cartoon smile' },
+  { id: 'db_lor_05', name: 'Lorelei Value', url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=LoreValue&size=150&eyes=variant03', dataAiHint: 'cartoon eyes' },
+  // RoboHash - Set 1 (Robots)
+  { id: 'rh_s1_01', name: 'Robo One', url: 'https://robohash.org/roboone?set=set1&size=150x150', dataAiHint: 'robot design' },
+  { id: 'rh_s1_02', name: 'Robo Two', url: 'https://robohash.org/robotwo?set=set1&size=150x150', dataAiHint: 'robot metallic' },
+  { id: 'rh_s1_03', name: 'Robo Three', url: 'https://robohash.org/robothree?set=set1&size=150x150', dataAiHint: 'robot futuristic' },
+  { id: 'rh_s1_04', name: 'Robo Four', url: 'https://robohash.org/robofour?set=set1&size=150x150', dataAiHint: 'robot headshot' },
+  { id: 'rh_s1_05', name: 'Robo Five', url: 'https://robohash.org/robofive?set=set1&size=150x150', dataAiHint: 'robot face' },
+  // RoboHash - Set 2 (Monsters)
+  { id: 'rh_s2_01', name: 'Monster Uno', url: 'https://robohash.org/monsteruno?set=set2&size=150x150', dataAiHint: 'monster cute' },
+  { id: 'rh_s2_02', name: 'Monster Duo', url: 'https://robohash.org/monsterduo?set=set2&size=150x150', dataAiHint: 'monster friendly' },
+  { id: 'rh_s2_03', name: 'Monster Tres', url: 'https://robohash.org/monstertres?set=set2&size=150x150', dataAiHint: 'monster illustration' },
+  { id: 'rh_s2_04', name: 'Monster Quat', url: 'https://robohash.org/monsterquat?set=set2&size=150x150', dataAiHint: 'monster character' },
+  { id: 'rh_s2_05', name: 'Monster Cinq', url: 'https://robohash.org/monstercinq?set=set2&size=150x150', dataAiHint: 'monster art' },
+  // RoboHash - Set 3 (Robot Heads)
+  { id: 'rh_s3_01', name: 'Head Bot A', url: 'https://robohash.org/headbota?set=set3&size=150x150', dataAiHint: 'robot head' },
+  { id: 'rh_s3_02', name: 'Head Bot B', url: 'https://robohash.org/headbotb?set=set3&size=150x150', dataAiHint: 'robot profile' },
+  { id: 'rh_s3_03', name: 'Head Bot C', url: 'https://robohash.org/headbotc?set=set3&size=150x150', dataAiHint: 'robot illustration' },
+  { id: 'rh_s3_04', name: 'Head Bot D', url: 'https://robohash.org/headbotd?set=set3&size=150x150', dataAiHint: 'robot schematic' },
+  { id: 'rh_s3_05', name: 'Head Bot E', url: 'https://robohash.org/headbote?set=set3&size=150x150', dataAiHint: 'robot simple' },
+  // RoboHash - Set 4 (Kittens)
+  { id: 'rh_s4_01', name: 'Kitten Alpha', url: 'https://robohash.org/kittenalpha?set=set4&size=150x150', dataAiHint: 'kitten cute' },
+  { id: 'rh_s4_02', name: 'Kitten Beta', url: 'https://robohash.org/kittenbeta?set=set4&size=150x150', dataAiHint: 'kitten small' },
+  { id: 'rh_s4_03', name: 'Kitten Gamma', url: 'https://robohash.org/kittengamma?set=set4&size=150x150', dataAiHint: 'kitten playful' },
+  { id: 'rh_s4_04', name: 'Kitten Delta', url: 'https://robohash.org/kittendelta?set=set4&size=150x150', dataAiHint: 'kitten avatar' },
+  { id: 'rh_s4_05', name: 'Kitten Epsilon', url: 'https://robohash.org/kittenepsilon?set=set4&size=150x150', dataAiHint: 'kitten illustration' },
+  // DiceBear - Initials
+  { id: 'db_ini_01', name: 'Initials AP', url: 'https://api.dicebear.com/8.x/initials/svg?seed=AP&size=150', dataAiHint: 'initials logo' },
+  { id: 'db_ini_02', name: 'Initials ZY', url: 'https://api.dicebear.com/8.x/initials/svg?seed=ZY&size=150&backgroundColor=blue', dataAiHint: 'initials colorful' },
+  { id: 'db_ini_03', name: 'Initials TS', url: 'https://api.dicebear.com/8.x/initials/svg?seed=TS&size=150&fontWeight=700', dataAiHint: 'initials bold' },
+  { id: 'db_ini_04', name: 'Initials JK', url: 'https://api.dicebear.com/8.x/initials/svg?seed=JK&size=150&radius=50', dataAiHint: 'initials circle' },
+  { id: 'db_ini_05', name: 'Initials NP', url: 'https://api.dicebear.com/8.x/initials/svg?seed=NP&size=150&chars=1', dataAiHint: 'initials single' },
+  // DiceBear - FunEmoji
+  { id: 'db_fun_01', name: 'Emoji Smile', url: 'https://api.dicebear.com/8.x/fun-emoji/svg?seed=Smile&size=150', dataAiHint: 'emoji happy' },
+  { id: 'db_fun_02', name: 'Emoji Cool', url: 'https://api.dicebear.com/8.x/fun-emoji/svg?seed=Cool&size=150&mouth=variant12', dataAiHint: 'emoji cool' },
+  { id: 'db_fun_03', name: 'Emoji Love', url: 'https://api.dicebear.com/8.x/fun-emoji/svg?seed=Love&size=150&eyes=variant02', dataAiHint: 'emoji love' },
+  { id: 'db_fun_04', name: 'Emoji Wink', url: 'https://api.dicebear.com/8.x/fun-emoji/svg?seed=Wink&size=150&mouth=variant22', dataAiHint: 'emoji wink' },
+  { id: 'db_fun_05', name: 'Emoji Sad', url: 'https://api.dicebear.com/8.x/fun-emoji/svg?seed=Sad&size=150&eyes=variant07', dataAiHint: 'emoji sad' },
+  // Placehold.co - Text based
+  { id: 'ph_cat', name: 'Placeholder Cat', url: 'https://placehold.co/150x150/7B59E0/FFFFFF.png?text=CAT', dataAiHint: 'cat illustration' },
+  { id: 'ph_dog', name: 'Placeholder Dog', url: 'https://placehold.co/150x150/FFA726/FFFFFF.png?text=DOG', dataAiHint: 'dog illustration' },
+  { id: 'ph_owl', name: 'Placeholder Owl', url: 'https://placehold.co/150x150/4CAF50/FFFFFF.png?text=OWL', dataAiHint: 'owl illustration' },
+  { id: 'ph_fox', name: 'Placeholder Fox', url: 'https://placehold.co/150x150/FF7043/FFFFFF.png?text=FOX', dataAiHint: 'fox illustration' },
+  { id: 'ph_bot', name: 'Placeholder Bot', url: 'https://placehold.co/150x150/26A69A/FFFFFF.png?text=BOT', dataAiHint: 'robot simple' },
+
+  // Adding more DiceBear variations to reach 100
+  // Adventurer Neutral
+  { id: 'db_advn_01', name: 'Neutral Explorer', url: 'https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=ExplorerN&size=150', dataAiHint: 'explorer neutral' },
+  { id: 'db_advn_02', name: 'Neutral Pathfinder', url: 'https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=PathfinderN&size=150&glasses=variant01', dataAiHint: 'explorer glasses' },
+  { id: 'db_advn_03', name: 'Neutral Voyager', url: 'https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=VoyagerN&size=150&skinColor=variant01', dataAiHint: 'explorer skin' },
+  { id: 'db_advn_04', name: 'Neutral Scout', url: 'https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=ScoutN&size=150&earrings=variant01', dataAiHint: 'explorer earrings' },
+  { id: 'db_advn_05', name: 'Neutral Ranger', url: 'https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=RangerN&size=150&features=variant01', dataAiHint: 'explorer features' },
+
+  // Big Ears
+  { id: 'db_bear_01', name: 'Big Ears 1', url: 'https://api.dicebear.com/8.x/big-ears/svg?seed=BigEars1&size=150', dataAiHint: 'ears character' },
+  { id: 'db_bear_02', name: 'Big Ears 2', url: 'https://api.dicebear.com/8.x/big-ears/svg?seed=BigEars2&size=150&earringsProbability=100', dataAiHint: 'ears earrings' },
+  { id: 'db_bear_03', name: 'Big Ears 3', url: 'https://api.dicebear.com/8.x/big-ears/svg?seed=BigEars3&size=150&eyes=variant02', dataAiHint: 'ears eyes' },
+  { id: 'db_bear_04', name: 'Big Ears 4', url: 'https://api.dicebear.com/8.x/big-ears/svg?seed=BigEars4&size=150&mouth=variant03', dataAiHint: 'ears mouth' },
+  { id: 'db_bear_05', name: 'Big Ears 5', url: 'https://api.dicebear.com/8.x/big-ears/svg?seed=BigEars5&size=150&hair=variant05', dataAiHint: 'ears hair' },
+
+  // Big Smile
+  { id: 'db_bsml_01', name: 'Big Smile 1', url: 'https://api.dicebear.com/8.x/big-smile/svg?seed=BigSmile1&size=150', dataAiHint: 'smile cartoon' },
+  { id: 'db_bsml_02', name: 'Big Smile 2', url: 'https://api.dicebear.com/8.x/big-smile/svg?seed=BigSmile2&size=150&eyes=variant04', dataAiHint: 'smile eyes' },
+  { id: 'db_bsml_03', name: 'Big Smile 3', url: 'https://api.dicebear.com/8.x/big-smile/svg?seed=BigSmile3&size=150&hair=variant01', dataAiHint: 'smile hair' },
+  { id: 'db_bsml_04', name: 'Big Smile 4', url: 'https://api.dicebear.com/8.x/big-smile/svg?seed=BigSmile4&size=150&skinColor=variant03', dataAiHint: 'smile skin' },
+  { id: 'db_bsml_05', name: 'Big Smile 5', url: 'https://api.dicebear.com/8.x/big-smile/svg?seed=BigSmile5&size=150&accessories=variant01', dataAiHint: 'smile accessory' },
+
+  // Croodles
+  { id: 'db_croo_01', name: 'Croodle Doodle', url: 'https://api.dicebear.com/8.x/croodles/svg?seed=Doodle&size=150', dataAiHint: 'doodle monster' },
+  { id: 'db_croo_02', name: 'Croodle Scribble', url: 'https://api.dicebear.com/8.x/croodles/svg?seed=Scribble&size=150&components=1', dataAiHint: 'doodle simple' },
+  { id: 'db_croo_03', name: 'Croodle Sketch', url: 'https://api.dicebear.com/8.x/croodles/svg?seed=Sketch&size=150&colorful=true', dataAiHint: 'doodle colorful' },
+  { id: 'db_croo_04', name: 'Croodle Blot', url: 'https://api.dicebear.com/8.x/croodles/svg?seed=Blot&size=150&backgroundColor=transparent', dataAiHint: 'doodle transparent' },
+  { id: 'db_croo_05', name: 'Croodle Wisp', url: 'https://api.dicebear.com/8.x/croodles/svg?seed=Wisp&size=150&strokeWidth=3', dataAiHint: 'doodle thick' },
+
+  // Miniavs
+  { id: 'db_mini_01', name: 'Miniav Atom', url: 'https://api.dicebear.com/8.x/miniavs/svg?seed=Atom&size=150', dataAiHint: 'mini avatar' },
+  { id: 'db_mini_02', name: 'Miniav Blob', url: 'https://api.dicebear.com/8.x/miniavs/svg?seed=Blob&size=150&backgroundColor=accent', dataAiHint: 'mini simple' },
+  { id: 'db_mini_03', name: 'Miniav Cub', url: 'https://api.dicebear.com/8.x/miniavs/svg?seed=Cub&size=150&hair=true', dataAiHint: 'mini hair' },
+  { id: 'db_mini_04', name: 'Miniav Dot', url: 'https://api.dicebear.com/8.x/miniavs/svg?seed=Dot&size=150&mouth=true', dataAiHint: 'mini mouth' },
+  { id: 'db_mini_05', name: 'Miniav Elf', url: 'https://api.dicebear.com/8.x/miniavs/svg?seed=Elf&size=150&eyes=true', dataAiHint: 'mini eyes' },
+
+  // Open Peeps
+  { id: 'db_opep_01', name: 'Peep One', url: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=PeepOne&size=150', dataAiHint: 'peep character' },
+  { id: 'db_opep_02', name: 'Peep Two', url: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=PeepTwo&size=150&face=variant02', dataAiHint: 'peep face' },
+  { id: 'db_opep_03', name: 'Peep Three', url: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=PeepThree&size=150&hair=variant03', dataAiHint: 'peep hair' },
+  { id: 'db_opep_04', name: 'Peep Four', url: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=PeepFour&size=150&facialHair=variant01', dataAiHint: 'peep beard' },
+  { id: 'db_opep_05', name: 'Peep Five', url: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=PeepFive&size=150&accessories=variant01', dataAiHint: 'peep accessory' },
+
+  // Personas
+  { id: 'db_pers_01', name: 'Persona A', url: 'https://api.dicebear.com/8.x/personas/svg?seed=PersonaA&size=150', dataAiHint: 'persona male' },
+  { id: 'db_pers_02', name: 'Persona B', url: 'https://api.dicebear.com/8.x/personas/svg?seed=PersonaB&size=150&hair=long', dataAiHint: 'persona female' },
+  { id: 'db_pers_03', name: 'Persona C', url: 'https://api.dicebear.com/8.x/personas/svg?seed=PersonaC&size=150&skinColor=variant02', dataAiHint: 'persona skin' },
+  { id: 'db_pers_04', name: 'Persona D', url: 'https://api.dicebear.com/8.x/personas/svg?seed=PersonaD&size=150&glasses=variant01', dataAiHint: 'persona glasses' },
+  { id: 'db_pers_05', name: 'Persona E', url: 'https://api.dicebear.com/8.x/personas/svg?seed=PersonaE&size=150&facialHair=variant02', dataAiHint: 'persona facialHair' },
+
+  // Pixel Art Neutral
+  { id: 'db_pixn_01', name: 'Pixel Hero', url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=HeroPixN&size=150', dataAiHint: 'pixel hero' },
+  { id: 'db_pixn_02', name: 'Pixel Mage', url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=MagePixN&size=150&hair=variant03', dataAiHint: 'pixel mage' },
+  { id: 'db_pixn_03', name: 'Pixel Rogue', url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=RoguePixN&size=150&accessories=variant01', dataAiHint: 'pixel rogue' },
+  { id: 'db_pixn_04', name: 'Pixel King', url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=KingPixN&size=150&hat=variant01', dataAiHint: 'pixel king' },
+  { id: 'db_pixn_05', name: 'Pixel Queen', url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=QueenPixN&size=150&hat=variant02', dataAiHint: 'pixel queen' },
+
+  // Rings
+  { id: 'db_ring_01', name: 'Ringed Being', url: 'https://api.dicebear.com/8.x/rings/svg?seed=RingBeing&size=150', dataAiHint: 'rings abstract' },
+  { id: 'db_ring_02', name: 'Circle Form', url: 'https://api.dicebear.com/8.x/rings/svg?seed=CircleForm&size=150&mouth=variant02', dataAiHint: 'rings face' },
+  { id: 'db_ring_03', name: 'Orbital Spirit', url: 'https://api.dicebear.com/8.x/rings/svg?seed=OrbitalSpirit&size=150&eyes=variant03', dataAiHint: 'rings eyes' },
+  { id: 'db_ring_04', name: 'Sphere Soul', url: 'https://api.dicebear.com/8.x/rings/svg?seed=SphereSoul&size=150&hair=variant01', dataAiHint: 'rings hair' },
+  { id: 'db_ring_05', name: 'Round Entity', url: 'https://api.dicebear.com/8.x/rings/svg?seed=RoundEntity&size=150&backgroundColor=primary', dataAiHint: 'rings colorful' },
 ];
 
 
@@ -68,12 +193,15 @@ const profileSchema = z.object({
     if (data.newPassword && (!data.currentPassword || !data.confirmNewPassword)) {
         return false; // If new password is set, old and confirm must be set
     }
+    if (data.newPassword && data.newPassword.length < 6) {
+        return false; // New password min length
+    }
     if (data.newPassword !== data.confirmNewPassword) {
         return false; // New passwords must match
     }
     return true;
 }, {
-    message: "If changing password, all password fields are required and new passwords must match.",
+    message: "To change password, all password fields are required. New password must be at least 6 characters and match confirmation.",
     path: ["confirmNewPassword"],
 });
 
@@ -85,7 +213,6 @@ export default function ProfileSettingsPage() {
   const [isGeneralSaving, startGeneralSavingTransition] = useTransition();
   const [isAlarmSaving, startAlarmSavingTransition] = useTransition();
   const [isCountdownSaving, startCountdownSavingTransition] = useTransition();
-  const [isPasswordResetting, startPasswordResetTransition] = useTransition();
   const [isPasswordChanging, startPasswordChangingTransition] = useTransition();
   const [isAvatarSaving, startAvatarSavingTransition] = useTransition();
 
@@ -237,7 +364,7 @@ export default function ProfileSettingsPage() {
   const handleSaveCustomCountdown = async () => {
     if (!userId) return;
     const values = form.getValues();
-    const countdownValidation = profileSchema.safeParse(values); // Check just countdown related fields logic
+    const countdownValidation = profileSchema.safeParse(values); 
     if (!countdownValidation.success && (countdownValidation.error.flatten().fieldErrors.custom_countdown_event_name || countdownValidation.error.flatten().fieldErrors.custom_countdown_target_date)) {
         toast({variant: "destructive", title: "Countdown Error", description: "Both event name and date are required for custom countdown, or leave both empty."});
         return;
@@ -269,12 +396,12 @@ export default function ProfileSettingsPage() {
         form.setError("confirmNewPassword", { type: "manual", message: "" });
         return;
     }
-    if (values.newPassword !== values.confirmNewPassword) {
-        form.setError("confirmNewPassword", { type: "manual", message: "New passwords do not match." });
-        return;
-    }
     if (values.newPassword.length < 6) {
         form.setError("newPassword", { type: "manual", message: "New password must be at least 6 characters."});
+        return;
+    }
+    if (values.newPassword !== values.confirmNewPassword) {
+        form.setError("confirmNewPassword", { type: "manual", message: "New passwords do not match." });
         return;
     }
 
@@ -297,7 +424,7 @@ export default function ProfileSettingsPage() {
   };
   
   const handleAvatarSelect = (avatarUrl: string) => {
-    form.setValue('selectedAvatarUrl', avatarUrl); // Update form state
+    form.setValue('selectedAvatarUrl', avatarUrl); 
   };
 
   const handleSaveAvatar = async () => {
@@ -314,7 +441,7 @@ export default function ProfileSettingsPage() {
                 .update({ avatar_url: selectedAvatarUrl, updated_at: new Date().toISOString() })
                 .eq('id', userId);
             if (error) throw error;
-            setProfileData(prev => prev ? {...prev, avatar_url: selectedAvatarUrl} : null); // Optimistic UI update
+            setProfileData(prev => prev ? {...prev, avatar_url: selectedAvatarUrl} : null); 
             toast({ title: 'Avatar Updated!', description: 'Your new avatar has been saved.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Error saving avatar', description: error.message });
@@ -415,11 +542,11 @@ export default function ProfileSettingsPage() {
         <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-purple-500/10">
             <CardHeader><CardTitle className="flex items-center text-xl font-headline glow-text-purple-400"><UserCircle className="mr-2"/> Choose Your Avatar</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-96 overflow-y-auto p-2 border rounded-md bg-background/20">
                     {sampleAvatars.map(avatar => (
                         <div 
                             key={avatar.id}
-                            className={`p-2 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:opacity-100 hover:shadow-lg ${form.watch('selectedAvatarUrl') === avatar.url ? 'border-primary shadow-primary/40 opacity-100' : 'border-transparent opacity-70'}`}
+                            className={`p-2 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:opacity-100 hover:shadow-lg ${form.watch('selectedAvatarUrl') === avatar.url ? 'border-primary shadow-primary/40 opacity-100 scale-105' : 'border-transparent opacity-70'}`}
                             onClick={() => handleAvatarSelect(avatar.url)}
                         >
                             <Avatar className="h-20 w-20 mx-auto">
@@ -517,3 +644,4 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
+
