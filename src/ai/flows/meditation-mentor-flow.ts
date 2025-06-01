@@ -1,3 +1,4 @@
+
 // src/ai/flows/meditation-mentor-flow.ts
 'use server';
 /**
@@ -11,14 +12,14 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const GenerateMeditationInputSchema = z.object({
+const GenerateMeditationInputSchema = z.object({
   stressLevel: z.number().min(1).max(10).describe('The student\'s current stress level (1=low, 10=high).'),
   durationPreference: z.enum(['1 minute', '3 minutes', '5 minutes']).describe('Preferred duration for the meditation.'),
   focusArea: z.enum(['calm', 'focus', 'motivation', 'exam_prep', 'general_wellbeing']).optional().describe('Optional area to focus the meditation on.'),
 });
 export type GenerateMeditationInput = z.infer<typeof GenerateMeditationInputSchema>;
 
-export const GenerateMeditationOutputSchema = z.object({
+const GenerateMeditationOutputSchema = z.object({
   title: z.string().describe('A suitable title for the guided meditation.'),
   script: z.string().describe('The guided meditation script, formatted with paragraphs or line breaks for easy reading/narration. Should include pauses or cues.'),
 });

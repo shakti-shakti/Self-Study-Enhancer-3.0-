@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, CheckCircle, AlertTriangle, Loader2, Timer } from 'lucide-react'; // Added Timer
+import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info } from 'lucide-react'; // Added Info
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 // import { createClient } from '@/lib/supabase/client'; // For future image saving
 // import type { TablesInsert } from '@/lib/database.types';
