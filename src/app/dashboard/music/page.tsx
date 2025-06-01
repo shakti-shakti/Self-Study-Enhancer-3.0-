@@ -1,12 +1,15 @@
+
 // src/app/dashboard/music/page.tsx
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Music, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Music, Info, Radio, ChevronRight } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 
 // Fixed Spotify Playlist URL for embed
@@ -15,6 +18,7 @@ const SPOTIFY_EMBED_URL = "https://open.spotify.com/embed/playlist/37i9dQZF1DXcB
 export default function MusicPlayerPage() {
   const supabase = createClient();
   const [userId, setUserId] = useState<string|null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
      const getInitialUser = async () => {
@@ -39,6 +43,14 @@ export default function MusicPlayerPage() {
     }
   }, [userId, supabase]);
 
+  const handleConnectSpotify = () => {
+    toast({
+        title: "Connect to Spotify (Future Feature)",
+        description: "Full Spotify integration, allowing you to search and play any song from your account, is planned for a future update. This would require you to authenticate with Spotify.",
+        duration: 7000,
+    });
+  };
+
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
@@ -51,11 +63,28 @@ export default function MusicPlayerPage() {
         </p>
       </header>
 
+      <Card className="interactive-card shadow-xl w-full max-w-xl mx-auto">
+        <CardHeader>
+          <CardTitle className="text-2xl font-headline glow-text-accent">Spotify Integration (Conceptual)</CardTitle>
+           <CardDescription>
+            Connect your Spotify account to search and play any song or playlist.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center">
+            <Button onClick={handleConnectSpotify} className="glow-button text-lg py-3 mb-4">
+                <Radio className="mr-2"/> Connect to Spotify (Future Feature)
+            </Button>
+            <p className="text-xs text-muted-foreground">
+                Connecting will allow personalized music choices. For now, enjoy a curated playlist below.
+            </p>
+        </CardContent>
+      </Card>
+
       <Card className="interactive-card shadow-xl w-full max-w-3xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline glow-text-accent">Embedded Music Player</CardTitle>
+          <CardTitle className="text-2xl font-headline glow-text-accent">Curated Study Playlist</CardTitle>
           <CardDescription>
-            Enjoy music directly within the app. You might need to log in to your music streaming service.
+            Enjoy this playlist. You might need to log in to Spotify within the player.
           </CardDescription>
         </CardHeader>
         <CardContent className="aspect-video">
@@ -77,7 +106,7 @@ export default function MusicPlayerPage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="text-primary font-semibold">Note on Music Player</AlertTitle>
         <AlertDescription>
-            This feature embeds a Spotify player. You may need a Spotify account and to log in within the iframe to access full functionality or your own playlists. The embedded playlist is a public example.
+            The embedded player uses a public Spotify playlist. For full functionality like searching any song or accessing your personal Spotify playlists, a direct Spotify integration (requiring your authentication) would be necessary in a future version.
         </AlertDescription>
     </Alert>
     </div>

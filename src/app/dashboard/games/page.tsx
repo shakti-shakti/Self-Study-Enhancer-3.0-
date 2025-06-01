@@ -1,10 +1,11 @@
+
 // src/app/dashboard/games/page.tsx
 'use client';
 
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird } from 'lucide-react';
+import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird, AlignCenter, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 
 const games = [
@@ -35,6 +36,16 @@ const games = [
     imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Flappy+Brain',
     dataAiHint: 'bird game simple'
   },
+  {
+    id: 'guess-the-number',
+    title: 'Guess the Number (Conceptual)',
+    description: 'A classic number guessing game. The AI thinks of a number, and you try to guess it with hints.',
+    genre: 'Logic / Number Game',
+    icon: <HelpCircle className="h-12 w-12 text-green-500" />,
+    imageUrl: 'https://placehold.co/600x400/4CAF50/FFFFFF.png?text=Guess+It!',
+    dataAiHint: 'number question mark',
+    isConceptual: true,
+  },
 ];
 
 export default function GamesHubPage() {
@@ -56,9 +67,9 @@ export default function GamesHubPage() {
               <Image 
                 src={game.imageUrl} 
                 alt={game.title} 
-                fill // Changed from layout="fill"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Added sizes attribute
-                style={{ objectFit: "cover" }} // Changed from objectFit="cover"
+                fill 
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+                style={{ objectFit: "cover" }} 
                 className="transition-transform duration-500 group-hover:scale-110"
                 data-ai-hint={game.dataAiHint || 'game banner'}
               />
@@ -70,11 +81,17 @@ export default function GamesHubPage() {
             </div>
             <CardContent className="p-6 space-y-4">
               <CardDescription className="text-base text-muted-foreground min-h-[60px]">{game.description}</CardDescription>
-              <Button asChild className="w-full glow-button text-lg py-3">
-                <Link href={`/dashboard/games/${game.id}`}>
-                  <PlayCircle className="mr-2" /> Play Game
-                </Link>
-              </Button>
+              {game.isConceptual ? (
+                 <Button className="w-full text-lg py-3" variant="outline" disabled>
+                    <PlayCircle className="mr-2" /> Play Game (Conceptual)
+                </Button>
+              ) : (
+                <Button asChild className="w-full glow-button text-lg py-3">
+                    <Link href={`/dashboard/games/${game.id}`}>
+                    <PlayCircle className="mr-2" /> Play Game
+                    </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
