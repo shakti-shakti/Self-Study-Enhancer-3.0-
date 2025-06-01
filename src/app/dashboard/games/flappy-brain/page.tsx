@@ -90,8 +90,12 @@ export default function FlappyBrainPage() {
     const gameLoop = () => {
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       
-      ctx.fillStyle = 'hsl(var(--primary)/0.1)';
+      // Explicitly draw background
+      // Use a light color for better visibility, can be themed later
+      const themedBackgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || 'hsl(240 17% 94%)'; // Fallback to a light default
+      ctx.fillStyle = themedBackgroundColor;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
 
       if (gameState === 'playing') {
         birdVelocity.current += GRAVITY;
@@ -148,19 +152,25 @@ export default function FlappyBrainPage() {
         }
       }
 
-      ctx.fillStyle = 'hsl(var(--accent))';
+      // Draw Pipes
+      const pipeColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || 'hsl(209 50% 50%)';
+      ctx.fillStyle = pipeColor;
       pipes.current.forEach(pipe => {
         ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y); 
         ctx.fillRect(pipe.x, pipe.y + pipe.gap, PIPE_WIDTH, CANVAS_HEIGHT - (pipe.y + pipe.gap));
       });
       
+      // Draw Bird
+      const birdColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || 'hsl(298 42% 50%)';
       ctx.beginPath();
       ctx.arc(BIRD_X, birdY.current, BIRD_SIZE / 2, 0, Math.PI * 2);
-      ctx.fillStyle = 'hsl(var(--primary))';
+      ctx.fillStyle = birdColor;
       ctx.fill();
       ctx.closePath();
       
-      ctx.fillStyle = 'hsl(var(--foreground))';
+      // Draw Score
+      const textColor = getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim() || 'hsl(275 10% 20%)';
+      ctx.fillStyle = textColor;
       ctx.font = '20px var(--font-headline)';
       ctx.textAlign = 'left';
       ctx.fillText(`Score: ${score}`, 10, 30);
@@ -169,22 +179,24 @@ export default function FlappyBrainPage() {
 
 
       if (gameState === 'gameOver') {
-        ctx.fillStyle = 'hsl(var(--destructive-foreground))';
+        const destructiveColor = getComputedStyle(document.documentElement).getPropertyValue('--destructive').trim() || 'hsl(0 70% 60%)';
+        ctx.fillStyle = destructiveColor;
         ctx.textAlign = 'center';
         ctx.font = '36px var(--font-headline)';
         ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+        ctx.fillStyle = textColor; // Reset to default text color
         ctx.font = '24px var(--font-headline)';
         ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 10);
         if (score === highScore && score > 0) {
-           ctx.fillStyle = 'hsl(var(--primary))';
+           ctx.fillStyle = birdColor; // Use primary color for high score message
            ctx.font = '20px var(--font-headline)';
            ctx.fillText('New High Score!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
         }
-        ctx.fillStyle = 'hsl(var(--muted-foreground))';
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted-foreground').trim() || 'hsl(275 8% 40%)';
         ctx.font = '16px var(--font-body)';
         ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
       } else if (gameState === 'idle') {
-        ctx.fillStyle = 'hsl(var(--foreground))';
+        ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
         ctx.font = '24px var(--font-headline)';
         ctx.fillText('Click or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
@@ -198,13 +210,13 @@ export default function FlappyBrainPage() {
     if (gameState === 'playing' || gameState === 'idle') {
       animationFrameId = requestAnimationFrame(gameLoop);
     } else if (gameState === 'gameOver') {
-       gameLoop();
+       gameLoop(); // Draw one last time to show game over screen
     }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [gameState, score, highScore]);
+  }, [gameState, score, highScore]); // Added theme-related dependencies if needed
 
   const handleCanvasClick = () => {
     if (gameState === 'playing') {
@@ -225,7 +237,7 @@ export default function FlappyBrainPage() {
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]);
+  }, [gameState]); // Dependency on gameState ensures listener behaves correctly based on current state
 
   return (
     <div className="flex flex-col items-center space-y-6">

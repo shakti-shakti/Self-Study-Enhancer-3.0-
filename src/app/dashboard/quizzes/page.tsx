@@ -1,4 +1,3 @@
-
 // src/app/dashboard/quizzes/page.tsx
 'use client';
 
@@ -36,15 +35,17 @@ import { explainQuizQuestion, type ExplainQuizQuestionInput } from '@/ai/flows/c
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// DEVELOPER NOTE: This is SAMPLE syllabus data. For full functionality, 
-// this object MUST be populated by YOU (the developer) with the complete and accurate 
-// NCERT syllabus for all relevant classes, subjects, chapters, and topics.
-// The structure below demonstrates how to organize it.
-// I have expanded Physics Class 11 to show more detail as an example.
+// #####################################################################################
+// # DEVELOPER NOTE: THIS IS **SAMPLE** SYLLABUS DATA.                               #
+// # For full functionality, this object **MUST BE POPULATED BY YOU** (the developer)  #
+// # with the complete and accurate NCERT syllabus for all relevant classes, subjects, #
+// # chapters, and topics. The UI will dynamically reflect what is defined here.       #
+// # I have expanded Physics Class 11, and parts of Chemistry & Biology Class 11       #
+// # to show a more detailed structure as an example.                                  #
+// #####################################################################################
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   '11': {
     'Physics': {
-      // Class 11 Physics - Part I
       'Chapter 1: Physical World': ['Scope and excitement of Physics', 'Nature of physical laws', 'Physics, technology and society', 'Fundamental forces in nature'],
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
@@ -99,7 +100,6 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         'Statement of perpendicular axes theorem and its applications'
       ],
       'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
-      // Class 11 Physics - Part II
       'Chapter 9: Mechanical Properties of Solids': ['Elastic behaviour, Stress-strain relationship, Hooke\'s law, Young\'s modulus, bulk modulus, shear modulus of rigidity, Poisson\'s ratio; elastic energy.'],
       'Chapter 10: Mechanical Properties of Fluids': ['Pressure due to a fluid column; Pascal\'s law and its applications (hydraulic lift and hydraulic brakes)', 'Effect of gravity on fluid pressure', 'Viscosity, Stokes\' law, terminal velocity, streamline and turbulent flow, critical velocity, Bernoulli\'s theorem and its applications', 'Surface energy and surface tension, angle of contact, excess of pressure across a curved surface, application of surface tension ideas to drops, bubbles and capillary rise.'],
       'Chapter 11: Thermal Properties of Matter': ['Heat, temperature, thermal expansion; thermal expansion of solids, liquids and gases', 'Anomalous expansion of water; specific heat capacity: Cp, Cv - calorimetry; change of state - latent heat capacity', 'Heat transfer-conduction, convection and radiation, thermal conductivity, qualitative ideas of Blackbody radiation, Wein\'s displacement Law, Stefan\'s law, Greenhouse effect.'],
@@ -137,7 +137,24 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         'Electronic Configuration of Atoms', 
         'Stability of Completely Filled and Half Filled Subshells'
       ],
-      'Chapter 3: Classification of Elements': ['Significance of classification', 'Brief history of the development of periodic table', 'Modern periodic law and the present form of periodic table', 'Periodic trends in properties of elements - atomic radii, ionic radii, inert gas radii, ionization enthalpy, electron gain enthalpy, electronegativity, valency'],
+      'Chapter 3: Classification of Elements and Periodicity in Properties': [
+        'Significance of Classification',
+        'Genesis of Periodic Classification: Dobereiner’s Triads, Newlands Law of Octaves',
+        'Periodic Table of Elements (Mendeleev Periodic Table): Mendeleev\'s Periodic Law, Merits and Demerits',
+        'Modern Periodic Law and the Present Form of the Periodic Table',
+        'Nomenclature of Elements with Atomic Number > 100',
+        'Electronic Configurations of Elements and the Periodic Table',
+        'Electronic Configurations and Types of Elements: s-, p-, d-, f- Blocks',
+        'Periodic Trends in Properties of Elements: Atomic Radius (Covalent, van der Waals, Metallic, Ionic)',
+        'Ionization Enthalpy: Factors affecting, successive ionization enthalpies',
+        'Electron Gain Enthalpy: Factors affecting',
+        'Electronegativity: Pauling scale, factors affecting',
+        'Periodic Trends in Chemical Properties: Periodicity of Valence or Oxidation States',
+        'Anomalous Properties of Second Period Elements',
+        'Diagonal Relationship',
+        'Periodic Trends and Chemical Reactivity'
+      ],
+      // Add more Chemistry Class 11 chapters and topics here
     },
     'Botany': {
         'Chapter 1: The Living World (Botany Focus)': ['What is living?', 'Diversity in the living world', 'Taxonomic categories', 'Taxonomical aids', 'Herbarium, Botanical gardens, Museum, Zoological parks, Key'],
@@ -159,6 +176,7 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
             'Nucleus: Nuclear envelope, Nucleolus, Chromatin, Chromosomes',
             'Microbodies: Peroxisomes, Glyoxysomes'
         ],
+        // Add more Botany Class 11 chapters and topics here
     },
     'Zoology': {
         'Chapter 1: Animal Kingdom (Zoology Focus)': ['Basis of Classification', 'Levels of Organisation', 'Symmetry', 'Diploblastic and Triploblastic Organisation', 'Coelom', 'Segmentation', 'Notochord', 'Classification of Animals'],
@@ -173,24 +191,29 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
             'Cockroach: Morphology (external features, head, thorax, abdomen, appendages), Anatomy (digestive system, circulatory system, respiratory system, excretory system, nervous system, reproductive system - brief account)',
             'Frog: Morphology (external features, skin, head, trunk), Anatomy (digestive system, respiratory system, circulatory system, excretory system, nervous system, sense organs, reproductive system - brief account)'
         ],
+        // Add more Zoology Class 11 chapters and topics here
     }
   },
   '12': {
     'Physics': {
       'Chapter 1: Electric Charges and Fields': ['Electric Charge', 'Conductors and Insulators', 'Basic properties of electric charge: additivity, quantisation, conservation', 'Coulomb\'s Law', 'Forces between multiple charges', 'Superposition principle', 'Continuous charge distribution', 'Electric Field', 'Electric field due to a point charge', 'Electric field lines', 'Electric dipole, electric field due to a dipole', 'Torque on a dipole in uniform electric field', 'Electric flux', 'Statement of Gauss\'s theorem and its applications to find field due to infinitely long straight wire, uniformly charged infinite plane sheet and uniformly charged thin spherical shell (field inside and outside)'],
       'Chapter 2: Electrostatic Potential and Capacitance': ['Electrostatic Potential', 'Potential due to a Point Charge, a dipole and system of charges', 'Equipotential surfaces', 'Electrical potential energy of a system of two point charges and of electric dipoles in an external field', 'Conductors and insulators, free charges and bound charges inside a conductor', 'Dielectrics and electric polarisation, capacitors and capacitance, combination of capacitors in series and in parallel', 'Capacitance of a parallel plate capacitor with and without dielectric medium between the plates, energy stored in a capacitor'],
+      // Add more Physics Class 12 chapters and topics here
     },
     'Chemistry': {
         'Chapter 1: The Solid State': ['Classification of solids based on different binding forces: molecular, ionic, covalent and metallic solids, amorphous and crystalline solids (elementary idea)', 'Unit cell in two dimensional and three dimensional lattices, calculation of density of unit cell, packing in solids, packing efficiency, voids, number of atoms per unit cell in a cubic unit cell, point defects, electrical and magnetic properties', 'Band theory of metals, conductors, semiconductors and insulators and n and p type semiconductors'],
         'Chapter 2: Solutions': ['Types of solutions, expression of concentration of solutions of solids in liquids, solubility of gases in liquids, solid solutions, colligative properties - relative lowering of vapour pressure, Raoult\'s law', 'Elevation of boiling point, depression of freezing point, osmotic pressure, determination of molecular masses using colligative properties, abnormal molecular mass, Van\'t Hoff factor'],
+        // Add more Chemistry Class 12 chapters and topics here
     },
     'Botany': {
         'Chapter 1: Reproduction in Organisms (Botany Focus)': ['Asexual Reproduction: Binary fission, Sporulation, Budding, Gemmule, Fragmentation, Vegetative propagation', 'Sexual Reproduction'],
         'Chapter 2: Sexual Reproduction in Flowering Plants': ['Flower - A Fascinating Organ of Angiosperms', 'Pre-fertilisation: Structures and Events', 'Double Fertilisation', 'Post-fertilisation: Structures and Events', 'Apomixis and Polyembryony'],
+        // Add more Botany Class 12 chapters and topics here
     },
     'Zoology': {
          'Chapter 1: Human Reproduction (Zoology Focus)': ['The Male Reproductive System', 'The Female Reproductive System', 'Gametogenesis', 'Menstrual Cycle', 'Fertilisation and Implantation', 'Pregnancy and Embryonic Development', 'Parturition and Lactation'],
          'Chapter 3: Human Health and Disease': ['Common Diseases in Humans', 'Immunity', 'AIDS, Cancer, Drugs and Alcohol Abuse'],
+         // Add more Zoology Class 12 chapters and topics here
     }
   }
 };
@@ -356,7 +379,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: null, // This field is not inserted into DB per previous corrections
+            topic: null, 
             source: values.question_source || null,
             neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
@@ -858,5 +881,3 @@ export default function QuizzesPage() {
     </div>
   );
 }
-
-    
