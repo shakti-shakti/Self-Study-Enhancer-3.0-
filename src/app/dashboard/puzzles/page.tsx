@@ -1,4 +1,3 @@
-
 // src/app/dashboard/puzzles/page.tsx
 'use client';
 
@@ -10,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Puzzle, Brain, Calculator, Palette, ChevronRight, Lock, Coins, KeyRound, Eye, MessageSquare, Lightbulb, FlaskConical, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as apiClient from '@/lib/apiClient'; 
-import Link from 'next/link'; // Import Link
+import Link from 'next/link';
 
 interface PuzzleItem {
   id: string;
@@ -25,45 +24,46 @@ interface PuzzleItem {
 
 const initialPuzzlesList: PuzzleItem[] = [
   // Logic Puzzles
-  { id: 'logic_001', name: 'The Bridge Crossing Riddle', level_hint: "Intermediate", category: 'Logic Puzzles', description: 'Four people need to cross a bridge at night with one flashlight. Can you figure out the fastest way?', locked: false },
-  { id: 'logic_002', name: 'Knights and Knaves', level_hint: "Intermediate", category: 'Logic Puzzles', description: 'On an island of knights (always tell truth) and knaves (always lie), determine who is who based on their statements.', locked: false }, // Default unlocked for testing
-  { id: 'logic_003', name: 'Einstein\'s Riddle (Zebra Puzzle)', level_hint: "Expert", category: 'Logic Puzzles', description: 'A classic logic grid puzzle attributed to Einstein. Who owns the zebra?', locked: true, unlock_cost_coins: 100, is_password_unlockable: true },
-  { id: 'logic_004', name: 'The Missing Symbol', level_hint: "Beginner", category: 'Logic Puzzles', description: 'Find the logical operator that completes the sequence: A ? B = C.', locked: false }, // Default unlocked for testing
+  { id: 'logic_001', name: 'The Bridge Crossing Riddle', level_hint: "Intermediate", category: 'Logic Puzzles', description: 'Four people need to cross a bridge at night with one flashlight. Can you figure out the fastest way?', locked: true, unlock_cost_coins: 50 },
+  { id: 'logic_002', name: 'Knights and Knaves', level_hint: "Intermediate", category: 'Logic Puzzles', description: 'On an island of knights (always tell truth) and knaves (always lie), determine who is who based on their statements.', locked: false },
+  { id: 'logic_003', name: "Einstein's Riddle (Zebra Puzzle)", level_hint: "Expert", category: 'Logic Puzzles', description: 'A classic logic grid puzzle attributed to Einstein. Who owns the zebra?', locked: true, unlock_cost_coins: 100, is_password_unlockable: true },
+  { id: 'logic_004', name: 'The Missing Symbol', level_hint: "Beginner", category: 'Logic Puzzles', description: 'Find the logical operator that completes the sequence: A ? B = C.', locked: false },
   { id: 'logic_005', name: 'River Crossing Puzzle', level_hint: "Intermediate", category: 'Logic Puzzles', description: 'Get the farmer, wolf, goat, and cabbage across the river safely.', locked: true, unlock_cost_coins: 60, is_password_unlockable: true },
 
   // Mathematical Challenges
-  { id: 'math_001', name: 'The Sequence Solver', level_hint: "Beginner", category: 'Mathematical Challenges', description: 'Find the next number in this perplexing sequence: 1, 1, 2, 3, 5, 8, ?', locked: false }, // Default unlocked for testing
+  { id: 'math_001', name: 'The Sequence Solver', level_hint: "Beginner", category: 'Mathematical Challenges', description: 'Find the next number in this perplexing sequence: 1, 1, 2, 3, 5, 8, ?', locked: false },
   { id: 'math_002', name: 'Diophantine Dilemma', level_hint: "Expert", category: 'Mathematical Challenges', description: 'Find integer solutions to a classic Diophantine equation.', locked: true, unlock_cost_coins: 75, is_password_unlockable: true },
-  { id: 'math_003', name: 'The Tower of Hanoi', level_hint: "Intermediate", category: 'Mathematical Challenges', description: 'Move the stack of disks to another peg with minimal moves.', locked: false },
+  { id: 'math_003', name: 'The Tower of Hanoi', level_hint: "Intermediate", category: 'Mathematical Challenges', description: 'Move the stack of disks to another peg with minimal moves.', locked: true, unlock_cost_coins: 40 },
   { id: 'math_004', name: 'Probability Paradox', level_hint: "Intermediate", category: 'Mathematical Challenges', description: 'Solve the Monty Hall problem conceptually.', locked: true, unlock_cost_coins: 60 },
   { id: 'math_005', name: 'Cryptarithmetic Challenge', level_hint: "Expert", category: 'Mathematical Challenges', description: 'Solve a puzzle where letters represent digits (e.g., SEND + MORE = MONEY).', locked: true, unlock_cost_coins: 90 },
   
   // Creative Conundrums
-  { id: 'creative_001', name: 'Alternative Uses', level_hint: "Beginner", category: 'Creative Conundrums', description: 'List as many alternative uses for a common brick as you can in 2 minutes.', locked: false }, // Default unlocked for testing
+  { id: 'creative_001', name: 'Alternative Uses', level_hint: "Beginner", category: 'Creative Conundrums', description: 'List as many alternative uses for a common paperclip as you can in 2 minutes.', locked: false },
   { id: 'creative_002', name: 'Story Spark', level_hint: "Intermediate", category: 'Creative Conundrums', description: 'Write a compelling short story (max 100 words) based on three random words: Dragon, Coffee, Starlight.', locked: true, unlock_cost_coins: 30 },
-  { id: 'creative_003', name: 'Rebus Rally', level_hint: "Beginner", category: 'Creative Conundrums', description: 'Decipher picture-based word puzzles.', locked: false},
+  { id: 'creative_003', name: 'Rebus Rally', level_hint: "Beginner", category: 'Creative Conundrums', description: 'Decipher picture-based word puzzles.', locked: true, unlock_cost_coins: 20},
   { id: 'creative_004', name: 'Concept Mashup', level_hint: "Expert", category: 'Creative Conundrums', description: 'Combine two unrelated scientific concepts into a novel invention idea.', locked: true, unlock_cost_coins: 50, is_password_unlockable: true },
   { id: 'creative_005', name: 'Unusual Invention Design', level_hint: "Intermediate", category: 'Creative Conundrums', description: 'Design an invention to solve a very specific, unusual problem.', locked: true, unlock_cost_coins: 40 },
 
   // Conceptual Puzzles (NEET-related)
-  { id: 'conceptual_phy_001', name: 'Vector Voyage', level_hint: "Beginner", category: 'Conceptual Puzzles (NEET Focus)', description: 'A ship sails 3km East, then 4km North. What is its displacement? (Solve conceptually)', locked: false }, // Default unlocked for testing
+  { id: 'conceptual_phy_001', name: 'Vector Voyage', level_hint: "Beginner", category: 'Conceptual Puzzles (NEET Focus)', description: 'A ship sails 3km East, then 4km North. What is its displacement? (Solve conceptually)', locked: false },
   { id: 'conceptual_chem_001', name: 'Balancing Act', level_hint: "Intermediate", category: 'Conceptual Puzzles (NEET Focus)', description: 'Conceptually balance the chemical equation: CH4 + O2 -> CO2 + H2O.', locked: true, unlock_cost_coins: 40, is_password_unlockable: true },
-  { id: 'conceptual_bio_001', name: 'Genetic Code Cracker', level_hint: "Intermediate", category: 'Conceptual Puzzles (NEET Focus)', description: 'Given a DNA sequence, determine the mRNA and corresponding amino acid sequence using a conceptual codon chart.', locked: false},
+  { id: 'conceptual_bio_001', name: 'Genetic Code Cracker', level_hint: "Intermediate", category: 'Conceptual Puzzles (NEET Focus)', description: 'Given a DNA sequence, determine the mRNA and corresponding amino acid sequence using a conceptual codon chart.', locked: true, unlock_cost_coins: 50},
   { id: 'conceptual_phy_002', name: 'Energy Transformation', level_hint: "Intermediate", category: 'Conceptual Puzzles (NEET Focus)', description: 'Describe the energy transformations in a hydroelectric dam from water reservoir to electricity.', locked: true, unlock_cost_coins: 65},
   { id: 'conceptual_chem_002', name: 'Ideal Gas Law Scenario', level_hint: "Expert", category: 'Conceptual Puzzles (NEET Focus)', description: 'Explain how changing pressure affects volume and temperature for an ideal gas, given certain conditions.', locked: true, unlock_cost_coins: 70, is_password_unlockable: true },
 
   // Visual Puzzles
-  { id: 'visual_001', name: 'Spot the Difference', level_hint: "Beginner", category: 'Visual Puzzles', description: 'Find all the differences between two seemingly identical images.', locked: false }, // Default unlocked for testing
+  { id: 'visual_001', name: 'Spot the Difference', level_hint: "Beginner", category: 'Visual Puzzles', description: 'Find all the differences between two seemingly identical images.', locked: false },
   { id: 'visual_002', name: 'Optical Illusion Analysis', level_hint: "Intermediate", category: 'Visual Puzzles', description: 'Explain the principles behind a famous optical illusion.', locked: true, unlock_cost_coins: 60 },
-  { id: 'visual_003', name: 'Pattern Recognition', level_hint: "Intermediate", category: 'Visual Puzzles', description: 'Identify the next shape in a complex visual sequence.', locked: false },
+  { id: 'visual_003', name: 'Pattern Recognition', level_hint: "Intermediate", category: 'Visual Puzzles', description: 'Identify the next shape in a complex visual sequence.', locked: true, unlock_cost_coins: 30 },
   { id: 'visual_004', name: 'Hidden Object Hunt', level_hint: "Beginner", category: 'Visual Puzzles', description: 'Find a list of hidden objects within a cluttered image.', locked: true, unlock_cost_coins: 35 },
 
   // Word Puzzles
-  { id: 'word_001', name: 'Anagram Hunt (Science)', level_hint: "Beginner", category: 'Word Puzzles', description: 'Unscramble these NEET-related terms: HPOYSCIT, GEBYOOLI, HRTYSMICE.', locked: false }, // Default unlocked for testing
+  { id: 'word_001', name: 'Anagram Hunt (Science)', level_hint: "Beginner", category: 'Word Puzzles', description: 'Unscramble these NEET-related terms: HPOYSCIT, GEBYOOLI, HRTYSMICE.', locked: false },
   { id: 'word_002', name: 'Crossword Challenge (Bio)', level_hint: "Intermediate", category: 'Word Puzzles', description: 'Complete a mini-crossword with biological clues.', locked: true, unlock_cost_coins: 45, is_password_unlockable: true },
   { id: 'word_003', name: 'Scientific Term Origin', level_hint: "Expert", category: 'Word Puzzles', description: 'Guess the etymology of a complex scientific term.', locked: true, unlock_cost_coins: 55 },
-  { id: 'word_004', name: 'Missing Vowels (Chemistry)', level_hint: "Beginner", category: 'Word Puzzles', description: 'Fill in the missing vowels for common chemical compound names (e.g., S_LF_R_C _C_D).', locked: false }, // Default unlocked for testing
+  { id: 'word_004', name: 'Missing Vowels (Chemistry)', level_hint: "Beginner", category: 'Word Puzzles', description: 'Fill in the missing vowels for common chemical compound names (e.g., S_LF_R_C _C_D).', locked: false },
 ];
+
 
 const puzzleCategories = [
   { id: 'logic', name: 'Logic Puzzles', icon: <Brain className="h-8 w-8 text-primary" />, description: "Test your reasoning and deduction skills." },
@@ -90,12 +90,13 @@ export default function PuzzleDashboardPage() {
     
     setPuzzles(prevPuzzles => 
       prevPuzzles.map(puzzle => {
-        // A puzzle is locked if it has a cost or is password unlockable AND its ID is NOT in unlockedIds
-        // Puzzles with no unlock_cost_coins AND no is_password_unlockable are considered initially free (locked: false)
         const needsUnlockMechanic = !!puzzle.unlock_cost_coins || !!puzzle.is_password_unlockable;
+        // If no unlock mechanic defined, it defaults to its initial `locked` status (which for many is false).
+        // If it HAS an unlock mechanic, then its locked status is determined by whether its ID is in unlockedIds.
+        const isEffectivelyLocked = needsUnlockMechanic ? !unlockedIds.includes(puzzle.id) : puzzle.locked;
         return {
           ...puzzle,
-          locked: needsUnlockMechanic ? !unlockedIds.includes(puzzle.id) : puzzle.locked, // Retain original `locked` if no mechanic
+          locked: isEffectivelyLocked,
         };
       })
     );
@@ -212,9 +213,9 @@ export default function PuzzleDashboardPage() {
                                 </AlertDialogContent>
                             </AlertDialog>
                           )}
-                          {!puzzle.unlock_cost_coins && !puzzle.is_password_unlockable && puzzle.locked && ( // Only show if truly locked by progression
+                          {!puzzle.unlock_cost_coins && !puzzle.is_password_unlockable && puzzle.locked && ( 
                              <Button size="sm" className="w-full" disabled>
-                                <Lock className="mr-1 h-4 w-4"/> Locked (Progression)
+                                <Lock className="mr-1 h-4 w-4"/> Locked (Story Progression)
                             </Button>
                            )}
                         </div>
@@ -242,4 +243,3 @@ export default function PuzzleDashboardPage() {
   );
 }
 
-    
