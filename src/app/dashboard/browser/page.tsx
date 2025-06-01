@@ -6,14 +6,14 @@ import React, { useState, useRef, useTransition, useCallback, useEffect } from '
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Globe, Search, Home, Info, Youtube, BookOpen, ExternalLink, Loader2, ServerCrash, EyeOff } from 'lucide-react';
+import { Globe, Search, Home, Info, Youtube, BookOpen, ExternalLink, Loader2, ServerCrash, Eye } from 'lucide-react'; // Added Eye icon
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { googleSearch, type GoogleSearchOutput, type SearchResultItem } from '@/ai/flows/google-search-flow';
 import { useToast } from '@/hooks/use-toast';
 
 const YOUTUBE_URL = "https://www.youtube.com";
 const NCERT_BOOKS_URL = "https://ncert.nic.in/textbook.php";
-const GOOGLE_HOME_URL = "https://www.google.com/webhp?igu=1"; // igu=1 attempts to bypass some embedding restrictions for Google homepage
+const GOOGLE_HOME_URL = "https://www.google.com/webhp?igu=1";
 
 const isPotentiallyValidUrl = (string: string): boolean => {
   try {
@@ -22,11 +22,8 @@ const isPotentiallyValidUrl = (string: string): boolean => {
       new URL(s);
       return true;
     }
-    // Check for domain-like structure (e.g., example.com) without protocol
     if (s.includes('.') && !s.includes(' ') && !s.startsWith('/') && s.length > 3) {
-       // Further refinement could be added, but for this basic check, it's a potential URL
-       // Let's assume https for these cases when actually forming the URL.
-       new URL(`https://${s}`);
+       new URL(`https://${s}`); // Assume https for domain-like strings
        return true;
     }
   } catch (_) {
@@ -55,17 +52,17 @@ export default function InAppBrowserPage() {
       if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
         fullUrl = `https://${fullUrl}`;
       }
-      new URL(fullUrl); // Validate URL structure
+      new URL(fullUrl); 
       setCurrentDisplayUrl(fullUrl);
       setIsLoadingIframe(true); 
     } catch (e) {
       console.error("Invalid URL for iframe:", url, e);
-      setCurrentDisplayUrl("/iframe-error.html");
+      setCurrentDisplayUrl("/iframe-error.html"); 
       setIsLoadingIframe(false);
       toast({
         variant: "destructive",
         title: "Invalid URL",
-        description: `The address "${url}" is not a valid URL to load.`,
+        description: `The address "${url}" is not a valid URL to load in the iframe.`,
       });
     }
   }, [toast]);
@@ -77,14 +74,14 @@ export default function InAppBrowserPage() {
       return;
     }
     
-    setSearchResults([]); 
+    setSearchResults([]);
 
     if (isPotentiallyValidUrl(trimmedInput)) {
       setSafeCurrentDisplayUrl(trimmedInput);
     } else {
-      setCurrentDisplayUrl(null); 
+      setSafeCurrentDisplayUrl(null); 
       startSearchTransition(async () => {
-        setIsLoadingIframe(false); // Ensure iframe loading stops if it was active
+        setIsLoadingIframe(false);
         try {
           const result: GoogleSearchOutput = await googleSearch({ query: trimmedInput, numResults: 7 });
           if (result.error) {
@@ -94,7 +91,6 @@ export default function InAppBrowserPage() {
             setSearchResults(result.items);
           } else {
             toast({ title: "No Results", description: `Your search for "${trimmedInput}" returned no results.` });
-            setSafeCurrentDisplayUrl(null); // Keep iframe clear
           }
         } catch (e: any) {
           toast({ variant: 'destructive', title: "Search Request Failed", description: e.message || "Could not connect to search service." });
@@ -105,7 +101,7 @@ export default function InAppBrowserPage() {
   };
 
   const loadUrlInIframe = (url: string) => {
-    setSearchResults([]); 
+    setSearchResults([]);
     setSafeCurrentDisplayUrl(url);
     setInputUrlOrQuery(url); 
   };
@@ -119,15 +115,20 @@ export default function InAppBrowserPage() {
       goHome();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []);
 
   const handleIframeLoad = () => setIsLoadingIframe(false);
-  const handleIframeError = () => { // This catches general network errors for iframe, not X-Frame-Options
+  const handleIframeError = (e: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
     setIsLoadingIframe(false);
-    // The setSafeCurrentDisplayUrl already sets /iframe-error.html for invalid URLs passed to it.
-    // This error handler is a fallback for other iframe load issues.
-    // toast({variant: "destructive", title: "Content Load Error", description: "The requested content could not be loaded in the app window. Some sites prevent embedding."});
-    // No need to explicitly set /iframe-error.html here again if setSafeCurrentDisplayUrl handles it.
+    // Note: X-Frame-Options errors don't reliably trigger onError. Browser handles them.
+    // This error handler is more for network issues or truly malformed src.
+    // We set to iframe-error.html if setSafeCurrentDisplayUrl detected an issue before loading.
+    if(currentDisplayUrl && currentDisplayUrl !== "/iframe-error.html") {
+        console.warn("Iframe loading error for:", currentDisplayUrl, e);
+        // Don't toast here if setSafeCurrentDisplayUrl already toasted.
+        // Optionally, if currentDisplayUrl is NOT already the error page, set it.
+        // setCurrentDisplayUrl("/iframe-error.html"); 
+    }
   };
 
   return (
@@ -137,7 +138,7 @@ export default function InAppBrowserPage() {
           <Globe className="mr-4 h-10 w-10" /> Web Explorer
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Enter a URL to view in-app, or search the web. Some sites may prevent embedding.
+          Search or enter a URL to view in-app. External sites may prevent embedding.
         </p>
       </header>
 
@@ -154,7 +155,7 @@ export default function InAppBrowserPage() {
               className="flex-1 h-10 input-glow"
             />
             <Button onClick={handleNavigate} className="glow-button" disabled={isSearching || isLoadingIframe}>
-                {(isSearching && !isLoadingIframe) || isLoadingIframe ? <Loader2 className="animate-spin h-5 w-5"/> : <Search className="mr-1 sm:mr-2 h-5 w-5"/>}
+                {isSearching || isLoadingIframe ? <Loader2 className="animate-spin h-5 w-5"/> : <Search className="mr-1 sm:mr-2 h-5 w-5"/>}
                 <span className="hidden sm:inline">Go</span>
             </Button>
           </div>
@@ -222,9 +223,9 @@ export default function InAppBrowserPage() {
               ) : (
                 <div className="flex flex-col justify-center items-center h-full text-center p-8">
                   <Globe className="h-24 w-24 text-muted-foreground/30 mb-6" />
-                  <p className="text-2xl text-muted-foreground">Enter a URL or search query above.</p>
+                  <p className="text-2xl text-muted-foreground">Search or enter a URL above.</p>
                   <p className="text-md text-muted-foreground/70 mt-2">
-                    Use quick links or type an address like "wikipedia.org" to browse.
+                    Use quick links or type an address like "wikipedia.org" to browse in-app.
                   </p>
                 </div>
               )
@@ -236,7 +237,7 @@ export default function InAppBrowserPage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary">Web Explorer Usage</AlertTitle>
         <AlertDescription>
-            Direct URLs and quick links attempt to load in this window. Clicking search results will also attempt to load in this window. Some websites may prevent in-app embedding and show a "refused to connect" error or a blank page.
+            Direct URLs and quick links attempt to load in this window. Clicking search results will also attempt to load in this window. Some websites may prevent in-app embedding and show a "refused to connect" error or a blank page within the frame.
         </AlertDescription>
       </Alert>
     </div>
