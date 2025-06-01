@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Tables, TablesInsert } from '@/lib/database.types'; // Removed UserGameProgress, GameSpecificState as they are not used here
+import type { Tables, TablesInsert, UserGameProgress, GameSpecificState } from '@/lib/database.types'; // Added UserGameProgress and GameSpecificState for potential future use
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -165,6 +165,7 @@ export default function ChallengesPage() {
     }
 
     startTransition(async () => {
+      let scoreUpdateSuccessful = true;
         const { error: updateError } = await supabase
             .from('user_missions')
             .update({ status: 'completed', current_progress: mission.target_value, completed_at: new Date().toISOString() })
@@ -181,7 +182,17 @@ export default function ChallengesPage() {
             p_score_increment: mission.reward_points, 
             p_period: 'all_time' 
         });
-        if (scoreError) console.error("Error updating score via RPC:", scoreError);
+
+        if (scoreError) {
+          console.error("Error updating score via RPC:", scoreError);
+          scoreUpdateSuccessful = false;
+          toast({
+            variant: "destructive",
+            title: "Leaderboard Score Error",
+            description: "Could not update leaderboard score. The RPC 'increment_leaderboard_score' might not be set up in Supabase or there was an issue. Mission status updated.",
+            duration: 7000,
+          });
+        }
 
 
         if (mission.badge_id_reward) {
@@ -211,10 +222,11 @@ export default function ChallengesPage() {
 
         toast({
             title: "Mission Complete!",
-            description: `You've completed "${mission.title}" and earned ${mission.reward_points} points!`,
+            description: `You've completed "${mission.title}" and earned ${mission.reward_points} points! ${scoreUpdateSuccessful ? "Your leaderboard score has been updated." : "Leaderboard score update failed."}`,
             className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'
         });
         
+        // Refetch data after updates
         if (userId) { 
             const { data: missionsData } = await supabase.from('missions').select('*').eq('is_active', true);
             const { data: userMissionsData } = await supabase.from('user_missions').select('*').eq('user_id', userId);
@@ -346,7 +358,7 @@ export default function ChallengesPage() {
         <TabsContent value="missions" className="mt-8">
           <div className="mb-8">
             <h2 className="text-2xl font-headline font-semibold mb-2 glow-text-accent text-center">Daily Missions</h2>
-            {userMissions.filter(m => m.mission_type === 'daily').length === 0 && !isPending && (
+            {(!isPending && userMissions.filter(m => m.mission_type === 'daily').length === 0) && (
                  <p className="text-muted-foreground col-span-full text-center py-4">No daily missions currently active or assigned. Check back soon!</p>
             )}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -355,7 +367,7 @@ export default function ChallengesPage() {
           </div>
           <div>
             <h2 className="text-2xl font-headline font-semibold mb-2 glow-text-accent text-center">Weekly Missions</h2>
-            {userMissions.filter(m => m.mission_type === 'weekly').length === 0 && !isPending && (
+            {(!isPending && userMissions.filter(m => m.mission_type === 'weekly').length === 0) && (
                  <p className="text-muted-foreground col-span-full text-center py-4">No weekly missions currently active or assigned. Check back soon!</p>
             )}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
