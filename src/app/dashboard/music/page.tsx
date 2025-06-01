@@ -1,7 +1,8 @@
+
 // src/app/dashboard/music/page.tsx
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Music, Info, Radio, Search as SearchIcon, Loader2, Youtube } from 'lucide-react';
