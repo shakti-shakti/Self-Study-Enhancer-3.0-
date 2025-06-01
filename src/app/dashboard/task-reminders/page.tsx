@@ -24,7 +24,7 @@ export default function TaskRemindersPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [profileAlarmToneUrl, setProfileAlarmToneUrl] = useState<string | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [defaultAlarmFileExists, setDefaultAlarmFileExists] = useState(true); // Assume it exists initially
+  const [defaultAlarmFileExists, setDefaultAlarmFileExists] = useState(true); 
 
 
   useEffect(() => {
@@ -51,11 +51,12 @@ export default function TaskRemindersPage() {
         const toneUrl = profile?.alarm_tone_url || '/alarms/default_alarm.mp3';
         setProfileAlarmToneUrl(toneUrl);
 
-        // Check if default alarm file exists if it's being used
         if (toneUrl === '/alarms/default_alarm.mp3') {
-            fetch('/alarms/default_alarm.mp3')
+            fetch('/alarms/default_alarm.mp3', {method: 'HEAD'}) // Use HEAD to check existence without downloading
                 .then(response => setDefaultAlarmFileExists(response.ok))
                 .catch(() => setDefaultAlarmFileExists(false));
+        } else {
+            setDefaultAlarmFileExists(true); // Assume custom URL is valid or user provided
         }
 
 
@@ -128,8 +129,7 @@ export default function TaskRemindersPage() {
     }, 1000); 
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultAlarmFileExists]); // Add defaultAlarmFileExists to dependencies
+  }, [defaultAlarmFileExists, toast]); 
 
   const stopAudioIfNeeded = () => {
     const stillRinging = alarmTasks.some(task => task.isRinging);
@@ -232,7 +232,7 @@ export default function TaskRemindersPage() {
             <CardDescription>
                 Tasks from your <Link href="/dashboard/planner" className="text-primary hover:underline">Planner</Link> with alarms set. 
                 {profileAlarmToneUrl === '/alarms/default_alarm.mp3' 
-                    ? (defaultAlarmFileExists ? " Default alarm tone is set." : " Default alarm tone file (/alarms/default_alarm.mp3) seems to be missing in 'public' folder.")
+                    ? (defaultAlarmFileExists ? " Default alarm tone is set." : " Default alarm tone file (/public/alarms/default_alarm.mp3) seems to be missing.")
                     : (profileAlarmToneUrl ? " Custom alarm tone is active." : " Loading alarm tone..." )}
             </CardDescription>
         </CardHeader>
@@ -302,7 +302,7 @@ export default function TaskRemindersPage() {
                 <AlertDescription>
                     This page provides visual and audio cues for your set alarms when it's open in your browser. For alarms to work when the app is closed or in the background, browser notification permissions would be required (future enhancement). Ensure your device volume is on. 
                     You can set a custom alarm tone in your <Link href="/dashboard/profile" className="font-medium text-primary hover:underline">Profile Settings</Link>.
-                    {!defaultAlarmFileExists && profileAlarmToneUrl === '/alarms/default_alarm.mp3' && <span className="font-semibold text-destructive"> The default alarm sound file ('/alarms/default_alarm.mp3') was not found in the public folder. Please add it for default alarms to play.</span>}
+                    {profileAlarmToneUrl === '/alarms/default_alarm.mp3' && !defaultAlarmFileExists && <span className="block mt-1 font-semibold text-destructive"> The default alarm sound file ('/public/alarms/default_alarm.mp3') was not found. Please add it for default alarms to play.</span>}
                 </AlertDescription>
             </Alert>
         </CardContent>

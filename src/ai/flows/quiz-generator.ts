@@ -23,7 +23,7 @@ export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 const GenerateQuizInputSchema = z.object({
   topic: z.string().describe('The specific topic for the quiz (e.g., "Cell Biology - Mitochondria", "Physics - Laws of Motion", "Organic Chemistry - Alcohols"). This can include class, subject, chapter, and specific topics for better quality.'),
   difficulty: z.enum(['easy', 'medium', 'hard']).describe('The difficulty level of the quiz (easy, medium, hard).'),
-  numQuestions: z.number().int().min(1).max(10).describe('The number of questions to generate for the quiz (between 1 and 10).'),
+  numQuestions: z.number().int().min(1).max(50).describe('The number of questions to generate for the quiz (between 1 and 50).'),
 });
 export type GenerateQuizInput = z.infer<typeof GenerateQuizInputSchema>;
 
@@ -45,6 +45,8 @@ const prompt = ai.definePrompt({
 Generate a quiz with {{numQuestions}} multiple-choice questions on the topic "{{topic}}" with "{{difficulty}}" difficulty.
 The topic string might include subject, class level, chapter, specific sub-topics, and desired question source (NCERT, PYQ, Mixed). Use all provided details to make the questions highly relevant.
 Ensure 'hard' questions truly test deep conceptual understanding and application, suitable for top-ranking aspirants. For 'easy' questions, focus on fundamental concepts and definitions. 'Medium' questions should bridge this gap.
+
+IMPORTANT: Generate diverse questions. Avoid repeating the same concepts or question structures multiple times within this single quiz if possible, especially if {{numQuestions}} is large. Vary the style of questions asked.
 
 Each question must adhere to the NEET pattern:
 - Clear and unambiguous question text.
@@ -99,3 +101,4 @@ const generateQuizFlow = ai.defineFlow(
     return { questions: questionsWithGuaranteedExplanation };
   }
 );
+

@@ -4,10 +4,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
-import { generateSyllabusFact } from '@/ai/flows/random-fact-generator';
+import { generateSyllabusFact, type GenerateSyllabusFactOutput } from '@/ai/flows/random-fact-generator';
 import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow';
 import { generateDailyMotivation, type GenerateDailyMotivationOutput } from '@/ai/flows/daily-motivation-flow';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap } from 'lucide-react';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck } from 'lucide-react';
 import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
@@ -23,6 +23,7 @@ export default async function DashboardPage() {
     challengeDescription: "Stay tuned for today's mission!", 
     subjectHint: "" 
   };
+  let syllabusFact: GenerateSyllabusFactOutput = { fact: "Loading a random syllabus fact..."};
 
   try {
     dailyMotivation = await generateDailyMotivation({});
@@ -39,6 +40,16 @@ export default async function DashboardPage() {
       challengeTitle: "Challenge Unreachable", 
       challengeDescription: "Could not load today's challenge. Your mission, should you choose to accept it, is to study hard!", 
       subjectHint: "Persistence" 
+    };
+  }
+  
+  try {
+    syllabusFact = await generateSyllabusFact({ class_level: '11/12' }); 
+  } catch (error: any) {
+    console.error("[ Server ] Error fetching random syllabus fact:", error.message || JSON.stringify(error));
+    syllabusFact = { 
+      fact: "Did you know? Regular revision is key to success! Keep studying!", 
+      source_hint: "Study Wisdom" 
     };
   }
 
@@ -171,7 +182,7 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-          <Card className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-8">
+          <Card className="bg-primary/10 border border-primary/30 p-4 rounded-lg shadow-inner mb-6">
             <div className="flex items-start">
               <Lightbulb className="h-8 w-8 text-primary mr-3 mt-1 shrink-0" />
               <div>
@@ -180,6 +191,20 @@ export default async function DashboardPage() {
               </div>
             </div>
           </Card>
+          
+          <Card className="bg-secondary/10 border border-secondary/30 p-4 rounded-lg shadow-inner mb-8">
+            <div className="flex items-start">
+              <BookOpenCheck className="h-8 w-8 text-secondary mr-3 mt-1 shrink-0" />
+              <div>
+                <h3 className="text-lg font-semibold text-secondary mb-1">Syllabus Fact of the Day:</h3>
+                <p className="text-foreground">{syllabusFact.fact}</p>
+                {syllabusFact.source_hint && (
+                  <p className="text-xs text-muted-foreground mt-1">Source/Topic: {syllabusFact.source_hint}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/planner">Access Planner</Link></Button>
