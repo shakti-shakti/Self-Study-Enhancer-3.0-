@@ -159,12 +159,12 @@ export default function WhackAMolePage() {
             <CardDescription>Time Left: {timeLeft}s | High Score: {highScore}</CardDescription>
           </div>
           {!isPlaying && !gameOver && (
-            <Button onClick={startGame} className="glow-button">
+            <Button onClick={startGame} className="glow-button text-lg py-3 px-6">
               <PlayCircle className="mr-2"/> Start Game
             </Button>
           )}
           {(isPlaying || gameOver) && (
-            <Button onClick={startGame} variant="outline" className="glow-button">
+            <Button onClick={startGame} variant="outline" className="glow-button text-lg py-3 px-6">
               <RotateCcw className="mr-2"/> Restart
             </Button>
           )}
@@ -199,7 +199,7 @@ export default function WhackAMolePage() {
         </CardContent>
         {gameOver && (
              <CardFooter className="justify-center">
-                 <Button onClick={startGame} className="glow-button text-lg mt-4">
+                 <Button onClick={startGame} className="glow-button text-xl py-4 px-8 mt-4">
                     <RotateCcw className="mr-2"/> Play Again
                 </Button>
             </CardFooter>

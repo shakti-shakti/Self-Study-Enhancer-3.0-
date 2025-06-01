@@ -115,10 +115,10 @@ export default function GuessTheNumberPage() {
               onChange={(e) => setGuess(e.target.value)}
               placeholder={`1-${MAX_NUMBER}`}
               disabled={gameOver || isProcessing}
-              className="input-glow text-lg h-12 flex-1"
+              className="input-glow text-lg h-14 flex-1"
               onKeyPress={(e) => e.key === 'Enter' && !gameOver && handleGuess()}
             />
-            <Button onClick={handleGuess} disabled={gameOver || isProcessing || !guess} className="glow-button h-12 text-lg">
+            <Button onClick={handleGuess} disabled={gameOver || isProcessing || !guess} className="glow-button h-14 text-xl px-8">
               {isProcessing ? <Loader2 className="animate-spin"/> : <Target />} Guess
             </Button>
           </div>
@@ -139,7 +139,7 @@ export default function GuessTheNumberPage() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Button onClick={restartGame} variant="outline" className="glow-button text-lg">
+          <Button onClick={restartGame} variant="outline" className="glow-button text-xl py-4 px-8">
             <RotateCcw className="mr-2"/> Restart Game
           </Button>
         </CardFooter>

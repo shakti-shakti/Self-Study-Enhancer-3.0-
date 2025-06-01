@@ -248,13 +248,13 @@ export default function SnakeGamePage() {
           </div>
         </CardContent>
       </Card>
-      <div className="grid grid-cols-3 gap-2 w-60 sm:w-72 mt-4">
+      <div className="grid grid-cols-3 gap-2 w-72 sm:w-96 mt-4">
         <div></div> 
-        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: -1 })} disabled={!isPlaying || direction.y === 1} className="glow-button aspect-square text-2xl p-0"><ArrowUp className="w-8 h-8 sm:w-10 sm:h-10" /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: -1 })} disabled={!isPlaying || direction.y === 1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowUp className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
         <div></div> 
-        <Button variant="outline" onClick={() => changeDirection({ x: -1, y: 0 })} disabled={!isPlaying || direction.x === 1} className="glow-button aspect-square text-2xl p-0"><ArrowLeft className="w-8 h-8 sm:w-10 sm:h-10" /></Button>
-        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: 1 })} disabled={!isPlaying || direction.y === -1} className="glow-button aspect-square text-2xl p-0"><ArrowDown className="w-8 h-8 sm:w-10 sm:h-10" /></Button>
-        <Button variant="outline" onClick={() => changeDirection({ x: 1, y: 0 })} disabled={!isPlaying || direction.x === -1} className="glow-button aspect-square text-2xl p-0"><ArrowRight className="w-8 h-8 sm:w-10 sm:h-10" /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: -1, y: 0 })} disabled={!isPlaying || direction.x === 1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowLeft className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: 1 })} disabled={!isPlaying || direction.y === -1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowDown className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: 1, y: 0 })} disabled={!isPlaying || direction.x === -1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowRight className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
       </div>
     </div>
   );

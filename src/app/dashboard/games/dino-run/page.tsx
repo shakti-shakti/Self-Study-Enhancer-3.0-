@@ -272,12 +272,12 @@ export default function DinoRunPage() {
           className="cursor-pointer border-2 border-primary rounded-md game-canvas"
         />
       </Card>
-       <div className="flex flex-col items-center space-y-2">
-            <Button onClick={dinoJump} disabled={gameState !== 'playing'} className="glow-button w-40 py-4 text-xl">
-              <ChevronUp className="mr-2 h-6 w-6" /> Jump
+       <div className="flex flex-col items-center space-y-3">
+            <Button onClick={dinoJump} disabled={gameState !== 'playing'} className="glow-button w-48 py-6 text-2xl">
+              <ChevronUp className="mr-2 h-8 w-8" /> Jump
             </Button>
-            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-40 py-3 text-lg">
-              <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
+            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-48 py-4 text-xl">
+              <PlayCircle className="mr-2 h-6 w-6" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
             </Button>
         </div>
       <p className="text-sm text-muted-foreground">

@@ -139,7 +139,7 @@ export default function ScienceTriviaChallengePage() {
             <p className="text-md text-muted-foreground">High Score: {highScore} / {questions.length}</p>
           </CardContent>
           <CardFooter className="flex-col gap-4">
-            <Button onClick={startNewGame} className="w-full glow-button text-lg">
+            <Button onClick={startNewGame} className="w-full glow-button text-xl py-4">
               <RotateCcw className="mr-2"/> Play Again
             </Button>
           </CardFooter>
@@ -191,7 +191,7 @@ export default function ScienceTriviaChallengePage() {
         </CardContent>
         <CardFooter className="flex-col gap-3">
           {!isAnswerSubmitted ? (
-            <Button onClick={handleSubmitAnswer} disabled={selectedAnswer === null || isProcessing} className="w-full glow-button text-lg">
+            <Button onClick={handleSubmitAnswer} disabled={selectedAnswer === null || isProcessing} className="w-full glow-button text-xl py-4">
               {isProcessing ? <Loader2 className="animate-spin"/> : "Submit Answer"}
             </Button>
           ) : (
@@ -203,7 +203,7 @@ export default function ScienceTriviaChallengePage() {
                     <AlertDescription>{currentQuestion.explanation}</AlertDescription>
                 </Alert>
             )}
-            <Button onClick={handleNextQuestion} className="w-full glow-button text-lg">
+            <Button onClick={handleNextQuestion} className="w-full glow-button text-xl py-4">
               {isProcessing ? <Loader2 className="animate-spin"/> : (currentQuestionIndex < questions.length - 1 ? "Next Question" : "Show Results")}
             </Button>
             </>

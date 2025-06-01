@@ -166,7 +166,7 @@ export default function MemoryMatchPage() {
             <CardTitle className="text-xl font-headline glow-text-accent">Moves: {moves}</CardTitle>
             <CardDescription>Pairs Found: {matches}/{PAIRS_COUNT} | Best: {bestMoves === null ? 'N/A' : `${bestMoves} moves`}</CardDescription>
           </div>
-          <Button onClick={restartGame} variant="outline" className="glow-button">
+          <Button onClick={restartGame} variant="outline" className="glow-button text-lg py-3 px-6">
             <RotateCcw /> Restart
           </Button>
         </CardHeader>
@@ -205,7 +205,7 @@ export default function MemoryMatchPage() {
         </CardContent>
         {gameOver && (
              <CardFooter className="justify-center">
-                 <Button onClick={restartGame} className="glow-button text-lg mt-4">
+                 <Button onClick={restartGame} className="glow-button text-xl py-4 px-8 mt-4">
                     <RotateCcw className="mr-2"/> Play Again
                 </Button>
             </CardFooter>

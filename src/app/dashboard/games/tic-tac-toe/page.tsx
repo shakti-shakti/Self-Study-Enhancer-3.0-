@@ -91,7 +91,8 @@ export default function TicTacToePage() {
         setIsComputerTurn(false);
       }, 700); // Simulate thinking time
     }
-  }, [currentPlayer, board, winner, gameMode, isComputerTurn, computerMove]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer, board, winner, gameMode, isComputerTurn]);
 
 
   const handleClick = (index: number) => {
@@ -188,7 +189,7 @@ export default function TicTacToePage() {
               Game Over!
             </p>
           )}
-          <Button onClick={restartGame} variant="outline" className="w-full glow-button text-lg">
+          <Button onClick={restartGame} variant="outline" className="w-full glow-button text-xl py-4">
             <RotateCcw className="mr-2"/> Restart Game
           </Button>
         </CardFooter>
