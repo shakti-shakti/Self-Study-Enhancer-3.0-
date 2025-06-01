@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,39 +6,47 @@
     <title>Content Load Error</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
+            text-align: center;
             background-color: #f0f2f5;
             color: #333;
-            text-align: center;
         }
         .container {
-            background-color: #fff;
+            max-width: 600px;
             padding: 30px;
+            background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         h1 {
             color: #d9534f; /* Reddish color for error */
-            font-size: 24px;
+            font-size: 2em;
+            margin-bottom: 0.5em;
         }
         p {
-            font-size: 16px;
+            font-size: 1.1em;
             line-height: 1.6;
+            margin-bottom: 1em;
         }
-        code {
-            background-color: #e9ecef;
-            padding: 2px 6px;
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 0.5em;
+            background-color: #f9f9f9;
+            padding: 10px;
             border-radius: 4px;
-            font-family: 'Courier New', Courier, monospace;
+            border-left: 3px solid #007bff; /* Blue accent */
         }
-         a {
+        a {
             color: #007bff;
             text-decoration: none;
         }
@@ -50,16 +57,23 @@
 </head>
 <body>
     <div class="container">
-        <h1>Oops! Content Cannot Be Displayed Here</h1>
-        <p>The page you tried to view either doesn't exist, is an invalid URL, or has security settings (like <code>X-Frame-Options</code>) that prevent it from being shown in an embedded frame within another website.</p>
-        <p><strong>Common Reasons:</strong></p>
+        <h1>Oops! Content Cannot Be Displayed</h1>
+        <p>The requested URL could not be loaded directly within this application window.</p>
+        <p>This might be due to a few reasons:</p>
         <ul>
-            <li>The URL entered was incorrect or incomplete.</li>
-            <li>The website (e.g., Netflix, some Google pages, many banking sites) explicitly blocks embedding for security.</li>
-            <li>There might be a temporary network issue preventing access.</li>
+            <li>The URL entered was invalid or mistyped.</li>
+            <li>The website explicitly prevents itself from being embedded in other applications (using X-Frame-Options or Content-Security-Policy headers).</li>
+            <li>There might have been a temporary network issue.</li>
         </ul>
-        <p>Try opening the link in a new browser tab directly if you trust the source.</p>
-        <p><small>If you believe this is an error with the app itself, please contact support.</small></p>
+        <p>
+            <strong>What you can try:</strong>
+        </p>
+        <ul>
+            <li>Double-check the URL for typos.</li>
+            <li>Try opening the website in a regular browser tab outside of this app.</li>
+            <li>If you were trying to search, the search results links are designed to open in a new tab automatically.</li>
+        </ul>
+        <p>If you believe this page should be embeddable, please ensure the URL is correct.</p>
     </div>
 </body>
 </html>
