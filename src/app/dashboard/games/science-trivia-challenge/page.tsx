@@ -1,3 +1,4 @@
+
 // src/app/dashboard/games/science-trivia-challenge/page.tsx
 'use client';
 
@@ -8,6 +9,7 @@ import { BrainCircuit, Check, X, RotateCcw, Loader2, Trophy, Lightbulb } from 'l
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import * as apiClient from '@/lib/apiClient';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // Added this import
 
 interface TriviaQuestion {
   id: string;
