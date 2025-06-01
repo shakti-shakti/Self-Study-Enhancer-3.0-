@@ -9,12 +9,20 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ShieldCheck, AlertTriangle, Users, Settings, BarChart3, MessageSquare, Edit, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function AdminPage() {
   const { toast } = useToast();
   const [featureXEnabled, setFeatureXEnabled] = useState(true);
   const [featureYPassword, setFeatureYPassword] = useState("demoPass123");
   const [feedbackResponse, setFeedbackResponse] = useState("");
+  const [showDummyUserList, setShowDummyUserList] = useState(false);
+
+  const dummyUsers = [
+    { id: 'user1', name: 'Student Alpha', email: 'alpha@example.com', status: 'Active' },
+    { id: 'user2', name: 'Student Beta', email: 'beta@example.com', status: 'Inactive' },
+    { id: 'user3', name: 'Student Gamma', email: 'gamma@example.com', status: 'Active' },
+  ];
 
   const handleToggleFeature = (featureName: string, currentStatus: boolean, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
     setter(!currentStatus);
@@ -25,7 +33,7 @@ export default function AdminPage() {
   };
 
   const handleChangePassword = (featureName: string, newPassword: string) => {
-    setFeatureYPassword(newPassword); // Simulating update
+    setFeatureYPassword(newPassword); 
     toast({
       title: "Feature Password Changed (Conceptual)",
       description: `Password for ${featureName} updated to "${newPassword}". (Demo only; not secure.)`,
@@ -64,7 +72,21 @@ export default function AdminPage() {
             <p>Total Registered Users: <span className="font-bold text-primary">1,234 (Demo)</span></p>
             <p>Daily Active Users: <span className="font-bold text-primary">150 (Demo)</span></p>
             <p>Quizzes Taken Today: <span className="font-bold text-primary">78 (Demo)</span></p>
-            <Button variant="outline" size="sm" className="mt-2 glow-button" onClick={() => toast({title: "Action: View All Users (Conceptual)", description: "This would navigate to a user management table."})}>View All Users</Button>
+            <Button variant="outline" size="sm" className="mt-2 glow-button" onClick={() => setShowDummyUserList(!showDummyUserList)}>
+              {showDummyUserList ? 'Hide' : 'View'} All Users (Conceptual List)
+            </Button>
+            {showDummyUserList && (
+              <div className="mt-4 border-t pt-4">
+                <h4 className="font-semibold mb-2 text-muted-foreground">Dummy User List:</h4>
+                <ul className="space-y-1 text-sm">
+                  {dummyUsers.map(user => (
+                    <li key={user.id} className="p-2 bg-muted/50 rounded-md">
+                      <strong>{user.name}</strong> ({user.email}) - Status: {user.status}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
 
