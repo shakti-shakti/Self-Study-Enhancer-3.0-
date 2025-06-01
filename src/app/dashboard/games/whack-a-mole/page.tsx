@@ -1,7 +1,7 @@
 // src/app/dashboard/games/whack-a-mole/page.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { MousePointerClick, PlayCircle, RotateCcw, Trophy } from 'lucide-react';
