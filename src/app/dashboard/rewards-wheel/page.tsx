@@ -2,7 +2,7 @@
 // src/app/dashboard/rewards-wheel/page.tsx
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added React
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Gift, RefreshCw, Loader2, AlertTriangle, Coins, History, CalendarDays, Sparkles, Palette, UserCircle2, Radio } from 'lucide-react';
@@ -20,7 +20,7 @@ const rewards = [
   { id: 'none_try_again', name: "Try Again!", color: "hsl(var(--muted-foreground))", type: "none", value: 0, weight: 6, icon: <RefreshCw/>, dataAiHint: "question mark" },
   { id: 'coins_25', name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, icon: <Coins/>, dataAiHint: "coins stack"},
   { id: 'coins_5', name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, icon: <Coins/>, dataAiHint: "few coins" }, // Orange
-  { id: 'cosmetic_avatar_rare', name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 'avatar_rare_01', weight: 1, icon: <UserCircle2/>, dataAiHint: "rare avatar cool" }, // Pink/Magenta
+  { id: 'avatar_rare_01', name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 'avatar_rare_01', weight: 1, icon: <UserCircle2/>, dataAiHint: "rare avatar cool" }, // Pink/Magenta
 ];
 
 const weightedRewards = rewards.flatMap(reward => Array(reward.weight).fill(reward));
@@ -80,9 +80,6 @@ export default function RewardsWheelPage() {
     setTimeout(async () => {
       setIsSpinning(false);
       setFinalReward(selectedReward);
-      // setCanSpin(false); // For demo: allow one spin per session/load. Real app would use daily limits.
-      // Instead of disabling after one spin, we'll just let the demo allow multiple spins.
-      // A real app would check apiClient.canUserSpin() which would talk to backend.
       
       toast({
         title: "You Won!",
@@ -90,11 +87,10 @@ export default function RewardsWheelPage() {
         className: `bg-opacity-20 border border-[${selectedReward.color}] text-[${selectedReward.color}]`,
       });
       
-      if (selectedReward.type === 'coins') {
+      if (selectedReward.type === 'coins' && typeof selectedReward.value === 'number') {
         const currentCoins = await apiClient.fetchUserFocusCoins();
-        await apiClient.updateUserFocusCoins(currentCoins + (selectedReward.value as number));
+        await apiClient.updateUserFocusCoins(currentCoins + selectedReward.value);
       } else if (selectedReward.type === 'cosmetic') {
-        // Conceptual: Add to user's inventory
         console.log(`Cosmetic item won: ${selectedReward.name} (ID: ${selectedReward.value})`);
         // In a real app: await apiClient.addUserCosmetic(userId, selectedReward.value as string);
       }
@@ -161,7 +157,7 @@ export default function RewardsWheelPage() {
                              maxWidth: '70%',
                         }}
                        >
-                        {React.cloneElement(reward.icon, { className: "h-5 w-5 mb-0.5"})}
+                        {React.cloneElement(reward.icon as React.ReactElement, { className: "h-5 w-5 mb-0.5"})}
                         <span className="text-xs font-bold truncate block leading-tight">{reward.name}</span>
                        </div>
                   </div>
@@ -189,7 +185,7 @@ export default function RewardsWheelPage() {
                 data-ai-hint={finalReward.dataAiHint}
             >
               <CardTitle className="text-2xl font-bold mb-1 flex items-center justify-center" style={{ color: finalReward.color }}>
-                {React.cloneElement(finalReward.icon, {className: "inline-block mr-2 h-7 w-7"})}
+                {React.cloneElement(finalReward.icon as React.ReactElement, {className: "inline-block mr-2 h-7 w-7"})}
                 {finalReward.name}
               </CardTitle>
               <CardDescription className="text-sm" style={{ color: finalReward.color, opacity: 0.8 }}>

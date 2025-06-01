@@ -2,14 +2,12 @@
 // src/app/dashboard/selfie-attendance/page.tsx
 'use client';
 
-import { useState, useEffect, useRef, useTransition } from 'react';
+import React, { useState, useEffect, useRef, useTransition } from 'react'; // Added React
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info } from 'lucide-react'; // Added Info
+import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-// import { createClient } from '@/lib/supabase/client'; // For future image saving
-// import type { TablesInsert } from '@/lib/database.types';
 
 export default function SelfieAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -18,30 +16,21 @@ export default function SelfieAttendancePage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  // const supabase = createClient(); // For future image saving
-  // const [userId, setUserId] = useState<string | null>(null); // For future image saving
-
-  // useEffect(() => { // For future image saving
-  //   const getUserId = async () => {
-  //     const {data: {user}} = await supabase.auth.getUser();
-  //     setUserId(user?.id || null);
-  //   }
-  //   getUserId();
-  // }, [supabase]);
 
   useEffect(() => {
+    let streamInstance: MediaStream | null = null;
     const getCameraPermission = async () => {
       if (typeof window !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          streamInstance = await navigator.mediaDevices.getUserMedia({ video: true });
           setHasCameraPermission(true);
           if (videoRef.current) {
-            videoRef.current.srcObject = stream;
+            videoRef.current.srcObject = streamInstance;
           }
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
-          toast({
+          toast({ // This toast is now called after the async operation
             variant: 'destructive',
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use this feature.',
@@ -55,26 +44,30 @@ export default function SelfieAttendancePage() {
     getCameraPermission();
 
     return () => { 
+        if (streamInstance) {
+            streamInstance.getTracks().forEach(track => track.stop());
+        }
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null; // Clean up srcObject
         }
         if (countdownTimerRef.current) {
             clearInterval(countdownTimerRef.current);
         }
     };
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Toast is now stable due to useCallback in useToast, but to be safe, keeping dependencies minimal for this effect.
 
   const handleMarkAttendance = () => {
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     setCountdown(3);
-    startProcessingTransition(() => {
+    startProcessingTransition(() => { // This ensures state updates inside are batched
         countdownTimerRef.current = setInterval(() => {
             setCountdown(prev => {
                 if (prev === null || prev <= 1) {
                     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
                     setCountdown(null);
-                    // Conceptual: In a real app, you'd capture a frame here
                     toast({
                         title: 'Attendance Marked (Conceptual)!',
                         description: 'Your presence has been noted. In a full version, an image might be saved.',

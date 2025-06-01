@@ -6,15 +6,14 @@
 // --- DEMO STATE (Managed in memory by these placeholder functions for the current session) ---
 let demoUserCoins = 500; // Initial demo coins
 const demoUnlockedContentIds = new Set<string>();
-const demoOwnedAvatarIds = new Set<string>(); // For store purchases
-const demoOwnedThemeIds = new Set<string>(); // For store purchases
+const demoOwnedItemIds = new Set<string>(); // Generic for store items
 let demoUserXP = 0;
-const demoUnlockedAchievements = new Set<string>();
+const demoUnlockedAchievementIds = new Set<string>();
 
 interface DemoSpinHistoryEntry {
-  rewardName: string; // e.g., "+25 Focus Coins", "Rare Avatar!", "Ocean Blue Theme"
-  rewardType: string; // 'coins', 'cosmetic', 'token', 'none'
-  rewardValue?: number | string; // e.g., 25 for coins, 1 for token, item_id for cosmetic
+  rewardName: string;
+  rewardType: string;
+  rewardValue?: number | string;
   timestamp: string;
 }
 let demoSpinHistory: DemoSpinHistoryEntry[] = [];
@@ -32,11 +31,12 @@ export async function fetchUserFocusCoins(): Promise<number> {
 
 /**
  * Updates the user's Focus Coin balance (DEMO - in-memory).
+ * Note: In a real app, you might have separate functions for adding/deducting.
  */
 export async function updateUserFocusCoins(newAmount: number): Promise<{ success: boolean; newCoinBalance: number }> {
   console.log(`[apiClient] updateUserFocusCoins called with newAmount ${newAmount} (demo)`);
   await new Promise(resolve => setTimeout(resolve, 50));
-  demoUserCoins = newAmount;
+  demoUserCoins = Math.max(0, newAmount); // Ensure coins don't go negative
   return { success: true, newCoinBalance: demoUserCoins };
 }
 
@@ -69,7 +69,7 @@ export async function unlockContentWithPassword(
   console.log(`[apiClient] unlockContentWithPassword called for ${contentId} (demo)`);
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  const DEMO_PASSWORD = 'NEETPREP2025'; // Centralized demo password
+  const DEMO_PASSWORD = 'NEETPREP2025'; 
 
   if (passwordAttempt === DEMO_PASSWORD) {
     demoUnlockedContentIds.add(contentId);
@@ -93,7 +93,7 @@ export async function fetchUnlockedContentIds(): Promise<string[]> {
  */
 export async function purchaseStoreItem(
   itemId: string,
-  itemType: 'avatar' | 'theme' | 'booster', // Added itemType
+  itemType: 'avatar' | 'theme' | 'booster',
   cost: number
 ): Promise<{ success: boolean; newCoinBalance?: number; message?: string }> {
   console.log(`[apiClient] purchaseStoreItem called for ${itemId} (type: ${itemType}) with cost ${cost} (demo)`);
@@ -101,12 +101,7 @@ export async function purchaseStoreItem(
 
   if (demoUserCoins >= cost) {
     demoUserCoins -= cost;
-    if (itemType === 'avatar') {
-      demoOwnedAvatarIds.add(itemId);
-    } else if (itemType === 'theme') {
-      demoOwnedThemeIds.add(itemId);
-    }
-    // Add other item types like 'booster' if needed
+    demoOwnedItemIds.add(itemId); // Using a generic set for all item types for simplicity in demo
     return { success: true, newCoinBalance: demoUserCoins, message: `Successfully purchased! ${cost} coins deducted.` };
   } else {
     return { success: false, message: 'Not enough Focus Coins.' };
@@ -114,17 +109,14 @@ export async function purchaseStoreItem(
 }
 
 /**
- * Fetches IDs of store items (e.g., avatars, themes) owned by the user (DEMO - in-memory).
+ * Fetches IDs of store items owned by the user (DEMO - in-memory).
  */
-export async function fetchOwnedItemIds(itemType: 'avatar' | 'theme'): Promise<string[]> {
-  console.log(`[apiClient] fetchOwnedItemIds called for ${itemType} (demo)`);
+export async function fetchOwnedItemIds(itemType?: 'avatar' | 'theme' | 'booster'): Promise<string[]> {
+  // itemType is currently not used in this demo implementation for filtering owned items,
+  // but kept for potential future differentiation if needed.
+  console.log(`[apiClient] fetchOwnedItemIds called (type: ${itemType || 'any'}) (demo)`);
   await new Promise(resolve => setTimeout(resolve, 50));
-  if (itemType === 'avatar') {
-    return Array.from(demoOwnedAvatarIds);
-  } else if (itemType === 'theme') {
-    return Array.from(demoOwnedThemeIds);
-  }
-  return [];
+  return Array.from(demoOwnedItemIds);
 }
 
 /**
@@ -138,11 +130,20 @@ export async function fetchUserXP(): Promise<number> {
 
 /**
  * Adds XP to the user's total (DEMO - in-memory).
+ * Also conceptually checks for XP-based achievements.
  */
 export async function addUserXP(amount: number): Promise<{ success: boolean; newXP: number }> {
     console.log(`[apiClient] addUserXP called with amount ${amount} (demo)`);
     await new Promise(resolve => setTimeout(resolve, 50));
     demoUserXP += amount;
+
+    // Conceptual XP-based achievement check (example)
+    if (demoUserXP >= 100 && !demoUnlockedAchievementIds.has('ach_xp_100')) {
+        console.log('[apiClient] Unlocking ach_xp_100 due to XP threshold');
+        await unlockAchievement('ach_xp_100');
+    }
+    // Add more XP-based achievement checks here
+
     return { success: true, newXP: demoUserXP };
 }
 
@@ -152,7 +153,7 @@ export async function addUserXP(amount: number): Promise<{ success: boolean; new
 export async function fetchUnlockedAchievements(): Promise<string[]> {
     console.log('[apiClient] fetchUnlockedAchievements called (demo)');
     await new Promise(resolve => setTimeout(resolve, 50));
-    return Array.from(demoUnlockedAchievements);
+    return Array.from(demoUnlockedAchievementIds);
 }
 
 /**
@@ -161,9 +162,10 @@ export async function fetchUnlockedAchievements(): Promise<string[]> {
 export async function unlockAchievement(achievementId: string): Promise<{ success: boolean }> {
     console.log(`[apiClient] unlockAchievement called for ${achievementId} (demo)`);
     await new Promise(resolve => setTimeout(resolve, 50));
-    demoUnlockedAchievements.add(achievementId);
+    demoUnlockedAchievementIds.add(achievementId);
     return { success: true };
 }
+
 
 /**
  * Adds a spin result to the history (DEMO - in-memory).
@@ -182,8 +184,7 @@ export async function addSpinToHistory(
       timestamp: new Date().toISOString(),
     };
     demoSpinHistory.unshift(newEntry);
-    // Keep history to a reasonable size for demo
-    if (demoSpinHistory.length > 20) {
+    if (demoSpinHistory.length > 20) { // Keep history to a reasonable size for demo
         demoSpinHistory.pop();
     }
 }
@@ -202,13 +203,13 @@ export async function fetchSpinHistory(): Promise<DemoSpinHistoryEntry[]> {
 export function resetDemoApiClientState() {
   demoUserCoins = 500;
   demoUnlockedContentIds.clear();
-  demoOwnedAvatarIds.clear();
-  demoOwnedThemeIds.clear();
+  demoOwnedItemIds.clear();
   demoUserXP = 0;
-  demoUnlockedAchievements.clear();
+  demoUnlockedAchievementIds.clear();
   demoSpinHistory = [];
   console.log('[apiClient] Demo state has been reset.');
 }
-
-// Call resetDemoApiClientState() in browser console if you need to clear session demo data
-// window.resetDemoState = resetDemoApiClientState; // Optional: make it easily callable
+// If window is defined (i.e., running in browser), attach reset function for easy debugging
+if (typeof window !== 'undefined') {
+  (window as any).resetDemoState = resetDemoApiClientState;
+}
