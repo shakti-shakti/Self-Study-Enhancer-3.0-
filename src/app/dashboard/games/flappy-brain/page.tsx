@@ -35,6 +35,7 @@ export default function FlappyBrainPage() {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
 
+  // Game state refs
   const birdY = useRef(CANVAS_HEIGHT / 2);
   const birdVelocity = useRef(0);
   const pipes = useRef<{ x: number; y: number; gap: number; passed: boolean }[]>([]);
@@ -61,7 +62,7 @@ export default function FlappyBrainPage() {
     }
   };
 
-  const resetGameValues = () => {
+  const resetGameValues = useCallback(() => {
     birdY.current = CANVAS_HEIGHT / 2;
     birdVelocity.current = 0;
     pipes.current = [];
@@ -69,18 +70,18 @@ export default function FlappyBrainPage() {
     pipeSpeed.current = INITIAL_PIPE_SPEED;
     currentPipeGap.current = INITIAL_PIPE_GAP;
     setScore(0);
-  };
+  }, []);
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     resetGameValues();
     setGameState('playing');
-  };
+  }, [resetGameValues]);
 
-  const birdJump = () => {
-    if (gameState === 'playing') {
+  const birdJump = useCallback(() => {
+    if (gameState === 'playing' || gameState === 'idle') { // Allow jump to start game from idle
       birdVelocity.current = LIFT;
     }
-  };
+  }, [gameState]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -115,9 +116,9 @@ export default function FlappyBrainPage() {
     ctx.fillText(`High: ${highScore}`, CANVAS_WIDTH - 10, 30);
 
     if (gameState === 'gameOver') {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Semi-transparent overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      ctx.fillStyle = '#FFFFFF'; // White text for game over
+      ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'center';
       ctx.font = `36px Arial`;
       ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
@@ -140,15 +141,11 @@ export default function FlappyBrainPage() {
   }, [gameState, score, highScore]);
 
   useEffect(() => {
-    // Initial draw when component mounts or gameState changes to idle/gameOver
-    if (gameState === 'idle' || gameState === 'gameOver') {
-      draw();
-    }
-
     const gameLoop = () => {
       if (gameState !== 'playing') {
         if (gameLoopId.current) cancelAnimationFrame(gameLoopId.current);
         gameLoopId.current = null;
+        draw(); // Draw final state (idle or game over)
         return;
       }
 
@@ -207,24 +204,14 @@ export default function FlappyBrainPage() {
       }
       frameCount.current++;
       draw();
-      if (gameState === 'playing') { 
-        gameLoopId.current = requestAnimationFrame(gameLoop);
-      } else {
-         if (gameLoopId.current) cancelAnimationFrame(gameLoopId.current);
-         gameLoopId.current = null;
-         draw(); // Ensure final state is drawn
-      }
+      gameLoopId.current = requestAnimationFrame(gameLoop);
     };
-    
+
     if (gameState === 'playing') {
-      if (gameLoopId.current) cancelAnimationFrame(gameLoopId.current); // Clear any existing loop
       gameLoopId.current = requestAnimationFrame(gameLoop);
     } else {
-      if (gameLoopId.current) {
-        cancelAnimationFrame(gameLoopId.current);
-        gameLoopId.current = null;
-      }
-      draw(); // Draw idle or game over state
+      // Ensure idle or game over state is drawn when not playing
+      draw();
     }
     
     return () => {
@@ -232,29 +219,34 @@ export default function FlappyBrainPage() {
         cancelAnimationFrame(gameLoopId.current);
       }
     };
-  }, [gameState, score, highScore, draw]); 
+  }, [gameState, score, highScore, draw]);
 
-  const handleCanvasClick = () => {
+  const handleInteraction = useCallback(() => {
     if (gameState === 'playing') {
       birdJump();
     } else { 
       startGame();
-      // Requesting animation frame for the jump ensures it's applied after gameState is 'playing'
-      requestAnimationFrame(() => birdJump()); 
     }
-  };
+  }, [gameState, birdJump, startGame]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
-        handleCanvasClick();
+        handleInteraction();
       }
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState]); // Re-bind if gameState changes for correct jump/start logic
+  }, [handleInteraction]);
+
+  // Initial draw for idle state
+  useEffect(() => {
+    if (gameState === 'idle') {
+      draw();
+    }
+  }, [gameState, draw]);
+
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -271,9 +263,8 @@ export default function FlappyBrainPage() {
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          onClick={handleCanvasClick}
+          onClick={handleInteraction}
           className="cursor-pointer border-2 border-primary rounded-md"
-          style={{ background: BG_COLOR }} // Ensure canvas has a default background
         />
       </Card>
        <div className="flex space-x-4">

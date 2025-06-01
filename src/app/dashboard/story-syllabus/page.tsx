@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface Chapter {
   id: string;
   name: string;
-  level_hint?: string; // e.g., "Beginner", "Intermediate", "Expert"
+  level_hint?: string; 
   quest: string;
   locked: boolean;
   unlock_cost_coins?: number | null;
@@ -43,6 +43,8 @@ const syllabusRealms: SyllabusRealm[] = [
       { id: 'phy_ch3', name: 'The Sunstone of Power', level_hint: "Intermediate", quest: 'Harness the Work-Energy Theorem', locked: true, unlock_cost_coins: 100, story_summary: "The legendary Sunstone can power the entire realm, but its energy is chaotic. Apply the Work-Energy Theorem to channel its power safely." },
       { id: 'phy_ch4', name: 'Graviton\'s Peak', level_hint: "Advanced", quest: 'Ascend to the Summit of Gravity', locked: true, unlock_cost_coins: 150, unlock_by_password_possible: true, story_summary: "Only by understanding the nuances of gravitational fields can one hope to reach the summit of Graviton's Peak, where the Sage of Universal Laws resides." },
       { id: 'phy_ch5', name: 'Thermal Tides', level_hint: "Intermediate", quest: 'Navigate the Currents of Thermodynamics', locked: true, unlock_cost_coins: 120, story_summary: "The Thermal Tides are rising, threatening to plunge the land into an ice age or scorch it with fire. Master thermodynamic principles to restore balance." },
+      { id: 'phy_ch6', name: 'Electromagnetism Enigma', level_hint: "Advanced", quest: 'Solve the riddles of charged fields', locked: true, unlock_cost_coins: 180, unlock_by_password_possible: true, story_summary: "Ancient machines powered by electromagnetism are malfunctioning. Decipher their circuits and fields to prevent a realm-wide blackout." },
+      { id: 'phy_ch7', name: 'Optics Obscura', level_hint: "Intermediate", quest: 'Manipulate light to reveal hidden paths', locked: true, unlock_cost_coins: 130, story_summary: "A chamber of illusions hides the path forward. Use your knowledge of mirrors and lenses to see through the deception." },
     ],
     imageUrl: 'https://placehold.co/600x300/1A237E/FFFFFF.png?text=Physics+Realm',
     dataAiHint: 'fantasy landscape energy'
@@ -54,10 +56,11 @@ const syllabusRealms: SyllabusRealm[] = [
     icon: <Atom className="h-10 w-10 text-blue-400" />, 
     description: "Delve into the secrets of matter. Transmute elements, understand reactions, and become a master of the molecular world.",
     chapters: [
-      { id: 'chem_ch1', name: 'The Scroll of Basic Concepts', level_hint: "Foundational", quest: 'Decipher the Mole Molar Mass', locked: false, story_summary: "An ancient scroll, written in the language of moles and molar masses, holds the key to understanding the basic building blocks of the Alchemist's world." },
+      { id: 'chem_ch1', name: 'The Scroll of Basic Concepts', level_hint: "Foundational", quest: 'Decipher the Mole & Molar Mass', locked: false, story_summary: "An ancient scroll, written in the language of moles and molar masses, holds the key to understanding the basic building blocks of the Alchemist's world." },
       { id: 'chem_ch2', name: 'The Atomic Sanctuary', level_hint: "Intermediate", quest: 'Visualize the Quantum Orbits', locked: true, unlock_cost_coins: 120, story_summary: "Within the Atomic Sanctuary, spirits of electrons dance in quantum orbitals. Map their paths to unlock the sanctuary's secrets." },
       { id: 'chem_ch3', name: 'Bonding Bay', level_hint: "Intermediate", quest: 'Forge the Covalent Chains', locked: true, unlock_cost_coins: 120, unlock_by_password_possible: true, story_summary: "The islands of Bonding Bay are connected by weak bridges. Forge strong covalent chains to create stable pathways between them." },
       { id: 'chem_ch4', name: 'Equilibrium Estuary', level_hint: "Advanced", quest: "Restore Balance to the Reaction Reeds", locked: true, unlock_cost_coins: 180, story_summary: "The Reaction Reeds in Equilibrium Estuary are wildly fluctuating, causing chaotic magical surges. Apply Le Chatelier's Principle to stabilize them." },
+      { id: 'chem_ch5', name: 'Organic Synthesis Chambers', level_hint: "Advanced", quest: 'Craft complex molecules', locked: true, unlock_cost_coins: 200, unlock_by_password_possible: true, story_summary: "The Elixir of Life requires a multi-step organic synthesis. Navigate the reaction chambers and choose the correct reagents." },
     ],
     imageUrl: 'https://placehold.co/600x300/004D40/FFFFFF.png?text=Chemistry+Realm',
     dataAiHint: 'mystical laboratory potions'
@@ -73,6 +76,7 @@ const syllabusRealms: SyllabusRealm[] = [
       { id: 'bio_ch2', name: 'Cellular Citadel', level_hint: "Intermediate", quest: 'Defend the Organelles', locked: true, unlock_cost_coins: 100, unlock_by_password_possible: true, story_summary: "The Cellular Citadel is under attack by rogue phages! Understand the function of each organelle to mount a successful defense." },
       { id: 'bio_ch3', name: 'The Genetic Spires', level_hint: "Advanced", quest: 'Unravel the Double Helix', locked: true, unlock_cost_coins: 200, story_summary: "Atop the Genetic Spires, the code of life is encoded. Master DNA replication and protein synthesis to decipher its mysteries." },
       { id: 'bio_ch4', name: 'The Ecosystem Enigma', level_hint: "Intermediate", quest: 'Trace the Energy Flow', locked: true, unlock_cost_coins: 130, story_summary: "A blight is causing the ecosystem to collapse. Trace the flow of energy through its trophic levels to find the source of the imbalance." },
+      { id: 'bio_ch5', name: 'Human Physiology Peaks', level_hint: "Advanced", quest: 'Navigate the systems of the human body', locked: true, unlock_cost_coins: 190, unlock_by_password_possible: true, story_summary: "Ascend the treacherous peaks representing human organ systems, solving challenges related to digestion, respiration, circulation, and neural control." },
     ],
     imageUrl: 'https://placehold.co/600x300/1B5E20/FFFFFF.png?text=Biology+Realm',
     dataAiHint: 'enchanted forest creatures'

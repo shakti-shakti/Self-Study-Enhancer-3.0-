@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird, AlignCenter, HelpCircle } from 'lucide-react';
+import { Brain, Atom, Dna, Puzzle, Zap, FlaskConical, Leaf, PawPrint, PlayCircle, Bird, AlignCenter, HelpCircle, Hash, BrainCircuit } from 'lucide-react'; // Added Hash, BrainCircuit
 import Image from 'next/image';
 
 const games = [
@@ -39,11 +39,31 @@ const games = [
   {
     id: 'guess-the-number',
     title: 'Guess the Number (Conceptual)',
-    description: 'A classic number guessing game. The AI thinks of a number, and you try to guess it with hints.',
+    description: 'A classic number guessing game. The AI thinks of a number, and you try to guess it with hints. Simple but good for logical thinking.',
     genre: 'Logic / Number Game',
-    icon: <HelpCircle className="h-12 w-12 text-green-500" />,
+    icon: <Hash className="h-12 w-12 text-green-500" />,
     imageUrl: 'https://placehold.co/600x400/4CAF50/FFFFFF.png?text=Guess+It!',
     dataAiHint: 'number question mark',
+    isConceptual: true,
+  },
+  {
+    id: 'science-trivia-challenge',
+    title: 'Science Trivia Challenge (Conceptual)',
+    description: 'Test your general science knowledge with rapid-fire trivia questions across Physics, Chemistry, and Biology. Fast-paced and fun!',
+    genre: 'Trivia / Quiz',
+    icon: <BrainCircuit className="h-12 w-12 text-blue-500" />,
+    imageUrl: 'https://placehold.co/600x400/2196F3/FFFFFF.png?text=Trivia!',
+    dataAiHint: 'quiz brain lightbulb',
+    isConceptual: true,
+  },
+  {
+    id: 'element-match-memory',
+    title: 'Element Match Memory (Conceptual)',
+    description: 'A memory game where you match chemical elements to their symbols or properties. Improves recall and association.',
+    genre: 'Memory / Educational',
+    icon: <Atom className="h-12 w-12 text-red-500" />,
+    imageUrl: 'https://placehold.co/600x400/F44336/FFFFFF.png?text=Element+Match',
+    dataAiHint: 'chemistry memory cards',
     isConceptual: true,
   },
 ];
@@ -60,7 +80,7 @@ export default function GamesHubPage() {
         </p>
       </header>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {games.map((game) => (
           <Card key={game.id} className="interactive-card overflow-hidden shadow-2xl shadow-primary/20 hover:shadow-accent/30 transform transition-all duration-300 hover:scale-105 group">
             <div className="relative h-56 w-full">
