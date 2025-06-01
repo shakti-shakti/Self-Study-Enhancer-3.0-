@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Load Error</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 95vh; 
+            margin: 0; 
+            background-color: #f0f2f5; /* Light gray background */
+            color: #333; 
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .container { 
+            text-align: center; 
+            padding: 25px; 
+            background-color: #ffffff; 
+            border-radius: 10px; 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 { 
+            color: #e53935; /* Softer red */
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .details {
+            font-size: 0.85em;
+            color: #555;
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Oops! Content Cannot Be Displayed</h1>
+        <p>There was an issue loading the requested page within the in-app browser.</p>
+        <div class="details">
+            <p>This might be due to several reasons:</p>
+            <ul>
+                <li>The URL entered might be incorrect or incomplete.</li>
+                <li>The website's security settings (like X-Frame-Options) prevent it from being embedded here.</li>
+                <li>Temporary network issues could be blocking access.</li>
+            </ul>
+            <p>Try navigating directly to the site in a standard browser tab if the problem persists.</p>
+        </div>
+    </div>
+</body>
+</html>

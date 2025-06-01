@@ -2,7 +2,7 @@
 // src/app/dashboard/browser/page.tsx
 'use client';
 
-import { useState, useRef, useTransition } from 'react';
+import { useState, useRef, useTransition, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,81 +11,101 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { googleSearch, type GoogleSearchOutput, type SearchResultItem } from '@/ai/flows/google-search-flow';
 import { useToast } from '@/hooks/use-toast';
 
-const GOOGLE_SEARCH_URL_REDIRECT = "https://www.google.com/search?igu=1&q="; // Fallback redirect
 const YOUTUBE_URL = "https://www.youtube.com";
 const NCERT_BOOKS_URL = "https://ncert.nic.in/textbook.php";
+const GOOGLE_HOME_URL = "https://www.google.com/webhp?igu=1"; // igu=1 tries to prevent iframe busting for Google search page
 
 export default function InAppBrowserPage() {
-  const [currentDisplayUrl, setCurrentDisplayUrl] = useState<string | null>(null); 
-  const [inputUrlOrQuery, setInputUrlOrQuery] = useState<string>("https://www.google.com");
+  const [currentDisplayUrl, setCurrentDisplayUrlInternal] = useState<string | null>(null); 
+  const [inputUrlOrQuery, setInputUrlOrQuery] = useState<string>(""); // Start empty
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, startSearchTransition] = useTransition();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { toast } = useToast();
 
+  const setSafeCurrentDisplayUrl = useCallback((url: string | null) => {
+    if (url === null) {
+      setCurrentDisplayUrlInternal(null);
+      return;
+    }
+    try {
+      // Validate if it's a full URL or a safe relative path
+      if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) {
+         new URL(url, window.location.origin); // This will throw if 'url' is malformed relative or absolute
+         setCurrentDisplayUrlInternal(url);
+      } else {
+        throw new Error("Attempted to load potentially unsafe or malformed URL schema.");
+      }
+    } catch (e) {
+      console.error("Invalid URL passed to setSafeCurrentDisplayUrl:", url, e);
+      setCurrentDisplayUrlInternal("/iframe-error.html"); // Fallback to a safe error page
+      toast({ variant: 'destructive', title: "Invalid URL", description: "The URL provided was not valid." });
+    }
+  }, [toast]);
+
+
   const isValidUrl = (string: string) => {
     try {
-      new URL(string);
-      return true;
+      const url = new URL(string);
+      return url.protocol === "http:" || url.protocol === "https:";
     } catch (_) {
       return false;
     }
   };
 
   const handleNavigate = async () => {
-    setSearchResults([]); // Clear previous search results
-    setCurrentDisplayUrl(null); // Hide iframe initially when new navigation starts
+    setSearchResults([]); 
 
     if (!inputUrlOrQuery.trim()) {
         toast({ variant: 'destructive', title: "Input Empty", description: "Please enter a URL or search term." });
+        setSafeCurrentDisplayUrl(null);
         return;
     }
 
-    let finalUrlToLoad: string | null = null;
+    const isDirectUrl = isValidUrl(inputUrlOrQuery);
 
-    if (isValidUrl(inputUrlOrQuery) || inputUrlOrQuery.startsWith('http://') || inputUrlOrQuery.startsWith('https://')) {
-      finalUrlToLoad = inputUrlOrQuery.startsWith('http') ? inputUrlOrQuery : `https://${inputUrlOrQuery}`;
+    if (isDirectUrl) {
+      setSafeCurrentDisplayUrl(inputUrlOrQuery);
     } else {
       // It's a search query
+      setSafeCurrentDisplayUrl(null); // Hide iframe while searching
       startSearchTransition(async () => {
         try {
           const result: GoogleSearchOutput = await googleSearch({ query: inputUrlOrQuery, numResults: 7 });
           if (result.error) {
             toast({ variant: 'destructive', title: "Search Error", description: result.error });
-            // Fallback to Google redirect if API fails critically
-            finalUrlToLoad = `${GOOGLE_SEARCH_URL_REDIRECT}${encodeURIComponent(inputUrlOrQuery)}`;
-            setCurrentDisplayUrl(finalUrlToLoad);
+            setSearchResults([]); 
           } else if (result.items.length > 0) {
             setSearchResults(result.items);
-            // Do not set currentDisplayUrl here, iframe should be hidden
           } else {
-            toast({ title: "No Results", description: "Your search returned no results." });
-            // Optionally, redirect to Google as a fallback if no results from API
-            // finalUrlToLoad = `${GOOGLE_SEARCH_URL_REDIRECT}${encodeURIComponent(inputUrlOrQuery)}`;
-            // setCurrentDisplayUrl(finalUrlToLoad);
+            toast({ title: "No Results", description: "Your search returned no results from the API." });
+            setSearchResults([]);
           }
         } catch (e: any) {
           toast({ variant: 'destructive', title: "Search Request Failed", description: e.message || "Could not connect to search service." });
-          finalUrlToLoad = `${GOOGLE_SEARCH_URL_REDIRECT}${encodeURIComponent(inputUrlOrQuery)}`;
-          setCurrentDisplayUrl(finalUrlToLoad);
+          setSearchResults([]);
         }
       });
-    }
-    
-    if (finalUrlToLoad) {
-      setCurrentDisplayUrl(finalUrlToLoad);
     }
   };
   
   const loadUrlInIframe = (url: string) => {
-    setSearchResults([]); // Clear search results when a link is clicked
-    setCurrentDisplayUrl(url);
-    setInputUrlOrQuery(url); // Update address bar
+    setSearchResults([]); 
+    setSafeCurrentDisplayUrl(url);
+    setInputUrlOrQuery(url); 
   };
 
-  const goHome = () => { setCurrentDisplayUrl(null); setSearchResults([]); setInputUrlOrQuery("https://www.google.com");}
+  const goHome = () => { setInputUrlOrQuery(GOOGLE_HOME_URL); loadUrlInIframe(GOOGLE_HOME_URL); }
   const goToYouTube = () => loadUrlInIframe(YOUTUBE_URL);
   const goToNcert = () => loadUrlInIframe(NCERT_BOOKS_URL);
+
+  // Effect to load Google on first mount if nothing is displayed yet
+  useEffect(() => {
+    if (!currentDisplayUrl && searchResults.length === 0 && !inputUrlOrQuery) {
+      goHome();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   return (
@@ -108,7 +128,7 @@ export default function InAppBrowserPage() {
               value={inputUrlOrQuery}
               onChange={(e) => setInputUrlOrQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleNavigate()}
-              placeholder="Enter URL or search query..."
+              placeholder="Search or enter URL (e.g., wikipedia.org)"
               className="flex-1 h-10 input-glow"
             />
             <Button onClick={handleNavigate} className="glow-button" disabled={isSearching}>
@@ -134,7 +154,7 @@ export default function InAppBrowserPage() {
           )}
           {!isSearching && searchResults.length > 0 && (
             <div className="p-4 space-y-4">
-              <h2 className="text-xl font-semibold glow-text-accent">Search Results:</h2>
+              <h2 className="text-xl font-semibold glow-text-accent">Search Results for "{inputUrlOrQuery}":</h2>
               {searchResults.map((result, index) => (
                 <Card key={index} className="bg-card/70 border-border/50 shadow-md hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-2">
@@ -165,9 +185,8 @@ export default function InAppBrowserPage() {
               className="w-full h-full border-0"
               sandbox="allow-forms allow-modals allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts allow-top-navigation allow-top-navigation-by-user-activation"
               onError={(e) => {
-                console.error("Iframe load error:", e);
-                toast({variant: "destructive", title: "Iframe Load Error", description: "Could not load the page. Some websites may block embedding."})
-                setCurrentDisplayUrl("/iframe-error.html"); // Conceptual: redirect to a local error page or show message
+                console.error("Iframe load error for URL:", currentDisplayUrl, e);
+                setSafeCurrentDisplayUrl("/iframe-error.html"); 
               }}
             />
           )}
@@ -175,7 +194,7 @@ export default function InAppBrowserPage() {
              <div className="flex flex-col justify-center items-center h-full text-center p-8">
                 <ServerCrash className="h-16 w-16 text-muted-foreground/50 mb-4" />
                 <p className="text-xl text-muted-foreground">Enter a URL or search query to begin.</p>
-                <p className="text-sm text-muted-foreground">Or use the quick links above.</p>
+                <p className="text-sm text-muted-foreground">Or use the quick links (Home, YouTube, NCERT) above.</p>
             </div>
           )}
         </CardContent>
@@ -185,6 +204,7 @@ export default function InAppBrowserPage() {
         <AlertTitle className="font-semibold text-primary">Browser & Search Notes</AlertTitle>
         <AlertDescription>
             Search results are provided by Google Custom Search API. Some websites may not load correctly in the iframe due to their security settings (e.g., X-Frame-Options).
+            If you see an error page in the iframe, the site may be blocking embeds or the URL might be incorrect.
         </AlertDescription>
       </Alert>
     </div>
