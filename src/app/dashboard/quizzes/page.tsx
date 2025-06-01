@@ -49,21 +49,55 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       'Chapter 2: Units and Measurement': ['Need for measurement: Units of measurement', 'Systems of units; SI units', 'Fundamental and derived units', 'Length, mass and time measurements', 'Accuracy and precision of measuring instruments', 'Errors in measurement', 'Significant figures', 'Dimensions of physical quantities', 'Dimensional analysis and its applications'],
       'Chapter 3: Motion in a Straight Line': ['Frame of reference', 'Motion in a straight line: Position-time graph, speed and velocity', 'Uniform and non-uniform motion', 'Average speed and instantaneous velocity', 'Uniformly accelerated motion', 'Velocity-time and position-time graphs', 'Relations for uniformly accelerated motion (graphical treatment)'],
       'Chapter 4: Motion in a Plane': [
-        'Scalars and vectors', 'Position and displacement vectors', 'General vectors and their notations', 
-        'Equality of vectors, multiplication of vectors by a real number', 'Addition and subtraction of vectors', 
-        'Relative velocity', 'Unit vector', 'Resolution of a vector in a plane - rectangular components', 
-        'Scalar and Vector products of Vectors', 'Motion in a plane', 
-        'Cases of uniform velocity and uniform acceleration-projectile motion', 'Uniform circular motion'
+        'Scalars and vectors: General concepts', 
+        'Position and displacement vectors', 
+        'Vector notations and equality', 
+        'Multiplication of vectors by a real number', 
+        'Addition and subtraction of vectors', 
+        'Relative velocity in a plane', 
+        'Unit vector definition and usage', 
+        'Resolution of a vector in a plane - rectangular components', 
+        'Scalar (Dot) product of Vectors: Properties and applications', 
+        'Vector (Cross) product of Vectors: Properties and applications', 
+        'Motion in a plane with constant velocity',
+        'Motion in a plane with uniform acceleration',
+        'Projectile motion: Concept, trajectory, time of flight, maximum height, horizontal range', 
+        'Uniform circular motion: Concept, centripetal acceleration, angular velocity'
       ],
       'Chapter 5: Laws of Motion': [
-        'Intuitive concept of force', 'Inertia, Newton\'s first law of motion', 
-        'Momentum and Newton\'s second law of motion; impulse', 'Newton\'s third law of motion', 
-        'Law of conservation of linear momentum and its applications', 'Equilibrium of concurrent forces', 
-        'Static and kinetic friction, laws of friction, rolling friction, lubrication', 
-        'Dynamics of uniform circular motion: Centripetal force, examples of circular motion (vehicle on a level circular road, vehicle on a banked road)'
+        'Intuitive concept of force', 
+        'Inertia and Newton\'s first law of motion', 
+        'Momentum: Definition and units',
+        'Newton\'s second law of motion: F=ma and its applications', 
+        'Impulse: Definition and relation to momentum change', 
+        'Newton\'s third law of motion: Action-reaction pairs', 
+        'Law of conservation of linear momentum and its applications', 
+        'Equilibrium of concurrent forces: Conditions for equilibrium', 
+        'Friction: Static and kinetic friction', 
+        'Laws of friction (limiting friction, kinetic friction)', 
+        'Rolling friction', 
+        'Lubrication: Methods to reduce friction', 
+        'Dynamics of uniform circular motion: Centripetal force', 
+        'Examples of circular motion (vehicle on a level circular road, vehicle on a banked road)'
       ],
       'Chapter 6: Work, Energy and Power': ['Work done by a constant force and a variable force', 'Kinetic energy, work-energy theorem, power', 'Notion of potential energy, potential energy of a spring, conservative forces: conservation of mechanical energy (kinetic and potential energies)', 'Non-conservative forces: motion in a vertical circle', 'Elastic and inelastic collisions in one and two dimensions'],
-      'Chapter 7: System of Particles and Rotational Motion': ['Centre of mass of a two-particle system, momentum conservation and centre of mass motion', 'Centre of mass of a rigid body; centre of mass of a uniform rod', 'Moment of a force, torque, angular momentum, conservation of angular momentum with some examples', 'Equilibrium of rigid bodies, rigid body rotation and equations of rotational motion, comparison of linear and rotational motions', 'Moment of inertia, radius of gyration', 'Values of M.I. for simple geometrical objects (no derivation)', 'Statement of parallel and perpendicular axes theorems and their applications'],
+      'Chapter 7: System of Particles and Rotational Motion': [
+        'Centre of mass of a two-particle system', 
+        'Momentum conservation and centre of mass motion', 
+        'Centre of mass of a rigid body', 
+        'Centre of mass of a uniform rod', 
+        'Moment of a force (Torque): Definition and calculation', 
+        'Angular momentum: Definition and relation to torque', 
+        'Conservation of angular momentum with examples', 
+        'Equilibrium of rigid bodies: Conditions for translational and rotational equilibrium', 
+        'Rigid body rotation and equations of rotational motion', 
+        'Comparison of linear and rotational motions', 
+        'Moment of inertia: Definition and physical significance', 
+        'Radius of gyration', 
+        'Values of M.I. for simple geometrical objects (e.g., rod, ring, disc, sphere - no derivations needed, just formulas)', 
+        'Statement of parallel axes theorem and its applications', 
+        'Statement of perpendicular axes theorem and its applications'
+      ],
       'Chapter 8: Gravitation': ['Kepler\'s laws of planetary motion', 'The universal law of gravitation', 'Acceleration due to gravity and its variation with altitude and depth', 'Gravitational potential energy and gravitational potential', 'Escape velocity, orbital velocity of a satellite', 'Geo-stationary satellites'],
       // Class 11 Physics - Part II
       'Chapter 9: Mechanical Properties of Solids': ['Elastic behaviour, Stress-strain relationship, Hooke\'s law, Young\'s modulus, bulk modulus, shear modulus of rigidity, Poisson\'s ratio; elastic energy.'],
@@ -75,17 +109,70 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       'Chapter 15: Waves': ['Wave motion', 'Longitudinal and transverse waves, speed of wave motion', 'Displacement relation for a progressive wave', 'Principle of superposition of waves, reflection of waves, standing waves in strings and organ pipes, fundamental mode and harmonics, Beats, Doppler effect.'],
     },
     'Chemistry': {
-      'Chapter 1: Some Basic Concepts of Chemistry': ['Importance of Chemistry', 'Laws of chemical combination', 'Dalton\'s atomic theory', 'Concept of elements, atoms and molecules', 'Atomic and molecular masses', 'Mole concept and molar mass', 'Percentage composition, empirical and molecular formula', 'Chemical reactions, stoichiometry and calculations based on stoichiometry'],
-      'Chapter 2: Structure of Atom': ['Discovery of electron, proton and neutron', 'Atomic number, isotopes and isobars', 'Thomson\'s model and its limitations', 'Rutherford\'s model and its limitations', 'Bohr\'s model and its limitations', 'Concept of shells and subshells, dual nature of matter and light, de Broglie\'s relationship, Heisenberg uncertainty principle', 'Concept of orbitals, quantum numbers, shapes of s, p and d orbitals', 'Rules for filling electrons in orbitals - Aufbau principle, Pauli\'s exclusion principle and Hund\'s rule', 'Electronic configuration of atoms, stability of half-filled and completely filled orbitals'],
+      'Chapter 1: Some Basic Concepts of Chemistry': [
+        'Importance of Chemistry', 
+        'Nature of Matter: States, classification',
+        'Properties of Matter and their Measurement: Physical and chemical properties, SI units',
+        'Uncertainty in Measurement: Scientific notation, significant figures',
+        'Laws of Chemical Combination: Law of Conservation of Mass, Law of Definite Proportions, Law of Multiple Proportions, Gay Lussac\'s Law of Gaseous Volumes, Avogadro Law', 
+        'Dalton\'s Atomic Theory: Postulates and limitations', 
+        'Atomic and Molecular Masses: Concept, units (amu)', 
+        'Mole Concept and Molar Mass: Avogadro number, calculations', 
+        'Percentage Composition', 
+        'Empirical Formula for Molecular Formula', 
+        'Stoichiometry and Stoichiometric Calculations: Limiting reagent, reactions in solutions (mass percent, mole fraction, molarity, molality)'
+      ],
+      'Chapter 2: Structure of Atom': [
+        'Discovery of Sub-atomic Particles: Electron (Cathode ray experiment), Proton (Anode ray experiment), Neutron', 
+        'Atomic Models: Thomson Model, Rutherford\'s Nuclear Model (alpha-particle scattering experiment), Atomic Number and Mass Number, Isotopes and Isobars', 
+        'Developments Leading to the Bohr\'s Model of Atom: Nature of Electromagnetic Radiation (wave nature, particle nature - Planck\'s quantum theory), Photoelectric Effect, Dual Behaviour of Electromagnetic Radiation',
+        'Atomic Spectra: Emission and absorption spectra, Line spectrum of Hydrogen',
+        'Bohr\'s Model for Hydrogen Atom: Postulates, energy of electron, Bohr radius, explanation of line spectrum', 
+        'Towards Quantum Mechanical Model of the Atom: Dual Behaviour of Matter (de Broglie hypothesis), Heisenberg\'s Uncertainty Principle',
+        'Quantum Mechanical Model of Atom: Concept of orbitals, Schrödinger wave equation (qualitative idea), significance of Ψ and Ψ²',
+        'Quantum Numbers: Principal, Azimuthal, Magnetic, and Spin quantum numbers', 
+        'Shapes of Atomic Orbitals: s, p, and d orbitals', 
+        'Energies of Orbitals',
+        'Filling of Orbitals in Atom: Aufbau principle, Pauli Exclusion Principle, Hund\'s Rule of Maximum Multiplicity', 
+        'Electronic Configuration of Atoms', 
+        'Stability of Completely Filled and Half Filled Subshells'
+      ],
       'Chapter 3: Classification of Elements': ['Significance of classification', 'Brief history of the development of periodic table', 'Modern periodic law and the present form of periodic table', 'Periodic trends in properties of elements - atomic radii, ionic radii, inert gas radii, ionization enthalpy, electron gain enthalpy, electronegativity, valency'],
     },
     'Botany': {
         'Chapter 1: The Living World (Botany Focus)': ['What is living?', 'Diversity in the living world', 'Taxonomic categories', 'Taxonomical aids', 'Herbarium, Botanical gardens, Museum, Zoological parks, Key'],
-        'Chapter 8: Cell The Unit of Life': ['Cell Theory', 'Prokaryotic Cells', 'Eukaryotic Cells', 'Cell membrane, Cell wall, Endomembrane system (ER, Golgi, Lysosomes, Vacuoles)', 'Mitochondria, Plastids, Ribosomes', 'Cytoskeleton, Cilia, Flagella, Centrosome and Centrioles, Nucleus, Microbodies'],
+        'Chapter 8: Cell The Unit of Life': [
+            'What is a Cell?',
+            'Cell Theory',
+            'An Overview of Cell',
+            'Prokaryotic Cells: General characteristics, Cell envelope and its modifications, Ribosomes and inclusion bodies',
+            'Eukaryotic Cells: General characteristics',
+            'Cell Membrane: Structure (Fluid Mosaic Model)',
+            'Cell Wall: Structure and function in plants and fungi',
+            'Endomembrane System: Endoplasmic Reticulum (SER, RER), Golgi apparatus, Lysosomes, Vacuoles',
+            'Mitochondria: Structure and function (powerhouse of cell)',
+            'Plastids: Types (Chloroplasts, Chromoplasts, Leucoplasts), Chloroplast structure and function',
+            'Ribosomes: Structure and function (protein synthesis)',
+            'Cytoskeleton: Microtubules, Microfilaments, Intermediate filaments - structure and function',
+            'Cilia and Flagella: Structure and function',
+            'Centrosome and Centrioles: Structure and function',
+            'Nucleus: Nuclear envelope, Nucleolus, Chromatin, Chromosomes',
+            'Microbodies: Peroxisomes, Glyoxysomes'
+        ],
     },
     'Zoology': {
         'Chapter 1: Animal Kingdom (Zoology Focus)': ['Basis of Classification', 'Levels of Organisation', 'Symmetry', 'Diploblastic and Triploblastic Organisation', 'Coelom', 'Segmentation', 'Notochord', 'Classification of Animals'],
-        'Chapter 7: Structural Organisation in Animals': ['Animal Tissues: Epithelial, Connective, Muscular, Neural', 'Organ and Organ System', 'Earthworm, Cockroach, Frog (Morphology and Anatomy - brief account only)'],
+        'Chapter 7: Structural Organisation in Animals': [
+            'Animal Tissues: Overview',
+            'Epithelial Tissue: Simple epithelium (squamous, cuboidal, columnar), Compound epithelium, Glandular epithelium (unicellular, multicellular)',
+            'Connective Tissue: Loose connective tissue (areolar, adipose), Dense connective tissue (dense regular, dense irregular), Specialized connective tissue (cartilage, bone, blood)',
+            'Muscle Tissue: Skeletal muscle, Smooth muscle, Cardiac muscle',
+            'Neural Tissue: Neurons, Neuroglia',
+            'Organ and Organ System: Concept',
+            'Earthworm: Morphology (external features, segments, setae, nephridiopores, genital openings), Anatomy (digestive system, circulatory system, respiratory system, excretory system, nervous system, reproductive system - brief account)',
+            'Cockroach: Morphology (external features, head, thorax, abdomen, appendages), Anatomy (digestive system, circulatory system, respiratory system, excretory system, nervous system, reproductive system - brief account)',
+            'Frog: Morphology (external features, skin, head, trunk), Anatomy (digestive system, respiratory system, circulatory system, excretory system, nervous system, sense organs, reproductive system - brief account)'
+        ],
     }
   },
   '12': {
@@ -116,7 +203,7 @@ const quizConfigSchema = z.object({
   topic: z.string().optional(),
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
-  numQuestions: z.coerce.number().int().min(1).max(10),
+  numQuestions: z.coerce.number().int().min(1).max(50),
 });
 
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
@@ -743,8 +830,8 @@ export default function QuizzesPage() {
                 )} />
                 <FormField control={configForm.control} name="numQuestions" render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-base font-medium">Number of Questions (1-10)</FormLabel>
-                      <FormControl><Input type="number" min="1" max="10" {...field} className="h-11 text-base input-glow"/></FormControl>
+                      <FormLabel className="text-base font-medium">Number of Questions (1-50)</FormLabel>
+                      <FormControl><Input type="number" min="1" max="50" {...field} className="h-11 text-base input-glow"/></FormControl>
                        <FormMessage />
                     </FormItem>
                 )} />
