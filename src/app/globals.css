@@ -104,9 +104,19 @@ body {
   }
   body {
     @apply bg-background text-foreground antialiased;
+    touch-action: manipulation; /* Prevent double-tap to zoom globally */
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-space-grotesk), sans-serif;
+  }
+  /* Specific for game canvases or interactive areas if needed */
+  .game-canvas, .interactive-game-area {
+    touch-action: none; /* Disables all default touch actions like pinch zoom, pan, double-tap zoom */
+    user-select: none; /* Prevent text selection */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
   }
 }
 

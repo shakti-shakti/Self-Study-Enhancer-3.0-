@@ -4,31 +4,30 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bird, PlayCircle, RotateCcw } from 'lucide-react'; // Bird icon can represent the "dino"
+import { Bird, PlayCircle, RotateCcw, ArrowUp, ArrowLeft, ArrowRight, ChevronUp } from 'lucide-react'; // Added Arrow icons
 
 // Game constants
 const CANVAS_WIDTH = 320;
-const CANVAS_HEIGHT = 200; // Shorter canvas for typical dino run
+const CANVAS_HEIGHT = 200; 
 const DINO_X = 50;
 const DINO_WIDTH = 20;
-const DINO_HEIGHT = 30; // Taller than wide
-const GROUND_Y = CANVAS_HEIGHT - DINO_HEIGHT - 10; // 10px buffer from bottom
+const DINO_HEIGHT = 30; 
+const GROUND_Y = CANVAS_HEIGHT - DINO_HEIGHT - 10; 
 const GRAVITY = 0.6;
 const JUMP_STRENGTH = -10;
 const OBSTACLE_WIDTH = 20;
 const MIN_OBSTACLE_HEIGHT = 20;
 const MAX_OBSTACLE_HEIGHT = 40;
-const OBSTACLE_SPACING_MIN = 150; // Min distance between obstacles
-const OBSTACLE_SPACING_MAX = 300; // Max distance
+const OBSTACLE_SPACING_MIN = 150; 
+const OBSTACLE_SPACING_MAX = 300; 
 const INITIAL_GAME_SPEED = 3;
 const MAX_GAME_SPEED = 7;
-const SPEED_INCREMENT_INTERVAL = 5; // Score interval to increase speed
+const SPEED_INCREMENT_INTERVAL = 5; 
 
-// Simplified, hardcoded colors
 const BG_COLOR = '#F0F8FF'; 
-const DINO_COLOR = '#607D8B'; // Slate Gray
-const OBSTACLE_COLOR = '#795548'; // Brown for "cacti"
-const GROUND_COLOR = '#A1887F'; // Lighter Brown for ground line
+const DINO_COLOR = '#607D8B'; 
+const OBSTACLE_COLOR = '#795548'; 
+const GROUND_COLOR = '#A1887F'; 
 const TEXT_COLOR = '#000000';
 
 export default function DinoRunPage() {
@@ -37,12 +36,11 @@ export default function DinoRunPage() {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
 
-  // Game state refs
   const dinoY = useRef(GROUND_Y);
   const dinoVelocity = useRef(0);
   const obstacles = useRef<{ x: number; y: number; width: number; height: number; passed: boolean }[]>([]);
   const gameSpeed = useRef(INITIAL_GAME_SPEED);
-  const nextObstacleDistance = useRef(0); // Tracks when to spawn next obstacle
+  const nextObstacleDistance = useRef(0); 
 
   const gameLoopId = useRef<number | null>(null);
 
@@ -79,10 +77,11 @@ export default function DinoRunPage() {
   }, [resetGameValues]);
 
   const dinoJump = useCallback(() => {
-    if (dinoY.current === GROUND_Y) { // Only jump if on the ground
+    if (gameState !== 'playing') return; // Only allow jump if game is playing
+    if (dinoY.current === GROUND_Y) { 
       dinoVelocity.current = JUMP_STRENGTH;
     }
-  }, []);
+  }, [gameState]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -90,26 +89,16 @@ export default function DinoRunPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
     ctx.fillStyle = BG_COLOR;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    // Ground line
     ctx.fillStyle = GROUND_COLOR;
     ctx.fillRect(0, GROUND_Y + DINO_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT - (GROUND_Y + DINO_HEIGHT));
-
-
-    // Obstacles
     ctx.fillStyle = OBSTACLE_COLOR;
     obstacles.current.forEach(obstacle => {
       ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
     });
-
-    // Dino (simple rectangle)
     ctx.fillStyle = DINO_COLOR;
     ctx.fillRect(DINO_X, dinoY.current, DINO_WIDTH, DINO_HEIGHT);
-    
-    // Score
     ctx.fillStyle = TEXT_COLOR;
     ctx.font = `16px Arial`;
     ctx.textAlign = 'left';
@@ -133,12 +122,12 @@ export default function DinoRunPage() {
       }
       ctx.fillStyle = '#DDDDDD';
       ctx.font = `14px Arial`;
-      ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
+      ctx.fillText('Click Jump or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 60);
     } else if (gameState === 'idle') {
       ctx.fillStyle = TEXT_COLOR;
       ctx.textAlign = 'center';
       ctx.font = `20px Arial`;
-      ctx.fillText('Click or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      ctx.fillText('Click Jump or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     }
   }, [gameState, score, highScore]);
 
@@ -151,7 +140,6 @@ export default function DinoRunPage() {
         return;
       }
 
-      // Dino physics
       dinoVelocity.current += GRAVITY;
       dinoY.current += dinoVelocity.current;
 
@@ -160,12 +148,11 @@ export default function DinoRunPage() {
         dinoVelocity.current = 0;
       }
       
-      // Obstacle generation
       if (obstacles.current.length === 0 || obstacles.current[obstacles.current.length - 1].x < CANVAS_WIDTH - nextObstacleDistance.current) {
          const obstacleHeight = Math.random() * (MAX_OBSTACLE_HEIGHT - MIN_OBSTACLE_HEIGHT) + MIN_OBSTACLE_HEIGHT;
          obstacles.current.push({ 
             x: CANVAS_WIDTH, 
-            y: GROUND_Y + DINO_HEIGHT - obstacleHeight, // Obstacles on the ground
+            y: GROUND_Y + DINO_HEIGHT - obstacleHeight, 
             width: OBSTACLE_WIDTH, 
             height: obstacleHeight, 
             passed: false 
@@ -173,7 +160,6 @@ export default function DinoRunPage() {
         nextObstacleDistance.current = Math.random() * (OBSTACLE_SPACING_MAX - OBSTACLE_SPACING_MIN) + OBSTACLE_SPACING_MIN;
       }
 
-      // Move obstacles and check for score
       let newScore = score;
       obstacles.current.forEach(obstacle => {
         obstacle.x -= gameSpeed.current;
@@ -185,18 +171,16 @@ export default function DinoRunPage() {
       if (newScore !== score) setScore(newScore);
       obstacles.current = obstacles.current.filter(obstacle => obstacle.x + obstacle.width > 0);
 
-      // Difficulty adjustment
       if (newScore > 0 && newScore % SPEED_INCREMENT_INTERVAL === 0 && newScore !== score ) { 
         gameSpeed.current = Math.min(MAX_GAME_SPEED, INITIAL_GAME_SPEED + (newScore / SPEED_INCREMENT_INTERVAL) * 0.2);
       }
       
-      // Collision detection
       const dinoRight = DINO_X + DINO_WIDTH;
       const dinoBottom = dinoY.current + DINO_HEIGHT;
 
       for (const obstacle of obstacles.current) {
         const obsRight = obstacle.x + obstacle.width;
-        const obsBottom = obstacle.y + obstacle.height; // This is actually obstacle.y for ground obstacles
+        const obsBottom = obstacle.y + obstacle.height; 
         
         if ( DINO_X < obsRight && dinoRight > obstacle.x &&
              dinoY.current < obsBottom && dinoBottom > obstacle.y ) {
@@ -239,7 +223,18 @@ export default function DinoRunPage() {
       }
     };
     window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    // Add touch event listener for canvas
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('touchstart', handleInteraction, { passive: false });
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      if (canvas) {
+        canvas.removeEventListener('touchstart', handleInteraction);
+      }
+    };
   }, [handleInteraction]);
 
   useEffect(() => {
@@ -255,7 +250,7 @@ export default function DinoRunPage() {
           <Bird className="mr-3 h-10 w-10 text-primary" /> Dino Run
         </h1>
         <p className="text-lg text-muted-foreground">
-          Jump over the obstacles! Click or tap spacebar to jump.
+          Jump over the obstacles! Click/Tap canvas, press Space, or use Jump button.
         </p>
       </header>
       <Card className="interactive-card shadow-xl overflow-hidden">
@@ -263,12 +258,15 @@ export default function DinoRunPage() {
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          onClick={handleInteraction}
-          className="cursor-pointer border-2 border-primary rounded-md"
+          onClick={handleInteraction} // Canvas click also triggers jump/start
+          className="cursor-pointer border-2 border-primary rounded-md game-canvas" // Added game-canvas class
         />
       </Card>
-       <div className="flex space-x-4">
-            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button">
+       <div className="flex flex-col items-center space-y-2">
+            <Button onClick={dinoJump} disabled={gameState !== 'playing'} className="glow-button w-32 py-3 text-lg">
+              <ChevronUp className="mr-2" /> Jump
+            </Button>
+            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-32">
               <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
             </Button>
         </div>

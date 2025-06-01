@@ -18,16 +18,21 @@ export type Database = {
           avatar_url: string | null
           updated_at: string | null
           username: string | null
-          class_level: string | null // e.g., "11", "12"
-          target_year: number | null // e.g., 2026
-          theme: string | null // e.g., "dark", "light"
+          class_level: string | null 
+          target_year: number | null 
+          theme: string | null 
           alarm_tone_url: string | null
           custom_countdown_event_name: string | null
           custom_countdown_target_date: string | null
-          dataAiHint?: string | null // Added for NCERT books
+          dataAiHint?: string | null 
+          focus_coins: number | null // Added
+          xp: number | null // Added
+          owned_content_ids: string[] | null // Added for story/puzzle unlocks
+          owned_store_items: string[] | null // Added for store purchases
+          unlocked_achievement_ids: string[] | null // Added for achievements
         }
         Insert: {
-          id: string // user_id from auth.users
+          id: string 
           email?: string | null
           full_name?: string | null
           avatar_url?: string | null
@@ -40,6 +45,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
+          focus_coins?: number | null // Added
+          xp?: number | null // Added
+          owned_content_ids?: string[] | null // Added
+          owned_store_items?: string[] | null // Added
+          unlocked_achievement_ids?: string[] | null // Added
         }
         Update: {
           id?: string
@@ -55,6 +65,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
+          focus_coins?: number | null // Added
+          xp?: number | null // Added
+          owned_content_ids?: string[] | null // Added
+          owned_store_items?: string[] | null // Added
+          unlocked_achievement_ids?: string[] | null // Added
         }
         Relationships: [
           {
@@ -994,7 +1009,7 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "profiles"; // Changed from "users" to "profiles" to match previous similar select
+            referencedRelation: "profiles"; 
             referencedColumns: ["id"];
           }
         ];
@@ -1007,7 +1022,7 @@ export type Database = {
           book_name: string 
           chapters: Json 
           cover_image_url: string | null
-          dataAiHint?: string | null // Added for NCERT books
+          dataAiHint?: string | null 
         }
         Insert: {
           id?: string
@@ -1274,7 +1289,7 @@ export type Enums<
     | keyof Database["public"]["Enums"]
     | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
@@ -1337,4 +1352,11 @@ export type ChatSessionPreview = {
 // Added this for type consistency in NcertBookMetadata
 export interface NcertBookMetadataRow extends Tables<'ncert_books_metadata'> {
   dataAiHint?: string | null;
+}
+
+export interface SearchResultItem { // For Google Search Flow
+  title: string;
+  link: string;
+  snippet: string;
+  displayLink?: string;
 }

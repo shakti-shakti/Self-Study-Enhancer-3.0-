@@ -4,14 +4,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { MoveHorizontal, PlayCircle, RotateCcw } from 'lucide-react';
+import { MoveHorizontal, PlayCircle, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const GRID_SIZE = 20; // 20x20 grid
+const GRID_SIZE = 20; 
 const INITIAL_SNAKE = [{ x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) }];
-const INITIAL_DIRECTION = { x: 0, y: -1 }; // Moving up initially
-const INITIAL_SPEED_MS = 200; // Milliseconds per move
-const SPEED_INCREMENT = 10; // Decrease interval by this amount to speed up
+const INITIAL_DIRECTION = { x: 0, y: -1 }; 
+const INITIAL_SPEED_MS = 200; 
+const SPEED_INCREMENT = 10; 
 const MIN_SPEED_MS = 80;
 
 type Position = { x: number; y: number };
@@ -28,6 +28,7 @@ export default function SnakeGamePage() {
   const [gameSpeed, setGameSpeed] = useState(INITIAL_SPEED_MS);
   
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const directionQueue = useRef<Direction[]>([]); // Queue for smoother direction changes
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -60,6 +61,7 @@ export default function SnakeGamePage() {
     setSnake(INITIAL_SNAKE);
     setFood(getRandomFoodPosition(INITIAL_SNAKE));
     setDirection(INITIAL_DIRECTION);
+    directionQueue.current = [];
     setScore(0);
     setGameOver(false);
     setIsPlaying(false);
@@ -76,13 +78,19 @@ export default function SnakeGamePage() {
   const moveSnake = useCallback(() => {
     if (gameOver || !isPlaying) return;
 
+    let currentDirection = direction;
+    if (directionQueue.current.length > 0) {
+      currentDirection = directionQueue.current.shift()!;
+      setDirection(currentDirection); // Update state for next move if queue becomes empty
+    }
+
+
     setSnake(prevSnake => {
       const newSnake = [...prevSnake];
       const head = { ...newSnake[0] };
-      head.x += direction.x;
-      head.y += direction.y;
+      head.x += currentDirection.x;
+      head.y += currentDirection.y;
 
-      // Wall collision
       if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
         setGameOver(true);
         updateHighScore(score);
@@ -90,7 +98,6 @@ export default function SnakeGamePage() {
         return prevSnake;
       }
 
-      // Self collision
       for (let i = 1; i < newSnake.length; i++) {
         if (newSnake[i].x === head.x && newSnake[i].y === head.y) {
           setGameOver(true);
@@ -100,17 +107,14 @@ export default function SnakeGamePage() {
         }
       }
 
-      newSnake.unshift(head); // Add new head
+      newSnake.unshift(head); 
 
-      // Food eaten
       if (head.x === food.x && head.y === food.y) {
         setScore(s => s + 1);
         setFood(getRandomFoodPosition(newSnake));
-        // Speed up
         setGameSpeed(prevSpeed => Math.max(MIN_SPEED_MS, prevSpeed - SPEED_INCREMENT));
-
       } else {
-        newSnake.pop(); // Remove tail if no food eaten
+        newSnake.pop(); 
       }
       return newSnake;
     });
@@ -126,21 +130,33 @@ export default function SnakeGamePage() {
     }
   }, [moveSnake, isPlaying, gameOver, gameSpeed]);
 
+  const changeDirection = (newDirection: Direction) => {
+    // Prevent immediate 180-degree turns and ensure new direction is different
+    const lastDirection = directionQueue.current.length > 0 ? directionQueue.current[directionQueue.current.length - 1] : direction;
+    if (
+      (newDirection.x !== 0 && newDirection.x === -lastDirection.x) ||
+      (newDirection.y !== 0 && newDirection.y === -lastDirection.y)
+    ) {
+      return; // Invalid move (trying to reverse)
+    }
+    directionQueue.current.push(newDirection);
+  };
+
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isPlaying) return;
       switch (event.key) {
-        case 'ArrowUp': if (direction.y === 0) setDirection({ x: 0, y: -1 }); break;
-        case 'ArrowDown': if (direction.y === 0) setDirection({ x: 0, y: 1 }); break;
-        case 'ArrowLeft': if (direction.x === 0) setDirection({ x: -1, y: 0 }); break;
-        case 'ArrowRight': if (direction.x === 0) setDirection({ x: 1, y: 0 }); break;
+        case 'ArrowUp': changeDirection({ x: 0, y: -1 }); break;
+        case 'ArrowDown': changeDirection({ x: 0, y: 1 }); break;
+        case 'ArrowLeft': changeDirection({ x: -1, y: 0 }); break;
+        case 'ArrowRight': changeDirection({ x: 1, y: 0 }); break;
         default: break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [direction, isPlaying]);
+  }, [isPlaying, direction]); // direction is still needed to prevent immediate reversal based on current actual direction
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -149,11 +165,11 @@ export default function SnakeGamePage() {
           <MoveHorizontal className="mr-3 h-10 w-10 text-primary" /> Snake Game
         </h1>
         <p className="text-lg text-muted-foreground">
-          Use arrow keys to control the snake. Eat food to grow!
+          Use arrow keys or on-screen buttons to control the snake. Eat food to grow!
         </p>
       </header>
 
-      <Card className="w-full max-w-md interactive-card shadow-xl">
+      <Card className="w-full max-w-sm sm:max-w-md interactive-card shadow-xl">
         <CardHeader className="flex flex-row justify-between items-center">
           <div>
             <CardTitle className="text-2xl font-headline glow-text-accent">Score: {score}</CardTitle>
@@ -167,17 +183,12 @@ export default function SnakeGamePage() {
            {isPlaying && !gameOver && (
             <Button onClick={() => setIsPlaying(false)} variant="outline" className="glow-button">Pause</Button>
            )}
-           {isPlaying && gameOver && ( // Should not happen, but as a fallback
-             <Button onClick={startGame} variant="outline" className="glow-button">
-                <RotateCcw className="mr-2"/> Restart
-            </Button>
-           )}
-
         </CardHeader>
-        <CardContent className="p-2 sm:p-3 bg-muted/40 rounded-lg">
+        <CardContent className="p-2 sm:p-3 bg-muted/40 rounded-lg game-canvas"> {/* Added game-canvas */}
           <div 
             className="grid relative aspect-square border-2 border-primary"
             style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
+            tabIndex={0} // Make it focusable for key events if needed directly on grid
           >
             {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
               const x = i % GRID_SIZE;
@@ -207,10 +218,28 @@ export default function SnakeGamePage() {
                     </Button>
                 </div>
             )}
+             {!isPlaying && !gameOver && score === 0 && (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+                    <p className="text-2xl font-bold text-white mb-4">Press Start</p>
+                </div>
+             )}
+             {!isPlaying && !gameOver && score > 0 && ( // Paused state
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
+                    <p className="text-2xl font-bold text-white mb-4">Paused</p>
+                    <Button onClick={() => setIsPlaying(true)} className="glow-button"><PlayCircle className="mr-2"/>Resume</Button>
+                </div>
+             )}
           </div>
         </CardContent>
       </Card>
+      <div className="grid grid-cols-3 gap-2 w-48 mt-4">
+        <div></div> {/* Empty cell for layout */}
+        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: -1 })} disabled={!isPlaying || direction.y === 1} className="glow-button aspect-square"><ArrowUp /></Button>
+        <div></div> {/* Empty cell for layout */}
+        <Button variant="outline" onClick={() => changeDirection({ x: -1, y: 0 })} disabled={!isPlaying || direction.x === 1} className="glow-button aspect-square"><ArrowLeft /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: 0, y: 1 })} disabled={!isPlaying || direction.y === -1} className="glow-button aspect-square"><ArrowDown /></Button>
+        <Button variant="outline" onClick={() => changeDirection({ x: 1, y: 0 })} disabled={!isPlaying || direction.x === -1} className="glow-button aspect-square"><ArrowRight /></Button>
+      </div>
     </div>
   );
 }
-

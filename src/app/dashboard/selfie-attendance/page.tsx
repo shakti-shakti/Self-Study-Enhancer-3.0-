@@ -1,21 +1,40 @@
-
 // src/app/dashboard/selfie-attendance/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef, useTransition } from 'react'; // Added React
+import React, { useState, useEffect, useRef, useTransition } from 'react'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { createClient } from '@/lib/supabase/client'; // For conceptual Supabase interaction
+import type { TablesInsert } from '@/lib/database.types'; // For conceptual Supabase interaction
 
 export default function SelfieAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null); // For capturing image
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isProcessing, startProcessingTransition] = useTransition();
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const supabase = createClient(); // For conceptual Supabase interaction
+  const [userId, setUserId] = useState<string | null>(null); // For conceptual Supabase interaction
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setUserId(session?.user?.id ?? null);
+    });
+     const getInitialUser = async () => {
+        const {data: {user}} = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+    };
+    getInitialUser();
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
 
   useEffect(() => {
     let streamInstance: MediaStream | null = null;
@@ -30,7 +49,7 @@ export default function SelfieAttendancePage() {
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
-          toast({ // This toast is now called after the async operation
+          toast({ 
             variant: 'destructive',
             title: 'Camera Access Denied',
             description: 'Please enable camera permissions in your browser settings to use this feature.',
@@ -50,28 +69,77 @@ export default function SelfieAttendancePage() {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
-            videoRef.current.srcObject = null; // Clean up srcObject
+            videoRef.current.srcObject = null; 
         }
         if (countdownTimerRef.current) {
             clearInterval(countdownTimerRef.current);
         }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Toast is now stable due to useCallback in useToast, but to be safe, keeping dependencies minimal for this effect.
+  }, []); 
+
+  const captureSelfie = async (): Promise<string | null> => {
+    if (videoRef.current && canvasRef.current && hasCameraPermission) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/png');
+        return dataUri;
+      }
+    }
+    return null;
+  };
 
   const handleMarkAttendance = () => {
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
     setCountdown(3);
-    startProcessingTransition(() => { // This ensures state updates inside are batched
+    startProcessingTransition(() => { 
         countdownTimerRef.current = setInterval(() => {
             setCountdown(prev => {
                 if (prev === null || prev <= 1) {
                     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
                     setCountdown(null);
-                    toast({
-                        title: 'Attendance Marked (Conceptual)!',
-                        description: 'Your presence has been noted. In a full version, an image might be saved.',
-                        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
+                    
+                    captureSelfie().then(async (imageDataUri) => {
+                        if (imageDataUri) {
+                            console.log("Captured Selfie Data URI (first 100 chars):", imageDataUri.substring(0, 100) + "...");
+                            // Conceptual: Save imageDataUri to Supabase Storage and log attendance
+                            if (userId) {
+                                try {
+                                    // const fileName = `selfie_${userId}_${Date.now()}.png`;
+                                    // const { data: storageData, error: storageError } = await supabase.storage
+                                    //     .from('selfie_attendance') // Ensure this bucket exists with proper policies
+                                    //     .upload(fileName, imageDataUri, { contentType: 'image/png', upsert: true });
+                                    // if (storageError) throw storageError;
+                                    // const selfieUrl = supabase.storage.from('selfie_attendance').getPublicUrl(fileName).data.publicUrl;
+
+                                    const attendanceLog: TablesInsert<'activity_logs'> = { // Assuming an 'activity_logs' table
+                                        user_id: userId,
+                                        activity_type: 'selfie_attendance_marked',
+                                        description: 'Selfie attendance marked.',
+                                        details: { captured_at: new Date().toISOString(), /* selfie_image_url: selfieUrl */ }
+                                    };
+                                    // await supabase.from('activity_logs').insert(attendanceLog);
+                                    console.log("Conceptual: Selfie attendance log created for user:", userId, attendanceLog);
+                                    toast({
+                                        title: 'Attendance Marked (Conceptual)!',
+                                        description: 'Your presence has been noted. Image captured (conceptually saved).',
+                                        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
+                                    });
+                                } catch (error: any) {
+                                     console.error("Error in conceptual save:", error);
+                                     toast({variant: "destructive", title: "Conceptual Save Error", description: error.message});
+                                }
+                            } else {
+                                 toast({variant: "destructive", title: "User ID Missing", description: "Cannot save attendance without user ID."});
+                            }
+                        } else {
+                            toast({ variant: "destructive", title: "Capture Failed", description: "Could not capture selfie." });
+                        }
                     });
                     return null;
                 }
@@ -91,14 +159,14 @@ export default function SelfieAttendancePage() {
           Mark your daily attendance with a quick selfie. Stay consistent!
         </p>
       </header>
-
+      <canvas ref={canvasRef} style={{ display: 'none' }} /> {/* Hidden canvas for image capture */}
       <Card className="max-w-lg mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Camera View</CardTitle>
           <CardDescription>Ensure your face is clearly visible. Smile!</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center relative">
+          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center relative game-canvas"> {/* Added game-canvas */}
             {hasCameraPermission === null && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
             {hasCameraPermission === false && (
               <div className="text-center p-4">
@@ -107,15 +175,29 @@ export default function SelfieAttendancePage() {
                 <p className="text-sm text-muted-foreground">Please grant camera permission in your browser.</p>
               </div>
             )}
-            {hasCameraPermission === true && (
-              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-            )}
+            {/* Always render video tag to prevent race condition, control visibility via hasCameraPermission */}
+            <video 
+                ref={videoRef} 
+                className={`w-full h-full object-cover ${hasCameraPermission === true ? 'block' : 'hidden'}`} 
+                autoPlay 
+                muted 
+                playsInline 
+            />
              {countdown !== null && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <span className="text-7xl font-bold text-white drop-shadow-lg">{countdown}</span>
               </div>
             )}
           </div>
+          { !(hasCameraPermission && hasCameraPermission !== null) && (
+            <Alert variant="destructive" className="mt-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Camera Not Ready</AlertTitle>
+                      <AlertDescription>
+                        Please enable camera permissions in your browser settings to use this app.
+                      </AlertDescription>
+            </Alert>
+           )}
           <Button 
             onClick={handleMarkAttendance} 
             className="w-full font-semibold text-lg py-3 glow-button"
@@ -132,7 +214,7 @@ export default function SelfieAttendancePage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary">Feature Note</AlertTitle>
         <AlertDescription>
-            This is a conceptual demonstration of selfie attendance. In a full implementation, the captured image would be saved and potentially analyzed. Currently, it only activates the camera, shows a countdown, and then a confirmation message.
+            This feature captures an image from your webcam. In a full implementation, this image would be uploaded and stored on a server (e.g., Supabase Storage) and linked to your attendance record. Currently, the image is captured and displayed in console (conceptually) but not persistently saved.
         </AlertDescription>
       </Alert>
     </div>

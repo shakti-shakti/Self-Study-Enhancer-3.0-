@@ -1,4 +1,3 @@
-
 // src/app/dashboard/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
@@ -7,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact, type GenerateSyllabusFactOutput } from '@/ai/flows/random-fact-generator';
 import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow';
 import { generateDailyMotivation, type GenerateDailyMotivationOutput } from '@/ai/flows/daily-motivation-flow';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck } from 'lucide-react';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck, Users } from 'lucide-react';
 import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
@@ -79,7 +78,7 @@ export default async function DashboardPage() {
 
     const { data: fetchedProfileData, error: profileError } = await supabase
       .from('profiles')
-      .select('custom_countdown_event_name, custom_countdown_target_date')
+      .select('custom_countdown_event_name, custom_countdown_target_date, focus_coins, xp') // Added focus_coins, xp
       .eq('id', user.id)
       .single();
     
@@ -135,7 +134,7 @@ export default async function DashboardPage() {
             Welcome Back, Aspirant!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            This is your command center for NEET conquest.
+            This is your command center for NEET conquest. Coins: {profileData?.focus_coins || 0} 🪙 | XP: {profileData?.xp || 0} ✨
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -166,6 +165,19 @@ export default async function DashboardPage() {
                   />
                 </CardContent>
               </Card>
+            )}
+            {!profileData?.custom_countdown_event_name && (
+                <Card className="bg-muted/30 border-border/50 shadow-inner">
+                <CardHeader>
+                    <CardTitle className="text-xl font-headline glow-text-accent flex items-center">Set a Countdown!</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-sm text-muted-foreground mb-2">Motivate yourself by setting a custom countdown for your exam or a milestone.</p>
+                    <Button asChild variant="outline" className="glow-button">
+                        <Link href="/dashboard/profile">Go to Profile Settings</Link>
+                    </Button>
+                </CardContent>
+                </Card>
             )}
           </div>
 
@@ -205,11 +217,19 @@ export default async function DashboardPage() {
             </div>
           </Card>
 
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/planner">Access Planner</Link></Button>
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/quizzes">Take a Quiz</Link></Button>
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/ai-study-assistant">AI Study Assistant</Link></Button>
+            <Button asChild variant="outline" className="glow-button text-base py-6 col-span-1 sm:col-span-2 lg:col-span-3 flex items-center">
+                <Link href="/dashboard/study-rooms">
+                    <Users className="mr-2 h-5 w-5"/> Enter Study Rooms (Conceptual Button)
+                </Link>
+            </Button>
+            <CardDescription className="text-xs text-muted-foreground col-span-1 sm:col-span-2 lg:col-span-3 text-center">
+                (The "Enter Study Rooms" button is a placeholder. Full functionality would involve listing available rooms or joining by ID.)
+            </CardDescription>
+
           </div>
         </CardContent>
       </Card>
@@ -275,4 +295,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-

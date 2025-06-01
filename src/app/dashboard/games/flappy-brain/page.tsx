@@ -1,11 +1,10 @@
-
 // src/app/dashboard/games/flappy-brain/page.tsx
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bird, PlayCircle, RotateCcw } from 'lucide-react';
+import { Bird, PlayCircle, RotateCcw, ArrowUp, ChevronUp } from 'lucide-react'; // Added ArrowUp
 
 // Game constants
 const CANVAS_WIDTH = 320;
@@ -23,11 +22,10 @@ const MAX_PIPE_SPEED = 4.5;
 const SPEED_INCREASE_INTERVAL = 3; 
 const GAP_VARIATION_SCORE_THRESHOLD = 5;
 
-// Simplified, hardcoded colors for stability
-const BG_COLOR = '#F0F8FF'; // AliceBlue
-const BIRD_COLOR = '#FFD700'; // Gold
-const PIPE_COLOR = '#228B22'; // ForestGreen
-const TEXT_COLOR = '#000000'; // Black
+const BG_COLOR = '#F0F8FF'; 
+const BIRD_COLOR = '#FFD700'; 
+const PIPE_COLOR = '#228B22'; 
+const TEXT_COLOR = '#000000'; 
 
 export default function FlappyBrainPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,7 +33,6 @@ export default function FlappyBrainPage() {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
 
-  // Game state refs
   const birdY = useRef(CANVAS_HEIGHT / 2);
   const birdVelocity = useRef(0);
   const pipes = useRef<{ x: number; y: number; gap: number; passed: boolean }[]>([]);
@@ -78,8 +75,9 @@ export default function FlappyBrainPage() {
   }, [resetGameValues]);
 
   const birdJump = useCallback(() => {
+    if (gameState !== 'playing') return; // Only allow jump if game is playing
     birdVelocity.current = LIFT;
-  }, []);
+  }, [gameState]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -87,25 +85,18 @@ export default function FlappyBrainPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
     ctx.fillStyle = BG_COLOR;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-    // Pipes
     ctx.fillStyle = PIPE_COLOR;
     pipes.current.forEach(pipe => {
       ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.y);
       ctx.fillRect(pipe.x, pipe.y + pipe.gap, PIPE_WIDTH, CANVAS_HEIGHT - (pipe.y + pipe.gap));
     });
-
-    // Bird
     ctx.beginPath();
     ctx.arc(BIRD_X, birdY.current, BIRD_SIZE / 2, 0, Math.PI * 2);
     ctx.fillStyle = BIRD_COLOR;
     ctx.fill();
     ctx.closePath();
-
-    // Score
     ctx.fillStyle = TEXT_COLOR;
     ctx.font = `20px Arial`;
     ctx.textAlign = 'left';
@@ -116,7 +107,7 @@ export default function FlappyBrainPage() {
     if (gameState === 'gameOver') {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      ctx.fillStyle = '#FFFFFF'; // White text for game over messages
+      ctx.fillStyle = '#FFFFFF'; 
       ctx.textAlign = 'center';
       ctx.font = `36px Arial`;
       ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
@@ -127,14 +118,14 @@ export default function FlappyBrainPage() {
         ctx.font = `20px Arial`;
         ctx.fillText('New High Score!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
       }
-      ctx.fillStyle = '#DDDDDD'; // Light gray for restart prompt
+      ctx.fillStyle = '#DDDDDD'; 
       ctx.font = `16px Arial`;
-      ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
+      ctx.fillText('Click Flap or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
     } else if (gameState === 'idle') {
       ctx.fillStyle = TEXT_COLOR;
       ctx.textAlign = 'center';
       ctx.font = `24px Arial`;
-      ctx.fillText('Click or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+      ctx.fillText('Click Flap or Space to Start', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
     }
   }, [gameState, score, highScore]);
 
@@ -143,21 +134,18 @@ export default function FlappyBrainPage() {
       if (gameState !== 'playing') {
         if (gameLoopId.current) cancelAnimationFrame(gameLoopId.current);
         gameLoopId.current = null;
-        draw(); // Draw final state (idle or game over)
+        draw(); 
         return;
       }
 
-      // Bird physics
       birdVelocity.current += GRAVITY;
       birdY.current += birdVelocity.current;
 
-      // Pipe generation
       if (frameCount.current % Math.floor(PIPE_SPACING / pipeSpeed.current) === 0) {
         const pipeY = Math.random() * (CANVAS_HEIGHT - currentPipeGap.current - 150) + 75;
         pipes.current.push({ x: CANVAS_WIDTH, y: pipeY, gap: currentPipeGap.current, passed: false });
       }
 
-      // Move pipes and check for score
       let newScore = score;
       pipes.current.forEach(pipe => {
         pipe.x -= pipeSpeed.current;
@@ -169,7 +157,6 @@ export default function FlappyBrainPage() {
       if (newScore !== score) setScore(newScore);
       pipes.current = pipes.current.filter(pipe => pipe.x + PIPE_WIDTH > 0);
 
-      // Difficulty adjustment
       if (newScore > 0 && newScore % SPEED_INCREASE_INTERVAL === 0 && newScore !== score ) { 
         pipeSpeed.current = Math.min(MAX_PIPE_SPEED, INITIAL_PIPE_SPEED + (newScore / SPEED_INCREASE_INTERVAL) * 0.25);
       }
@@ -179,7 +166,6 @@ export default function FlappyBrainPage() {
         currentPipeGap.current = INITIAL_PIPE_GAP;
       }
 
-      // Collision detection
       const birdTop = birdY.current - BIRD_SIZE / 2;
       const birdBottom = birdY.current + BIRD_SIZE / 2;
       if (birdBottom > CANVAS_HEIGHT || birdTop < 0) {
@@ -208,7 +194,7 @@ export default function FlappyBrainPage() {
     if (gameState === 'playing') {
       gameLoopId.current = requestAnimationFrame(gameLoop);
     } else {
-      draw(); // Ensure idle or game over state is drawn when not playing
+      draw(); 
     }
     
     return () => {
@@ -216,7 +202,7 @@ export default function FlappyBrainPage() {
         cancelAnimationFrame(gameLoopId.current);
       }
     };
-  }, [gameState, score, highScore, draw, updateHighScore]); // Added updateHighScore to dependencies
+  }, [gameState, score, highScore, draw, updateHighScore]);
 
   const handleInteraction = useCallback(() => {
     if (gameState === 'playing') {
@@ -234,10 +220,18 @@ export default function FlappyBrainPage() {
       }
     };
     window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener('touchstart', handleInteraction, { passive: false });
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+      if (canvas) {
+        canvas.removeEventListener('touchstart', handleInteraction);
+      }
+    };
   }, [handleInteraction]);
 
-  // Initial draw for idle state
   useEffect(() => {
     if (gameState === 'idle') {
       draw();
@@ -251,7 +245,7 @@ export default function FlappyBrainPage() {
           <Bird className="mr-3 h-10 w-10 text-primary" /> Flappy Brain
         </h1>
         <p className="text-lg text-muted-foreground">
-          Navigate the brainy bird! Click or tap spacebar to flap. Difficulty increases.
+          Navigate the brainy bird! Click/Tap canvas, press Space, or use Flap button. Difficulty increases.
         </p>
       </header>
       <Card className="interactive-card shadow-xl overflow-hidden">
@@ -259,20 +253,21 @@ export default function FlappyBrainPage() {
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          onClick={handleInteraction}
-          className="cursor-pointer border-2 border-primary rounded-md bg-muted/30" // Added bg-muted/30 for canvas itself
+          onClick={handleInteraction} 
+          className="cursor-pointer border-2 border-primary rounded-md bg-muted/30 game-canvas" 
         />
       </Card>
-       <div className="flex space-x-4">
-            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button">
-              <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
-            </Button>
-        </div>
+       <div className="flex flex-col items-center space-y-2">
+          <Button onClick={birdJump} disabled={gameState !== 'playing'} className="glow-button w-32 py-3 text-lg">
+            <ChevronUp className="mr-2" /> Flap
+          </Button>
+          <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-32">
+            <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
+          </Button>
+      </div>
       <p className="text-sm text-muted-foreground">
         Pipe speed and gap size will change as you score higher! High Score: {highScore}
       </p>
     </div>
   );
 }
-
-    

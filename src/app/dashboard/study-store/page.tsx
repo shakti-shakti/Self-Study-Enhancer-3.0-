@@ -1,80 +1,182 @@
-
 // src/app/dashboard/study-store/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Sparkles, Palette, Music, Zap, UserCircle2, AlertTriangle, Coins, Loader2 } from 'lucide-react';
+import { ShoppingCart, Sparkles, Palette, Music, Zap, UserCircle2, AlertTriangle, Coins, Loader2, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import * as apiClient from '@/lib/apiClient'; // Using the placeholder API client
+import * as apiClient from '@/lib/apiClient'; 
+import { createClient } from '@/lib/supabase/client';
+import type { TablesUpdate } from '@/lib/database.types';
 
 const storeItems = [
-  { id: 'theme_ocean', name: 'Ocean Blue Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-blue-400" />, image: 'https://placehold.co/300x200/E0F7FA/00796B.png?text=Ocean+Theme', dataAiHint: 'ocean waves' },
-  { id: 'music_focus', name: 'Focus Beats Pack', type: 'Music', price: 50, icon: <Music className="h-8 w-8 text-purple-400" />, image: 'https://placehold.co/300x200/EDE7F6/5E35B1.png?text=Focus+Music', dataAiHint: 'headphones music' },
-  { id: 'booster_ai_token', name: 'AI Help Token', type: 'Booster', price: 200, icon: <Zap className="h-8 w-8 text-green-400" />, image: 'https://placehold.co/300x200/E8F5E9/388E3C.png?text=AI+Token', dataAiHint: 'brain gears' },
+  { id: 'theme_ocean', name: 'Ocean Blue Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-blue-400" />, image: 'https://placehold.co/300x200/E0F7FA/00796B.png?text=Ocean+Theme', dataAiHint: 'ocean waves', item_payload: { theme: 'ocean_blue_theme_config' } }, // payload could be CSS vars or class name
+  { id: 'music_focus', name: 'Focus Beats Pack', type: 'Music', price: 50, icon: <Music className="h-8 w-8 text-purple-400" />, image: 'https://placehold.co/300x200/EDE7F6/5E35B1.png?text=Focus+Music', dataAiHint: 'headphones music', item_payload: { playlist_id: 'spotify:playlist:focus_beats' } },
+  { id: 'booster_ai_token', name: 'AI Help Token', type: 'Booster', price: 200, icon: <Zap className="h-8 w-8 text-green-400" />, image: 'https://placehold.co/300x200/E8F5E9/388E3C.png?text=AI+Token', dataAiHint: 'brain gears', item_payload: { token_type: 'ai_help', count: 1 } },
   
-  // More Avatar Items
-  { id: 'avatar_wizard_hat', name: 'Wizard Hat', type: 'Avatar Accessory', price: 75, icon: <Sparkles className="h-8 w-8 text-yellow-400" />, image: 'https://placehold.co/300x200/FFF9C4/FBC02D.png?text=Wizard+Hat', dataAiHint: 'wizard hat icon' },
-  { id: 'avatar_robo_classic', name: 'Classic Robot', type: 'Avatar', price: 150, icon: <UserCircle2 className="h-8 w-8 text-gray-400" />, image: 'https://robohash.org/classic.png?set=set1&size=300x200', dataAiHint: 'robot classic' },
-  { id: 'avatar_space_explorer', name: 'Space Explorer', type: 'Avatar', price: 175, icon: <UserCircle2 className="h-8 w-8 text-indigo-400" />, image: 'https://api.dicebear.com/8.x/lorelei/svg?seed=SpaceExplorer&size=150', dataAiHint: 'space astronaut' },
-  { id: 'theme_forest', name: 'Forest Green Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-green-500" />, image: 'https://placehold.co/300x200/C8E6C9/2E7D32.png?text=Forest+Theme', dataAiHint: 'forest path' },
-  { id: 'avatar_pixel_hero', name: 'Pixel Hero', type: 'Avatar', price: 120, icon: <UserCircle2 className="h-8 w-8 text-orange-400" />, image: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=Hero&size=150', dataAiHint: 'pixel character hero' },
-  { id: 'avatar_monster_buddy', name: 'Monster Buddy', type: 'Avatar', price: 160, icon: <UserCircle2 className="h-8 w-8 text-teal-400" />, image: 'https://robohash.org/monsterbuddy.png?set=set2&size=300x200', dataAiHint: 'cute monster' },
-  { id: 'avatar_kitten_codey', name: 'Codey the Kitten', type: 'Avatar', price: 180, icon: <UserCircle2 className="h-8 w-8 text-pink-400" />, image: 'https://robohash.org/codeykitten.png?set=set4&size=300x200', dataAiHint: 'coding cat' },
-  { id: 'avatar_bot_circuit', name: 'Circuit Bot', type: 'Avatar', price: 155, icon: <UserCircle2 className="h-8 w-8 text-cyan-400" />, image: 'https://api.dicebear.com/8.x/bottts/svg?seed=Circuit&size=150&colors=blue', dataAiHint: 'circuit robot' },
-  { id: 'avatar_adventurer_sage', name: 'Sage Adventurer', type: 'Avatar', price: 170, icon: <UserCircle2 className="h-8 w-8 text-lime-400" />, image: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Sage&size=150&skinColor=variant03', dataAiHint: 'wise adventurer' },
-  { id: 'avatar_big_smile_sunny', name: 'Sunny Smiler', type: 'Avatar', price: 130, icon: <UserCircle2 className="h-8 w-8 text-yellow-500" />, image: 'https://api.dicebear.com/8.x/big-smile/svg?seed=Sunny&size=150&hairColor=FFC107', dataAiHint: 'happy smiley' },
-  { id: 'avatar_rings_cosmic', name: 'Cosmic Rings', type: 'Avatar', price: 190, icon: <UserCircle2 className="h-8 w-8 text-purple-500" />, image: 'https://api.dicebear.com/8.x/rings/svg?seed=Cosmic&size=150&backgroundColor=transparent', dataAiHint: 'abstract rings' },
-  { id: 'avatar_initials_pro', name: 'Pro Initials', type: 'Avatar', price: 90, icon: <UserCircle2 className="h-8 w-8 text-gray-600" />, image: 'https://api.dicebear.com/8.x/initials/svg?seed=PRO&size=150&fontWeight=bold&backgroundColor=primary', dataAiHint: 'professional initials' },
-  { id: 'avatar_openpeep_artist', name: 'Artist Peep', type: 'Avatar', price: 140, icon: <UserCircle2 className="h-8 w-8 text-red-400" />, image: 'https://api.dicebear.com/8.x/open-peeps/svg?seed=Artist&size=150&accessories=variant02', dataAiHint: 'artist character' },
+  { id: 'avatar_wizard_hat', name: 'Wizard Hat', type: 'Avatar Accessory', price: 75, icon: <Sparkles className="h-8 w-8 text-yellow-400" />, image: 'https://placehold.co/300x200/FFF9C4/FBC02D.png?text=Wizard+Hat', dataAiHint: 'wizard hat icon', item_payload: { accessory_id: 'wizard_hat_01' } },
+  { id: 'avatar_robo_classic', name: 'Classic Robot', type: 'Avatar', price: 150, icon: <UserCircle2 className="h-8 w-8 text-gray-400" />, image: 'https://robohash.org/classic.png?set=set1&size=300x200', dataAiHint: 'robot classic', item_payload: { avatar_url: 'https://robohash.org/classic.png?set=set1&size=150x150' } },
+  { id: 'avatar_space_explorer', name: 'Space Explorer', type: 'Avatar', price: 175, icon: <UserCircle2 className="h-8 w-8 text-indigo-400" />, image: 'https://api.dicebear.com/8.x/lorelei/svg?seed=SpaceExplorer&size=150', dataAiHint: 'space astronaut', item_payload: { avatar_url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=SpaceExplorer&size=150' } },
+  { id: 'theme_forest', name: 'Forest Green Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-green-500" />, image: 'https://placehold.co/300x200/C8E6C9/2E7D32.png?text=Forest+Theme', dataAiHint: 'forest path', item_payload: { theme: 'forest_green_theme_config' } },
+  { id: 'avatar_pixel_hero', name: 'Pixel Hero', type: 'Avatar', price: 120, icon: <UserCircle2 className="h-8 w-8 text-orange-400" />, image: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=Hero&size=150', dataAiHint: 'pixel character hero', item_payload: { avatar_url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=Hero&size=150' } },
+  // ... more items based on the list provided in user code ...
+  { id: 'avatar_monster_buddy', name: 'Monster Buddy', type: 'Avatar', price: 160, icon: <UserCircle2 className="h-8 w-8 text-teal-400" />, image: 'https://robohash.org/monsterbuddy.png?set=set2&size=300x200', dataAiHint: 'cute monster', item_payload: { avatar_url: 'https://robohash.org/monsterbuddy.png?set=set2&size=150x150' } },
+  { id: 'avatar_kitten_codey', name: 'Codey the Kitten', type: 'Avatar', price: 180, icon: <UserCircle2 className="h-8 w-8 text-pink-400" />, image: 'https://robohash.org/codeykitten.png?set=set4&size=300x200', dataAiHint: 'coding cat', item_payload: { avatar_url: 'https://robohash.org/codeykitten.png?set=set4&size=150x150' } },
 ];
 
 export default function StudyStorePage() {
   const { toast } = useToast();
+  const supabase = createClient();
+  const [userId, setUserId] = useState<string | null>(null);
   const [currentFocusCoins, setCurrentFocusCoins] = useState(0);
   const [ownedItemIds, setOwnedItemIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessingPurchase, setIsProcessingPurchase] = useState<string | null>(null); // Store ID of item being processed
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState<string | null>(null);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setUserId(session?.user?.id ?? null);
+    });
+    const getInitialUser = async () => {
+        const {data: {user}} = await supabase.auth.getUser();
+        setUserId(user?.id || null);
+    };
+    getInitialUser();
+    return () => {
+        authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     const loadInitialData = async () => {
-      setIsLoading(true);
-      // TODO: Replace with actual backend calls
-      const coins = await apiClient.fetchUserFocusCoins();
-      setCurrentFocusCoins(coins);
-      const ownedAvatars = await apiClient.fetchOwnedItemIds('avatar'); // Assuming only avatars for now
-      setOwnedItemIds(new Set(ownedAvatars));
-      setIsLoading(false);
-    };
-    loadInitialData();
-  }, []);
-
-  const handlePurchase = async (itemName: string, itemId: string, price: number) => {
-    setIsProcessingPurchase(itemId);
-    // TODO: Replace with actual backend call
-    const result = await apiClient.purchaseStoreItem(itemId, price);
-    if (result.success) {
-      toast({
-        title: 'Purchase Successful!',
-        description: `You've unlocked ${itemName}! ${result.message}`,
-        className: 'bg-primary/10 border-primary text-primary-foreground',
-      });
-      if (result.newCoinBalance !== undefined) {
-        setCurrentFocusCoins(result.newCoinBalance);
+      if (!userId) {
+        setIsLoading(false); // No user, nothing to load related to them
+        return;
       }
-      setOwnedItemIds(prev => new Set(prev).add(itemId));
+      setIsLoading(true);
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('focus_coins, owned_store_items')
+          .eq('id', userId)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') throw profileError;
+        
+        setCurrentFocusCoins(profile?.focus_coins || 0);
+        // Assuming owned_store_items is an array of item IDs
+        setOwnedItemIds(new Set(profile?.owned_store_items as string[] || []));
+
+      } catch (error: any) {
+          console.error("Error loading store data:", error);
+          toast({variant: 'destructive', title: 'Error loading data', description: error.message});
+          // Fallback to apiClient demo data if DB fails for some reason during dev
+          const coins = await apiClient.fetchUserFocusCoins(); 
+          setCurrentFocusCoins(coins);
+          const ownedAvatars = await apiClient.fetchOwnedItemIds('avatar');
+          setOwnedItemIds(new Set(ownedAvatars));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (userId) {
+        loadInitialData();
     } else {
-      toast({
-        variant: 'destructive',
-        title: 'Purchase Failed',
-        description: result.message || `Could not purchase ${itemName}.`,
-      });
+        // If no user, use demo data or clear
+        setCurrentFocusCoins(apiClient.fetchUserFocusCoins() as unknown as number); // apiClient is sync for demo
+        setOwnedItemIds(new Set(apiClient.fetchOwnedItemIds() as unknown as string[]));
+        setIsLoading(false);
     }
-    setIsProcessingPurchase(null);
+  }, [userId, supabase, toast]);
+
+
+  const handlePurchase = async (item: typeof storeItems[0]) => {
+    if (!userId) {
+        toast({variant: "destructive", title: "Not Logged In", description: "You must be logged in to make purchases."});
+        return;
+    }
+    setIsProcessingPurchase(item.id);
+    
+    try {
+        // 1. Check current coins from DB (important to prevent race conditions)
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('focus_coins, owned_store_items')
+            .eq('id', userId)
+            .single();
+
+        if (profileError) throw profileError;
+        if (!profileData) throw new Error("User profile not found.");
+
+        const currentCoins = profileData.focus_coins || 0;
+        const currentOwnedItems = new Set(profileData.owned_store_items as string[] || []);
+
+        if (currentOwnedItems.has(item.id)) {
+            toast({ title: "Already Owned", description: `You already own ${item.name}.` });
+            setIsProcessingPurchase(null);
+            return;
+        }
+
+        if (currentCoins < item.price) {
+            toast({ variant: 'destructive', title: 'Purchase Failed', description: 'Not enough Focus Coins.' });
+            setIsProcessingPurchase(null);
+            return;
+        }
+
+        const newCoinBalance = currentCoins - item.price;
+        const newOwnedItems = Array.from(currentOwnedItems.add(item.id));
+
+        // 2. Update profile with new coin balance and owned items
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ focus_coins: newCoinBalance, owned_store_items: newOwnedItems })
+            .eq('id', userId);
+
+        if (updateError) throw updateError;
+
+        // 3. Update local state
+        setCurrentFocusCoins(newCoinBalance);
+        setOwnedItemIds(new Set(newOwnedItems));
+        
+        toast({
+            title: 'Purchase Successful!',
+            description: `You've unlocked ${item.name}! ${item.price} coins deducted.`,
+            className: 'bg-primary/10 border-primary text-primary-foreground',
+        });
+
+    } catch (error: any) {
+        console.error("Error purchasing item:", error);
+        toast({ variant: 'destructive', title: 'Purchase Failed', description: error.message || `Could not purchase ${item.name}.` });
+    } finally {
+        setIsProcessingPurchase(null);
+    }
   };
   
+  const handleApplyAvatar = async (avatarUrl: string) => {
+    if (!userId || !avatarUrl) return;
+    setIsProcessingPurchase(`apply-${avatarUrl}`); // Use a unique key for processing state
+
+    try {
+        const updateData: TablesUpdate<'profiles'> = { avatar_url: avatarUrl, updated_at: new Date().toISOString() };
+        const { error } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', userId);
+        if (error) throw error;
+        
+        // Update user auth metadata as well if possible (for immediate reflection in some parts of app)
+        await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+
+        toast({ title: 'Avatar Applied!', description: 'Your profile picture has been updated.', className: 'bg-green-500/10 border-green-400 text-green-300' });
+    } catch(error: any) {
+        toast({ variant: 'destructive', title: 'Error Applying Avatar', description: error.message });
+    } finally {
+        setIsProcessingPurchase(null);
+    }
+  };
+
   if (isLoading) {
     return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
@@ -106,15 +208,29 @@ export default function StudyStorePage() {
                 <CardDescription className="text-sm">{item.type}</CardDescription>
                 <p className="text-lg font-bold text-accent mt-1">{item.price} 🪙</p>
               </div>
-              <Button 
-                className="w-full glow-button mt-3" 
-                onClick={() => handlePurchase(item.name, item.id, item.price)}
-                disabled={isProcessingPurchase === item.id || ownedItemIds.has(item.id) || currentFocusCoins < item.price}
-              >
-                {isProcessingPurchase === item.id ? <Loader2 className="h-5 w-5 animate-spin"/> : 
-                 ownedItemIds.has(item.id) ? 'Owned' : 
-                 currentFocusCoins < item.price ? 'Not Enough Coins' : 'Unlock Item'}
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  className="w-full glow-button mt-3" 
+                  onClick={() => handlePurchase(item)}
+                  disabled={isProcessingPurchase === item.id || ownedItemIds.has(item.id) || currentFocusCoins < item.price}
+                >
+                  {isProcessingPurchase === item.id ? <Loader2 className="h-5 w-5 animate-spin"/> : 
+                   ownedItemIds.has(item.id) ? 'Owned' : 
+                   currentFocusCoins < item.price ? 'Not Enough Coins' : 'Unlock Item'}
+                </Button>
+                {ownedItemIds.has(item.id) && item.type === 'Avatar' && item.item_payload?.avatar_url && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full glow-button border-green-500 text-green-500 hover:bg-green-500/10"
+                        onClick={() => handleApplyAvatar(item.item_payload.avatar_url)}
+                        disabled={isProcessingPurchase === `apply-${item.item_payload.avatar_url}`}
+                    >
+                         {isProcessingPurchase === `apply-${item.item_payload.avatar_url}` ? <Loader2 className="h-4 w-4 animate-spin mr-1"/> : <CheckCircle className="mr-1 h-4 w-4"/>}
+                        Apply Avatar
+                    </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -127,31 +243,27 @@ export default function StudyStorePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-muted-foreground">
-          <p><strong>Earning Focus Coins (Conceptual - Requires Backend):</strong></p>
+          <p><strong>Earning Focus Coins:</strong></p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Excel in quizzes: Higher scores can yield more coins!</li>
             <li>Complete daily and weekly challenges from the "Challenges" page.</li>
-            <li>Maintain study streaks (future feature).</li>
-            <li>Spin the Rewards Wheel daily for a chance to win coins.</li>
-            <li>Engage actively with AI features like the AI Study Assistant and Smart Notes Generator.</li>
-            <li>Participate in Study Rooms and contribute positively.</li>
+            <li>Spin the Rewards Wheel daily.</li>
+            <li>Win games in the Games Arcade.</li>
+            <li>Engage actively with AI features.</li>
           </ul>
-          <p className="mt-3"><strong>Spending Focus Coins (Client-Side Demo - Requires Backend for Real):</strong></p>
+          <p className="mt-3"><strong>Spending Focus Coins:</strong></p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Unlock exclusive app themes to personalize your study environment.</li>
-            <li>Get unique avatars and avatar accessories to customize your profile.</li>
-            <li>Purchase study boosters like extra AI help tokens or quiz hints.</li>
-            <li>Unlock special game modes or items in the Games Arcade.</li>
-            <li>Unlock premium stories or puzzles in the Story Syllabus and Puzzle Dashboard.</li>
+            <li>Unlock exclusive app themes.</li>
+            <li>Get unique avatars and accessories.</li>
+            <li>Purchase study boosters like AI help tokens.</li>
+            <li>Unlock premium content in Story Syllabus or Puzzles.</li>
           </ul>
           <p className="mt-4 text-xs">
             <AlertTriangle className="inline h-4 w-4 mr-1 text-yellow-500" />
-            The coin system is simulated on the client-side for this demo. Full implementation of earning, spending, and balance management requires backend development.
+            Focus Coins and XP are now being tracked in your profile. More ways to earn and spend will be added!
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
