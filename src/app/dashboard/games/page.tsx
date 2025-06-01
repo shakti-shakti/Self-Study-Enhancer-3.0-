@@ -18,7 +18,8 @@ const games = [
     genre: 'Sci-fi Puzzle Escape + NEET Prep',
     icon: <Zap className="h-12 w-12 text-accent" />,
     imageUrl: 'https://placehold.co/600x400/2d004f/c0ffee.png?text=ChronoMind', 
-    dataAiHint: 'sci-fi futuristic'
+    dataAiHint: 'sci-fi futuristic',
+    isImplemented: true,
   },
   {
     id: 'neet-lab-escape',
@@ -27,16 +28,18 @@ const games = [
     genre: 'Classic Escape Room + Quiz Thriller',
     icon: <FlaskConical className="h-12 w-12 text-primary" />,
     imageUrl: 'https://placehold.co/600x400/003d2d/aaffdd.png?text=Lab+Escape', 
-    dataAiHint: 'science lab escape'
+    dataAiHint: 'science lab escape',
+    isImplemented: true,
   },
   {
-    id: 'flappy-brain',
-    title: 'Flappy Brain',
-    description: 'Navigate the brainy bird through obstacles. A simple, fun reflex game. How high can you score?',
+    id: 'dino-run', // Changed from flappy-brain
+    title: 'Dino Run', // Changed title
+    description: 'Classic T-Rex runner game. Jump over obstacles! How high can you score?', // Updated description
     genre: 'Arcade Reflex Game',
-    icon: <Bird className="h-12 w-12 text-secondary" />,
-    imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Flappy+Brain',
-    dataAiHint: 'bird game simple'
+    icon: <Bird className="h-12 w-12 text-secondary" />, // Bird icon can stay, or use Rocket if preferred
+    imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Dino+Run', // Updated text
+    dataAiHint: 'dinosaur pixel game',
+    isImplemented: true,
   },
   {
     id: 'guess-the-number',
@@ -46,6 +49,7 @@ const games = [
     icon: <Hash className="h-12 w-12 text-green-500" />,
     imageUrl: 'https://placehold.co/600x400/4CAF50/FFFFFF.png?text=Guess+It!',
     dataAiHint: 'number question mark',
+    isImplemented: true,
   },
   {
     id: 'science-trivia-challenge',
@@ -55,6 +59,7 @@ const games = [
     icon: <BrainCircuit className="h-12 w-12 text-blue-500" />,
     imageUrl: 'https://placehold.co/600x400/2196F3/FFFFFF.png?text=Trivia!',
     dataAiHint: 'quiz brain lightbulb',
+    isImplemented: true,
   },
   {
     id: 'element-match-memory',
@@ -64,16 +69,7 @@ const games = [
     icon: <Atom className="h-12 w-12 text-red-500" />,
     imageUrl: 'https://placehold.co/600x400/F44336/FFFFFF.png?text=Element+Match',
     dataAiHint: 'chemistry memory cards',
-  },
-  // Integrated Classic Games
-  {
-    id: 'dino-run',
-    title: 'Dino Run',
-    description: 'Classic offline T-Rex runner game. Jump over obstacles and survive! (Conceptual)',
-    genre: 'Arcade / Endless Runner',
-    icon: <Rocket className="h-12 w-12 text-purple-400" />,
-    imageUrl: 'https://placehold.co/600x400/7C4DFF/FFFFFF.png?text=Dino+Run',
-    dataAiHint: 'dinosaur pixel game',
+    isImplemented: true,
   },
   {
     id: 'memory-match', 
@@ -83,15 +79,17 @@ const games = [
     icon: <Brain className="h-12 w-12 text-cyan-400" />,
     imageUrl: 'https://placehold.co/600x400/4DD0E1/FFFFFF.png?text=Memory+Match',
     dataAiHint: 'memory cards brain',
+    isImplemented: true,
   },
   {
     id: '2048-puzzle',
     title: '2048 Puzzle Challenge',
-    description: 'Slide tiles and combine matching numbers to reach the 2048 tile. (Conceptual)',
+    description: 'Slide tiles and combine matching numbers to reach the 2048 tile.',
     genre: 'Puzzle / Number Game',
-    icon: <TargetIcon className="h-12 w-12 text-orange-400" />, // Changed icon as Hash was used
+    icon: <Grid className="h-12 w-12 text-orange-400" />, // Changed icon
     imageUrl: 'https://placehold.co/600x400/FFB74D/FFFFFF.png?text=2048',
     dataAiHint: 'number puzzle tiles',
+    isImplemented: true,
   },
   {
     id: 'whack-a-mole',
@@ -101,6 +99,7 @@ const games = [
     icon: <MousePointerClick className="h-12 w-12 text-lime-500" />,
     imageUrl: 'https://placehold.co/600x400/AED581/FFFFFF.png?text=Whack-a-Mole',
     dataAiHint: 'mole game hammer',
+    isImplemented: true,
   },
   {
     id: 'tic-tac-toe',
@@ -110,15 +109,17 @@ const games = [
     icon: <Grid className="h-12 w-12 text-pink-400" />,
     imageUrl: 'https://placehold.co/600x400/BA68C8/FFFFFF.png?text=X+O',
     dataAiHint: 'tic tac toe game',
+    isImplemented: true,
   },
   {
     id: 'snake-game',
     title: 'Snake Game',
-    description: "Classic Snake game. Grow your snake by eating food, but don't hit the walls or yourself! (Conceptual)",
+    description: "Classic Snake game. Grow your snake by eating food, but don't hit the walls or yourself!",
     genre: 'Arcade / Classic',
     icon: <MoveHorizontal className="h-12 w-12 text-green-600" />,
     imageUrl: 'https://placehold.co/600x400/81C784/FFFFFF.png?text=Snake',
     dataAiHint: 'snake game classic',
+    isImplemented: true,
   }
 ];
 
