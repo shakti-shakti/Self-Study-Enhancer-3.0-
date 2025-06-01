@@ -15,12 +15,22 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { createClient } from '@/lib/supabase/client';
 import type { Database, Tables, TablesInsert, TablesUpdate } from '@/lib/database.types';
-import { Loader2, UserCircle, Save, UploadCloud, Music, KeyRound, Palette, Edit, ShieldQuestion, SaveIcon, CalendarClock } from 'lucide-react';
+import { Loader2, UserCircle, Save, UploadCloud, Music, KeyRound, Palette, Edit, ShieldQuestion, SaveIcon, CalendarClock, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { changePassword } from '@/app/auth/actions'; // Import the server action
 
 const MAX_FILE_SIZE_MB = 2;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg"];
+
+// Sample avatars for selection - in a real app, these would come from a DB or be more sophisticated
+const sampleAvatars = [
+  { id: 'robohash_male', name: 'RoboHash Male', url: 'https://robohash.org/male?set=set1&size=150x150', dataAiHint: 'robot male' },
+  { id: 'robohash_female', name: 'RoboHash Female', url: 'https://robohash.org/female?set=set2&size=150x150', dataAiHint: 'robot female' },
+  { id: 'dicebear_adventurer', name: 'DiceBear Adventurer', url: 'https://api.dicebear.com/8.x/adventurer/svg?seed=Felix&size=150', dataAiHint: 'adventurer character' },
+  { id: 'dicebear_pixelart', name: 'DiceBear Pixel', url: 'https://api.dicebear.com/8.x/pixel-art/svg?seed=Pixel&size=150', dataAiHint: 'pixel art character' },
+  { id: 'placeholder_cat', name: 'Placeholder Cat', url: 'https://placehold.co/150x150/7B59E0/FFFFFF.png?text=CAT', dataAiHint: 'cat illustration' },
+];
 
 
 const profileSchema = z.object({
@@ -39,17 +49,32 @@ const profileSchema = z.object({
     ),
   custom_countdown_event_name: z.string().max(50).optional().or(z.literal('')),
   custom_countdown_target_date: z.string().optional().or(z.literal('')),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().optional(),
+  confirmNewPassword: z.string().optional(),
+  selectedAvatarUrl: z.string().url().optional().or(z.literal('')), // For selected avatar
 }).refine(data => {
     if (data.custom_countdown_target_date && !data.custom_countdown_event_name) {
-        return false; 
+        return false;
     }
     if (data.custom_countdown_event_name && !data.custom_countdown_target_date) {
-        return false; 
+        return false;
     }
     return true;
 }, {
     message: "Both event name and target date are required for custom countdown, or neither.",
-    path: ["custom_countdown_event_name"], 
+    path: ["custom_countdown_event_name"],
+}).refine(data => {
+    if (data.newPassword && (!data.currentPassword || !data.confirmNewPassword)) {
+        return false; // If new password is set, old and confirm must be set
+    }
+    if (data.newPassword !== data.confirmNewPassword) {
+        return false; // New passwords must match
+    }
+    return true;
+}, {
+    message: "If changing password, all password fields are required and new passwords must match.",
+    path: ["confirmNewPassword"],
 });
 
 
@@ -61,6 +86,9 @@ export default function ProfileSettingsPage() {
   const [isAlarmSaving, startAlarmSavingTransition] = useTransition();
   const [isCountdownSaving, startCountdownSavingTransition] = useTransition();
   const [isPasswordResetting, startPasswordResetTransition] = useTransition();
+  const [isPasswordChanging, startPasswordChangingTransition] = useTransition();
+  const [isAvatarSaving, startAvatarSavingTransition] = useTransition();
+
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [currentAlarmToneUrl, setCurrentAlarmToneUrl] = useState<string | null>(null);
@@ -78,6 +106,10 @@ export default function ProfileSettingsPage() {
       theme: 'dark',
       custom_countdown_event_name: '',
       custom_countdown_target_date: '',
+      currentPassword: '',
+      newPassword: '',
+      confirmNewPassword: '',
+      selectedAvatarUrl: '',
     },
   });
 
@@ -86,14 +118,14 @@ export default function ProfileSettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        startGeneralSavingTransition(async () => { // Use a general transition for initial load
+        startGeneralSavingTransition(async () => { 
           const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
             .single();
 
-          if (error && error.code !== 'PGRST116') { 
+          if (error && error.code !== 'PGRST116') {
             toast({ variant: 'destructive', title: 'Error fetching profile', description: error.message });
           } else if (data) {
             setProfileData(data);
@@ -105,6 +137,7 @@ export default function ProfileSettingsPage() {
               theme: (data.theme as 'light' | 'dark') || 'dark',
               custom_countdown_event_name: data.custom_countdown_event_name || '',
               custom_countdown_target_date: data.custom_countdown_target_date ? new Date(data.custom_countdown_target_date).toISOString().split('T')[0] : '',
+              selectedAvatarUrl: data.avatar_url || '',
             });
             setCurrentAlarmToneUrl(data.alarm_tone_url);
             if (data.theme === 'light') {
@@ -137,7 +170,6 @@ export default function ProfileSettingsPage() {
             return;
         }
         setSelectedAlarmFile(file);
-        // No need to form.setValue for alarm_tone_upload if it's handled by a separate button
     } else {
         setSelectedAlarmFile(null);
     }
@@ -205,16 +237,11 @@ export default function ProfileSettingsPage() {
   const handleSaveCustomCountdown = async () => {
     if (!userId) return;
     const values = form.getValues();
-    // Trigger validation specifically for countdown fields if needed, or rely on overall form state
-    const countdownValidation = profileSchema.safeParse(values);
-    if (!countdownValidation.success) {
-        const countdownErrors = countdownValidation.error.flatten().fieldErrors;
-        if (countdownErrors.custom_countdown_event_name || countdownErrors.custom_countdown_target_date) {
-            toast({variant: "destructive", title: "Countdown Error", description: "Both event name and date are required for countdown, or leave both empty."});
-            return;
-        }
+    const countdownValidation = profileSchema.safeParse(values); // Check just countdown related fields logic
+    if (!countdownValidation.success && (countdownValidation.error.flatten().fieldErrors.custom_countdown_event_name || countdownValidation.error.flatten().fieldErrors.custom_countdown_target_date)) {
+        toast({variant: "destructive", title: "Countdown Error", description: "Both event name and date are required for custom countdown, or leave both empty."});
+        return;
     }
-
 
     startCountdownSavingTransition(async () => {
         try {
@@ -232,24 +259,71 @@ export default function ProfileSettingsPage() {
     });
   };
 
-  const handleRequestPasswordReset = async () => {
-    if (!profileData?.email) {
-        toast({ variant: 'destructive', title: 'Error', description: 'User email not found.' });
+  const handlePasswordChange = async () => {
+    if (!userId) return;
+    const values = form.getValues();
+    
+    if (!values.currentPassword || !values.newPassword || !values.confirmNewPassword) {
+        form.setError("currentPassword", { type: "manual", message: "All password fields are required to change password." });
+        form.setError("newPassword", { type: "manual", message: "" });
+        form.setError("confirmNewPassword", { type: "manual", message: "" });
         return;
     }
-    startPasswordResetTransition(async () => {
-        const { error } = await supabase.auth.resetPasswordForEmail(profileData.email, {
-            redirectTo: `${window.location.origin}/auth/update-password`,
-        });
-        if (error) {
-            toast({ variant: 'destructive', title: 'Error sending reset email', description: error.message });
-        } else {
-            toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions to reset your password.' });
+    if (values.newPassword !== values.confirmNewPassword) {
+        form.setError("confirmNewPassword", { type: "manual", message: "New passwords do not match." });
+        return;
+    }
+    if (values.newPassword.length < 6) {
+        form.setError("newPassword", { type: "manual", message: "New password must be at least 6 characters."});
+        return;
+    }
+
+    startPasswordChangingTransition(async () => {
+      const result = await changePassword({
+        currentPassword: values.currentPassword!,
+        newPassword: values.newPassword!,
+      });
+
+      if (result.error) {
+        toast({ variant: 'destructive', title: 'Password Change Failed', description: result.error });
+        form.setError("currentPassword", { type: "manual", message: result.error });
+      } else {
+        toast({ title: 'Password Changed Successfully!', description: 'Your password has been updated.', className: 'bg-green-500/20 text-green-300 border-green-400/50'});
+        form.resetField("currentPassword");
+        form.resetField("newPassword");
+        form.resetField("confirmNewPassword");
+      }
+    });
+  };
+  
+  const handleAvatarSelect = (avatarUrl: string) => {
+    form.setValue('selectedAvatarUrl', avatarUrl); // Update form state
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!userId) return;
+    const selectedAvatarUrl = form.getValues('selectedAvatarUrl');
+    if (!selectedAvatarUrl) {
+        toast({variant: 'destructive', title: "No Avatar Selected", description: "Please select an avatar first."});
+        return;
+    }
+    startAvatarSavingTransition(async () => {
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ avatar_url: selectedAvatarUrl, updated_at: new Date().toISOString() })
+                .eq('id', userId);
+            if (error) throw error;
+            setProfileData(prev => prev ? {...prev, avatar_url: selectedAvatarUrl} : null); // Optimistic UI update
+            toast({ title: 'Avatar Updated!', description: 'Your new avatar has been saved.', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Error saving avatar', description: error.message });
         }
     });
   };
 
-  if (isGeneralSaving && !profileData) { // Initial load state
+
+  if (isGeneralSaving && !profileData) { 
     return <div className="flex justify-center items-center h-full"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
@@ -265,17 +339,17 @@ export default function ProfileSettingsPage() {
       </header>
 
       <Form {...form}>
-        <form className="space-y-8">
-          <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
+        {/* General Info & Avatar Display Card */}
+        <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
             <CardHeader>
-                <div className="flex items-center space-x-4">
-                    <Avatar className="h-20 w-20 border-2 border-primary shadow-lg">
-                        <AvatarImage src={profileData?.avatar_url || undefined} alt={profileData?.full_name || 'User'} data-ai-hint="user avatar"/>
-                        <AvatarFallback className="text-3xl bg-primary/20 text-primary">
+                <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    <Avatar className="h-24 w-24 border-4 border-primary shadow-lg">
+                        <AvatarImage src={form.watch('selectedAvatarUrl') || profileData?.avatar_url || undefined} alt={profileData?.full_name || 'User'} data-ai-hint="user profile large"/>
+                        <AvatarFallback className="text-4xl bg-primary/20 text-primary">
                             {profileData?.full_name ? profileData.full_name.charAt(0).toUpperCase() : profileData?.username?.charAt(0).toUpperCase() || 'U'}
                         </AvatarFallback>
                     </Avatar>
-                    <div>
+                    <div className="text-center sm:text-left">
                         <CardTitle className="text-3xl font-headline glow-text-primary">{profileData?.full_name || profileData?.username || 'Your Profile'}</CardTitle>
                         <CardDescription className="text-base">{profileData?.email || 'Edit your personal information and app preferences below.'}</CardDescription>
                     </div>
@@ -337,6 +411,32 @@ export default function ProfileSettingsPage() {
             </CardContent>
           </Card>
 
+        {/* Avatar Selection Card */}
+        <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-purple-500/10">
+            <CardHeader><CardTitle className="flex items-center text-xl font-headline glow-text-purple-400"><UserCircle className="mr-2"/> Choose Your Avatar</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {sampleAvatars.map(avatar => (
+                        <div 
+                            key={avatar.id}
+                            className={`p-2 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:opacity-100 hover:shadow-lg ${form.watch('selectedAvatarUrl') === avatar.url ? 'border-primary shadow-primary/40 opacity-100' : 'border-transparent opacity-70'}`}
+                            onClick={() => handleAvatarSelect(avatar.url)}
+                        >
+                            <Avatar className="h-20 w-20 mx-auto">
+                                <AvatarImage src={avatar.url} alt={avatar.name} data-ai-hint={avatar.dataAiHint}/>
+                                <AvatarFallback>{avatar.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <p className="text-xs text-center mt-1 text-muted-foreground truncate">{avatar.name}</p>
+                        </div>
+                    ))}
+                </div>
+                 <Button type="button" onClick={handleSaveAvatar} className="w-full sm:w-auto glow-button" disabled={isAvatarSaving || !form.getValues('selectedAvatarUrl')}>
+                    {isAvatarSaving ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle className="mr-2" />} Set Selected Avatar
+                </Button>
+            </CardContent>
+        </Card>
+
+
           <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-accent/10">
             <CardHeader><CardTitle className="flex items-center text-xl font-headline glow-text-accent"><Music className="mr-2" /> Alarm Settings</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -386,17 +486,34 @@ export default function ProfileSettingsPage() {
 
           <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-destructive/10">
             <CardHeader><CardTitle className="flex items-center text-xl font-headline glow-text-destructive"><KeyRound className="mr-2" /> Account Security</CardTitle></CardHeader>
-            <CardContent>
-                <Button type="button" variant="outline" onClick={handleRequestPasswordReset} className="w-full glow-button border-destructive/70 text-destructive/90 hover:bg-destructive/20 hover:text-destructive" disabled={isPasswordResetting}>
-                    {isPasswordResetting ? <Loader2 className="animate-spin mr-2" /> : <ShieldQuestion className="mr-2" />} Change Password (Send Reset Link)
+            <CardContent className="space-y-6">
+                <FormField control={form.control} name="currentPassword" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-base font-medium">Current Password</FormLabel>
+                        <FormControl><Input type="password" placeholder="Enter your current password" {...field} className="h-11 input-glow" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="newPassword" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-base font-medium">New Password</FormLabel>
+                        <FormControl><Input type="password" placeholder="Enter new password (min 6 chars)" {...field} className="h-11 input-glow" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="confirmNewPassword" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-base font-medium">Confirm New Password</FormLabel>
+                        <FormControl><Input type="password" placeholder="Confirm new password" {...field} className="h-11 input-glow" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                 <Button type="button" onClick={handlePasswordChange} className="w-full sm:w-auto glow-button border-destructive/70 text-destructive/90 hover:bg-destructive/20 hover:text-destructive" disabled={isPasswordChanging}>
+                    {isPasswordChanging ? <Loader2 className="animate-spin mr-2" /> : <ShieldQuestion className="mr-2" />} Change Password
                 </Button>
-                <FormDescription className="mt-2 text-center">Request a password reset link to be sent to your email.</FormDescription>
             </CardContent>
           </Card>
-
-        </form>
       </Form>
     </div>
   );
 }
-    
