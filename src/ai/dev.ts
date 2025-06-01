@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -16,4 +17,5 @@ import '@/ai/flows/translation-flow.ts';
 import '@/ai/flows/calculator-flow.ts';
 import '@/ai/flows/meditation-mentor-flow.ts';
 import '@/ai/flows/daily-motivation-flow.ts';
-import '@/ai/flows/daily-challenge-flow.ts'; // Added new flow
+import '@/ai/flows/daily-challenge-flow.ts';
+import '@/ai/flows/google-search-flow.ts'; // Added new flow
