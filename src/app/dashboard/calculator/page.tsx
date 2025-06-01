@@ -4,7 +4,7 @@
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form'; // Added Controller
+import { useForm, Controller } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -121,21 +121,38 @@ export default function CalculatorPage() {
         form.setValue('expression', '');
         setAiResponse(null);
     } else if (value === '=') {
+        if (currentExpression.trim() === '') {
+            toast({ variant: 'destructive', title: 'Empty Expression', description: 'Please enter an expression to calculate.' });
+            return;
+        }
         form.handleSubmit(onSubmit)();
     } else if (value === 'DEL') {
         form.setValue('expression', currentExpression.slice(0, -1));
-    }
-    else {
-        form.setValue('expression', currentExpression + value);
+    } else {
+        // For functions like sin, cos, log, sqrt, ensure they end with ( if they don't already
+        // For constants like pi, e, just append them.
+        // For numbers and operators, just append.
+        let valueToAppend = value;
+        if (['sin', 'cos', 'tan', 'ln', 'log', 'sqrt'].includes(value) && !value.endsWith('(')) {
+            valueToAppend = `${value}(`;
+        }
+        form.setValue('expression', currentExpression + valueToAppend);
     }
   };
 
   const calculatorButtons = [
-    ['C', '(', ')', '/'],
+    // Scientific Row 1
+    ['sin(', 'cos(', 'tan(', 'sqrt('],
+    // Scientific Row 2
+    ['ln(', 'log(', '^', '!'],
+    // Scientific Row 3 (Constants & Parens)
+    ['pi', 'e', '(', ')'],
+    // Standard calculator layout from here
+    ['C', 'DEL', '%', '/'], 
     ['7', '8', '9', '*'],
     ['4', '5', '6', '-'],
     ['1', '2', '3', '+'],
-    ['DEL', '0', '.', '='],
+    ['0', '.', { value: '=', span: 2 }] 
   ];
 
 
@@ -144,7 +161,7 @@ export default function CalculatorPage() {
         <div className="md:col-span-2 space-y-6 flex flex-col">
             <header className="text-center md:text-left">
                 <h1 className="text-3xl md:text-4xl font-headline font-bold glow-text-primary mb-2 flex items-center">
-                <Calculator className="mr-3 h-8 w-8" /> AI Powered Calculator
+                <Calculator className="mr-3 h-8 w-8" /> AI Powered Scientific Calculator
                 </h1>
                 <p className="text-md text-muted-foreground">
                 Perform calculations, solve equations, or ask for math help. Use buttons or type directly.
@@ -160,32 +177,46 @@ export default function CalculatorPage() {
                           <Input 
                               {...field} 
                               placeholder="0" 
-                              className="h-16 text-3xl text-right input-glow font-mono" 
-                              readOnly // Make it readOnly if primarily using buttons, or remove for direct typing
+                              className="h-20 text-4xl text-right input-glow font-mono" 
+                              // readOnly // Allow typing directly if preferred, or keep readOnly for button-only input
                           />
                       )}
                   />
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-end space-y-2 p-3 md:p-4">
+                <CardContent className="flex-1 flex flex-col justify-end space-y-1.5 p-2 md:p-3">
                   {calculatorButtons.map((row, rowIndex) => (
-                    <div key={rowIndex} className="grid grid-cols-4 gap-2">
-                        {row.map((btnVal) => {
-                            const isOperator = ['/', '*', '-', '+'].includes(btnVal);
+                    <div key={rowIndex} className="grid grid-cols-4 gap-1.5">
+                        {row.map((btnItem, btnIndex) => {
+                            const btnVal = typeof btnItem === 'string' ? btnItem : btnItem.value;
+                            const btnSpan = typeof btnItem === 'object' && btnItem.span ? btnItem.span : 1;
+                            
+                            const isFunction = ['sin(', 'cos(', 'tan(', 'ln(', 'log(', 'sqrt('].includes(btnVal);
+                            const isConstant = ['pi', 'e'].includes(btnVal);
+                            const isParenthesis = ['(', ')'].includes(btnVal);
+                            const isOperator = ['/', '*', '-', '+', '^', '%', '!'].includes(btnVal);
                             const isEqual = btnVal === '=';
                             const isClear = btnVal === 'C';
                             const isDelete = btnVal === 'DEL';
-                            
+                            const isNumber = /^[0-9]$/.test(btnVal);
+                            const isDecimal = btnVal === '.';
+
+                            let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
+                            if (isEqual) variant = "default"; // primary by default
+                            else if (isClear || isDelete) variant = "destructive";
+                            else if (isFunction || isOperator || isParenthesis) variant = "secondary";
+                            else if (isNumber || isConstant || isDecimal) variant = "outline";
+
                             return (
                                 <Button
-                                    key={btnVal}
-                                    variant={isOperator || isEqual ? "secondary" : (isClear || isDelete ? "destructive" : "outline")}
+                                    key={btnVal + btnIndex}
+                                    variant={variant}
                                     className={cn(
-                                        "text-xl md:text-2xl h-14 md:h-16 font-mono glow-button",
-                                        isEqual && "col-span-1 bg-primary hover:bg-primary/90 text-primary-foreground",
-                                        isClear && "bg-destructive/80 hover:bg-destructive text-destructive-foreground",
-                                        isDelete && "bg-destructive/60 hover:bg-destructive/90 text-destructive-foreground",
-                                        (isOperator || isEqual) && "text-lg md:text-xl",
-                                        !isOperator && !isEqual && !isClear && !isDelete && "bg-muted/30 hover:bg-muted/60"
+                                        "text-lg md:text-xl h-14 md:h-16 font-mono glow-button flex-grow",
+                                        btnSpan === 2 && "col-span-2",
+                                        isEqual && "bg-primary hover:bg-primary/90 text-primary-foreground",
+                                        (isClear || isDelete) && `bg-destructive/${isClear ? '80' : '60'} hover:bg-destructive text-destructive-foreground`,
+                                        (isFunction || isOperator || isParenthesis) && "text-lg md:text-xl",
+                                        (isNumber || isConstant || isDecimal || isParenthesis) && "bg-muted/40 hover:bg-muted/70"
                                     )}
                                     onClick={() => handleButtonClick(btnVal)}
                                 >
@@ -246,3 +277,4 @@ export default function CalculatorPage() {
     </div>
   );
 }
+
