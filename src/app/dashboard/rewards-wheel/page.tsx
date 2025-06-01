@@ -2,11 +2,15 @@
 // src/app/dashboard/rewards-wheel/page.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gift, RefreshCw, Loader2, AlertTriangle, Coins } from 'lucide-react'; // Added Coins
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Gift, RefreshCw, Loader2, AlertTriangle, Coins, History, CalendarDays } from 'lucide-react'; // Added Coins
 import { useToast } from '@/hooks/use-toast';
+import * as apiClient from '@/lib/apiClient';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { format, parseISO } from 'date-fns';
+
 
 const rewards = [
   { name: "+10 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 10, weight: 5, dataAiHint: "gold coins" },
@@ -14,21 +18,41 @@ const rewards = [
   { name: "New Avatar Frame", color: "hsl(120, 60%, 50%)", type: "cosmetic", value: 1, weight: 3, dataAiHint: "avatar frame" }, // Lime
   { name: "Study Theme Unlock", color: "hsl(270, 70%, 60%)", type: "cosmetic", value: 1, weight: 1, dataAiHint: "theme abstract" }, // Violet
   { name: "Try Again!", color: "hsl(var(--muted-foreground))", type: "none", value: 0, weight: 6, dataAiHint: "question mark" },
-  { name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, dataAiHint: "coins stack"}, // Orange
+  { name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, dataAiHint: "coins stack"},
   { name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, dataAiHint: "few coins" }, // Orange
   { name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 1, weight: 1, dataAiHint: "rare avatar cool" }, // Pink/Magenta
 ];
 
 const weightedRewards = rewards.flatMap(reward => Array(reward.weight).fill(reward));
 
+interface SpinHistoryEntry {
+  rewardName: string;
+  rewardType: string;
+  timestamp: string;
+}
+
 export default function RewardsWheelPage() {
   const wheelRef = useRef<HTMLDivElement>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [finalReward, setFinalReward] = useState<typeof rewards[0] | null>(null);
   const [canSpin, setCanSpin] = useState(true); 
+  const [spinHistory, setSpinHistory] = useState<SpinHistoryEntry[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const { toast } = useToast();
 
-  const spinWheel = () => {
+  const loadSpinHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    const history = await apiClient.fetchSpinHistory();
+    setSpinHistory(history);
+    setIsLoadingHistory(false);
+  }, []);
+
+  useEffect(() => {
+    loadSpinHistory();
+  }, [loadSpinHistory]);
+
+
+  const spinWheel = async () => {
     if (!canSpin || isSpinning) return;
 
     setIsSpinning(true);
@@ -37,80 +61,79 @@ export default function RewardsWheelPage() {
     const randomRewardIndex = Math.floor(Math.random() * weightedRewards.length);
     const selectedReward = weightedRewards[randomRewardIndex];
     
-    // Determine the actual index in the original `rewards` array for segment calculation
-    const actualRewardIndexInDisplay = rewards.findIndex(r => r.name === selectedReward.name && r.value === selectedReward.value);
+    const actualRewardIndexInDisplay = rewards.findIndex(r => r.name === selectedReward.name && r.value === selectedReward.value && r.type === selectedReward.type);
 
     const segmentAngle = 360 / rewards.length;
-    // Calculate target rotation: middle of the segment + multiple full spins
     const targetSegmentMiddle = (actualRewardIndexInDisplay * segmentAngle) + (segmentAngle / 2);
-    const fullSpins = Math.floor(Math.random() * 3) + 5; // 5 to 7 full spins
-    const targetRotation = (fullSpins * 360) + targetSegmentMiddle; // Spin to land on the segment. Pointer is at top (0 deg or 360 deg).
-                                                              // The wheel spins, so segment 0 needs to align with pointer.
-                                                              // We want to rotate so segment `actualRewardIndexInDisplay` is at the top.
-                                                              // If pointer is at top (0deg), segment 0 starts at 0. Segment 1 at segmentAngle, etc.
-                                                              // So we need to rotate by -targetSegmentMiddle to bring it to top.
-    const finalRotation = targetRotation - (targetSegmentMiddle); // Ensure it lands correctly
+    const fullSpins = Math.floor(Math.random() * 3) + 5; 
+    const finalRotation = (fullSpins * 360) + targetSegmentMiddle; 
     
     if (wheelRef.current) {
-        // Reset transition to snap to start, then apply spin transition
         wheelRef.current.style.transition = 'none';
-        wheelRef.current.style.transform = `rotate(0deg)`; // Or current accumulated rotation if you want smooth restart
-
-        // Force reflow
+        wheelRef.current.style.transform = `rotate(0deg)`; 
         wheelRef.current.offsetHeight; 
-
         wheelRef.current.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)';
         wheelRef.current.style.transform = `rotate(${finalRotation}deg)`;
     }
 
-
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsSpinning(false);
       setFinalReward(selectedReward);
-      setCanSpin(false); 
+      setCanSpin(false); // For demo: allow one spin per session/load. Real app would use daily limits.
+      
       toast({
         title: "You Won!",
         description: `Congratulations! You received: ${selectedReward.name}`,
-        className: `bg-opacity-20 border border-[${selectedReward.color}] text-[${selectedReward.color}]`, // Use HSL directly
+        className: `bg-opacity-20 border border-[${selectedReward.color}] text-[${selectedReward.color}]`,
       });
-      // Conceptual: Update user's coins or inventory
-      // if (selectedReward.type === 'coins') {
-      //   // supabase.rpc('increment_focus_coins', { user_id: userId, amount: selectedReward.value });
-      // }
+      
+      if (selectedReward.type === 'coins') {
+        const currentCoins = await apiClient.fetchUserFocusCoins();
+        await apiClient.updateUserFocusCoins(currentCoins + selectedReward.value);
+        // Consider updating UI to show new coin balance immediately if displayed on this page
+      }
+      
+      await apiClient.addSpinToHistory(selectedReward.name, selectedReward.type);
+      loadSpinHistory(); // Refresh history
+
     }, 4100); 
   };
   
-  // useEffect(() => { // Placeholder for daily spin limit check
-  // }, [toast]);
+  useEffect(() => { 
+    // Conceptual: Check daily spin limit from backend. For now, just one spin per page load.
+    // const lastSpinTime = localStorage.getItem('lastSpinTime');
+    // if (lastSpinTime && new Date().toDateString() === new Date(lastSpinTime).toDateString()) {
+    //   setCanSpin(false);
+    //   toast({ title: "Spin Used for Today", description: "You've already spun the wheel today. Come back tomorrow!" });
+    // }
+  }, [toast]);
 
   const segmentAngle = 360 / rewards.length;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 pb-16 md:pb-0">
       <header className="text-center">
         <h1 className="text-4xl md:text-5xl font-headline font-bold glow-text-primary mb-3 flex items-center justify-center">
           <Gift className="mr-4 h-10 w-10 text-primary" /> Spin-the-Wheel Rewards
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Feeling lucky? Spin the wheel daily for a chance to win awesome rewards!
+          Feeling lucky? Spin the wheel daily for a chance to win awesome rewards! (Demo: One spin per page visit)
         </p>
       </header>
 
       <Card className="max-w-md mx-auto interactive-card p-6 shadow-xl shadow-primary/10">
         <CardContent className="flex flex-col items-center justify-center space-y-8">
           <div className="relative w-64 h-64 sm:w-80 sm:h-80">
-            {/* Pointer */}
             <div 
               className="absolute top-[-10px] left-1/2 -translate-x-1/2 z-20"
               style={{
                 width: 0, height: 0,
                 borderLeft: '15px solid transparent',
                 borderRight: '15px solid transparent',
-                borderTop: '25px solid hsl(var(--primary))', // Use primary color
+                borderTop: '25px solid hsl(var(--primary))',
                 filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.3))'
               }}
             />
-            {/* Wheel */}
             <div 
               ref={wheelRef}
               className="w-full h-full rounded-full border-8 border-primary/30 shadow-2xl overflow-hidden bg-card"
@@ -122,14 +145,14 @@ export default function RewardsWheelPage() {
                       style={{ 
                           transform: `rotate(${segmentAngle * index}deg)`,
                           clipPath: `polygon(0 0, 100% 0, 50% 100%)`,
-                          backgroundColor: `${reward.color.replace('hsl(var(--','').replace('))',')').replace(/(\d+)\s+(\d+%)\s+(\d+%)/, 'hsla($1, $2, $3, 0.3)')}`, // Convert HSL to HSLA for background
+                          backgroundColor: `${reward.color.replace('hsl(var(--','').replace('))',')').replace(/(\d+)\s+(\d+%)\s+(\d+%)/, 'hsla($1, $2, $3, 0.3)')}`,
                       }}
                   >
                        <div 
                         className="transform -rotate-45 text-center"
                         style={{
-                             transform: `translateY(-25%) rotate(${segmentAngle/2 + 90}deg)`, // Adjust text rotation to be readable
-                             color: reward.color, // Use reward color for text
+                             transform: `translateY(-25%) rotate(${segmentAngle/2 + 90}deg)`, 
+                             color: reward.color, 
                              maxWidth: '70%',
                         }}
                        >
@@ -147,23 +170,71 @@ export default function RewardsWheelPage() {
             className="w-full font-semibold text-xl py-6 glow-button"
           >
             {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <RefreshCw className="mr-2 h-6 w-6" />}
-            {isSpinning ? 'Spinning...' : (canSpin ? 'Spin the Wheel!' : 'Spun for Today!')}
+            {isSpinning ? 'Spinning...' : (canSpin ? 'Spin the Wheel!' : 'Spun for this Session!')}
           </Button>
 
           {finalReward && !isSpinning && (
             <Card 
-                className="p-4 text-center"
-                style={{ backgroundColor: `${finalReward.color.replace('hsl(var(--','').replace('))',')').replace(/(\d+)\s+(\d+%)\s+(\d+%)/, 'hsla($1, $2, $3, 0.2)')}`, borderColor: finalReward.color }}
+                className="p-4 text-center w-full"
+                style={{ 
+                    backgroundColor: `${finalReward.color.replace('hsl(var(--','').replace('))',')').replace(/(\d+)\s+(\d+%)\s+(\d+%)/, 'hsla($1, $2, $3, 0.2)')}`, 
+                    borderColor: finalReward.color,
+                    borderWidth: '2px' 
+                }}
                 data-ai-hint={finalReward.dataAiHint}
             >
-              <CardTitle className="text-xl" style={{ color: finalReward.color }}>You Won: {finalReward.name}</CardTitle>
+              <CardTitle className="text-2xl font-bold mb-1" style={{ color: finalReward.color }}>
+                {finalReward.type === 'coins' && <Coins className="inline-block mr-2 h-7 w-7" />}
+                {finalReward.name}
+              </CardTitle>
+              <CardDescription className="text-sm" style={{ color: finalReward.color, opacity: 0.8 }}>
+                You've won this awesome reward!
+              </CardDescription>
             </Card>
           )}
         </CardContent>
       </Card>
-        <p className="text-center text-muted-foreground mt-8 text-sm">
-            Note: This is a conceptual UI for the Spin Wheel. Reward logic and daily spin limits need full implementation.
-        </p>
+      
+      <Card className="max-w-lg mx-auto mt-12 interactive-card shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center text-2xl font-headline glow-text-accent">
+            <History className="mr-2 h-6 w-6" /> Recent Spins
+          </CardTitle>
+          <CardDescription>Your last few rewards from the wheel.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingHistory ? (
+            <div className="flex justify-center items-center p-6">
+              <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            </div>
+          ) : spinHistory.length === 0 ? (
+            <p className="text-muted-foreground text-center p-4">No spins recorded yet in this session.</p>
+          ) : (
+            <ScrollArea className="h-60">
+              <ul className="space-y-3 pr-3">
+                {spinHistory.map((spin, index) => (
+                  <li key={index} className="p-3 bg-muted/50 rounded-md border border-border/50">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-foreground">{spin.rewardName}</span>
+                      <span className="text-xs text-muted-foreground flex items-center">
+                         <CalendarDays className="h-3 w-3 mr-1"/> {format(parseISO(spin.timestamp), "PPp")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-accent">Type: {spin.rewardType}</p>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          )}
+        </CardContent>
+         <CardFooter>
+            <p className="text-xs text-muted-foreground">Spin history is for the current session (demo).</p>
+         </CardFooter>
+      </Card>
+
+      <p className="text-center text-muted-foreground mt-8 text-sm">
+          Note: Reward logic and daily spin limits are simulated client-side for demo. Full backend integration needed for persistence.
+      </p>
     </div>
   );
 }
