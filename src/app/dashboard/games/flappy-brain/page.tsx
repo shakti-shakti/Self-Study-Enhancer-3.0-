@@ -53,14 +53,14 @@ export default function FlappyBrainPage() {
     }
   }, []);
 
-  const updateHighScore = (currentScore: number) => {
+  const updateHighScore = useCallback((currentScore: number) => {
     if (currentScore > highScore) {
       setHighScore(currentScore);
       if (typeof window !== 'undefined') {
         localStorage.setItem('flappyBrainHighScore', currentScore.toString());
       }
     }
-  };
+  }, [highScore]);
 
   const resetGameValues = useCallback(() => {
     birdY.current = CANVAS_HEIGHT / 2;
@@ -78,10 +78,8 @@ export default function FlappyBrainPage() {
   }, [resetGameValues]);
 
   const birdJump = useCallback(() => {
-    if (gameState === 'playing' || gameState === 'idle') { // Allow jump to start game from idle
-      birdVelocity.current = LIFT;
-    }
-  }, [gameState]);
+    birdVelocity.current = LIFT;
+  }, []);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -118,7 +116,7 @@ export default function FlappyBrainPage() {
     if (gameState === 'gameOver') {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#FFFFFF'; // White text for game over messages
       ctx.textAlign = 'center';
       ctx.font = `36px Arial`;
       ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
@@ -129,7 +127,7 @@ export default function FlappyBrainPage() {
         ctx.font = `20px Arial`;
         ctx.fillText('New High Score!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
       }
-      ctx.fillStyle = '#DDDDDD';
+      ctx.fillStyle = '#DDDDDD'; // Light gray for restart prompt
       ctx.font = `16px Arial`;
       ctx.fillText('Click or Space to Restart', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
     } else if (gameState === 'idle') {
@@ -210,8 +208,7 @@ export default function FlappyBrainPage() {
     if (gameState === 'playing') {
       gameLoopId.current = requestAnimationFrame(gameLoop);
     } else {
-      // Ensure idle or game over state is drawn when not playing
-      draw();
+      draw(); // Ensure idle or game over state is drawn when not playing
     }
     
     return () => {
@@ -219,12 +216,12 @@ export default function FlappyBrainPage() {
         cancelAnimationFrame(gameLoopId.current);
       }
     };
-  }, [gameState, score, highScore, draw]);
+  }, [gameState, score, highScore, draw, updateHighScore]); // Added updateHighScore to dependencies
 
   const handleInteraction = useCallback(() => {
     if (gameState === 'playing') {
       birdJump();
-    } else { 
+    } else if (gameState === 'idle' || gameState === 'gameOver') { 
       startGame();
     }
   }, [gameState, birdJump, startGame]);
@@ -247,7 +244,6 @@ export default function FlappyBrainPage() {
     }
   }, [gameState, draw]);
 
-
   return (
     <div className="flex flex-col items-center space-y-6">
       <header className="text-center">
@@ -264,17 +260,19 @@ export default function FlappyBrainPage() {
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           onClick={handleInteraction}
-          className="cursor-pointer border-2 border-primary rounded-md"
+          className="cursor-pointer border-2 border-primary rounded-md bg-muted/30" // Added bg-muted/30 for canvas itself
         />
       </Card>
        <div className="flex space-x-4">
             <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button">
-              <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : 'Start Game'}
+              <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
             </Button>
         </div>
       <p className="text-sm text-muted-foreground">
-        Pipe speed and gap size will change as you score higher!
+        Pipe speed and gap size will change as you score higher! High Score: {highScore}
       </p>
     </div>
   );
 }
+
+    

@@ -2,11 +2,13 @@
 // src/app/dashboard/study-store/page.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Sparkles, Palette, Music, Zap, UserCircle2, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Sparkles, Palette, Music, Zap, UserCircle2, AlertTriangle, Coins, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import * as apiClient from '@/lib/apiClient'; // Using the placeholder API client
 
 const storeItems = [
   { id: 'theme_ocean', name: 'Ocean Blue Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-blue-400" />, image: 'https://placehold.co/300x200/E0F7FA/00796B.png?text=Ocean+Theme', dataAiHint: 'ocean waves' },
@@ -30,17 +32,52 @@ const storeItems = [
 ];
 
 export default function StudyStorePage() {
-  const userFocusCoins = 500; // Placeholder for actual user coins
   const { toast } = useToast();
+  const [currentFocusCoins, setCurrentFocusCoins] = useState(0);
+  const [ownedItemIds, setOwnedItemIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState<string | null>(null); // Store ID of item being processed
 
-  const handlePurchase = (itemName: string, price: number) => {
-    // Conceptual: In a real app, check if user has enough coins, deduct coins, add item to inventory
-    toast({
-      title: 'Purchase Attempted (Conceptual)',
-      description: `You tried to buy ${itemName} for ${price} Focus Coins. This feature is not yet fully implemented.`,
-      className: 'bg-primary/10 border-primary text-primary-foreground',
-    });
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      // TODO: Replace with actual backend calls
+      const coins = await apiClient.fetchUserFocusCoins();
+      setCurrentFocusCoins(coins);
+      const ownedAvatars = await apiClient.fetchOwnedItemIds('avatar'); // Assuming only avatars for now
+      setOwnedItemIds(new Set(ownedAvatars));
+      setIsLoading(false);
+    };
+    loadInitialData();
+  }, []);
+
+  const handlePurchase = async (itemName: string, itemId: string, price: number) => {
+    setIsProcessingPurchase(itemId);
+    // TODO: Replace with actual backend call
+    const result = await apiClient.purchaseStoreItem(itemId, price);
+    if (result.success) {
+      toast({
+        title: 'Purchase Successful!',
+        description: `You've unlocked ${itemName}! ${result.message}`,
+        className: 'bg-primary/10 border-primary text-primary-foreground',
+      });
+      if (result.newCoinBalance !== undefined) {
+        setCurrentFocusCoins(result.newCoinBalance);
+      }
+      setOwnedItemIds(prev => new Set(prev).add(itemId));
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Purchase Failed',
+        description: result.message || `Could not purchase ${itemName}.`,
+      });
+    }
+    setIsProcessingPurchase(null);
   };
+  
+  if (isLoading) {
+    return <div className="flex justify-center items-center min-h-[60vh]"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
@@ -51,7 +88,7 @@ export default function StudyStorePage() {
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
           Spend your hard-earned Focus Coins on cool themes, avatar items, and study boosters!
         </p>
-        <p className="text-xl font-semibold text-accent mt-2">Your Focus Coins: {userFocusCoins} 🪙</p>
+        <p className="text-xl font-semibold text-accent mt-2">Your Focus Coins: {currentFocusCoins} 🪙</p>
       </header>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -69,8 +106,14 @@ export default function StudyStorePage() {
                 <CardDescription className="text-sm">{item.type}</CardDescription>
                 <p className="text-lg font-bold text-accent mt-1">{item.price} 🪙</p>
               </div>
-              <Button className="w-full glow-button mt-3" onClick={() => handlePurchase(item.name, item.price)}>
-                Unlock Item
+              <Button 
+                className="w-full glow-button mt-3" 
+                onClick={() => handlePurchase(item.name, item.id, item.price)}
+                disabled={isProcessingPurchase === item.id || ownedItemIds.has(item.id) || currentFocusCoins < item.price}
+              >
+                {isProcessingPurchase === item.id ? <Loader2 className="h-5 w-5 animate-spin"/> : 
+                 ownedItemIds.has(item.id) ? 'Owned' : 
+                 currentFocusCoins < item.price ? 'Not Enough Coins' : 'Unlock Item'}
               </Button>
             </CardContent>
           </Card>
@@ -84,28 +127,31 @@ export default function StudyStorePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-muted-foreground">
-          <p><strong>Earning Focus Coins:</strong></p>
+          <p><strong>Earning Focus Coins (Conceptual - Requires Backend):</strong></p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Excel in quizzes: Higher scores can yield more coins!</li>
             <li>Complete daily and weekly challenges from the "Challenges" page.</li>
             <li>Maintain study streaks (future feature).</li>
             <li>Spin the Rewards Wheel daily for a chance to win coins.</li>
-            <li>Engage actively with AI features like the AI Study Assistant and Smart Notes Generator (future reward integration).</li>
-            <li>Participate in Study Rooms and contribute positively (future reward integration).</li>
+            <li>Engage actively with AI features like the AI Study Assistant and Smart Notes Generator.</li>
+            <li>Participate in Study Rooms and contribute positively.</li>
           </ul>
-          <p className="mt-3"><strong>Spending Focus Coins:</strong></p>
+          <p className="mt-3"><strong>Spending Focus Coins (Client-Side Demo - Requires Backend for Real):</strong></p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Unlock exclusive app themes to personalize your study environment.</li>
             <li>Get unique avatars and avatar accessories to customize your profile.</li>
-            <li>Purchase study boosters like extra AI help tokens or quiz hints (future feature).</li>
-            <li>Unlock special game modes or items in the Games Arcade (future feature).</li>
+            <li>Purchase study boosters like extra AI help tokens or quiz hints.</li>
+            <li>Unlock special game modes or items in the Games Arcade.</li>
+            <li>Unlock premium stories or puzzles in the Story Syllabus and Puzzle Dashboard.</li>
           </ul>
           <p className="mt-4 text-xs">
             <AlertTriangle className="inline h-4 w-4 mr-1 text-yellow-500" />
-            Focus Coin system (earning and spending) is currently conceptual. The features listed describe potential ways the system could work once fully implemented.
+            The coin system is simulated on the client-side for this demo. Full implementation of earning, spending, and balance management requires backend development.
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
