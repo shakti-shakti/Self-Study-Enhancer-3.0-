@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Gift, RefreshCw, Loader2, AlertTriangle, Coins, History, CalendarDays } from 'lucide-react'; // Added Coins
+import { Gift, RefreshCw, Loader2, AlertTriangle, Coins, History, CalendarDays, Sparkles, Palette, UserCircle2, Radio } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as apiClient from '@/lib/apiClient';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,14 +13,14 @@ import { format, parseISO } from 'date-fns';
 
 
 const rewards = [
-  { name: "+10 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 10, weight: 5, dataAiHint: "gold coins" },
-  { name: "AI Help Token", color: "hsl(var(--accent))", type: "token", value: 1, weight: 2, dataAiHint: "token bright" },
-  { name: "New Avatar Frame", color: "hsl(120, 60%, 50%)", type: "cosmetic", value: 1, weight: 3, dataAiHint: "avatar frame" }, // Lime
-  { name: "Study Theme Unlock", color: "hsl(270, 70%, 60%)", type: "cosmetic", value: 1, weight: 1, dataAiHint: "theme abstract" }, // Violet
-  { name: "Try Again!", color: "hsl(var(--muted-foreground))", type: "none", value: 0, weight: 6, dataAiHint: "question mark" },
-  { name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, dataAiHint: "coins stack"},
-  { name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, dataAiHint: "few coins" }, // Orange
-  { name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 1, weight: 1, dataAiHint: "rare avatar cool" }, // Pink/Magenta
+  { id: 'coins_10', name: "+10 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 10, weight: 5, icon: <Coins/>, dataAiHint: "gold coins" },
+  { id: 'token_ai', name: "AI Help Token", color: "hsl(var(--accent))", type: "token", value: 1, weight: 2, icon: <Sparkles/>, dataAiHint: "token bright" },
+  { id: 'cosmetic_avatar_frame', name: "New Avatar Frame", color: "hsl(120, 60%, 50%)", type: "cosmetic", value: 'avatar_frame_01', weight: 3, icon: <UserCircle2/>, dataAiHint: "avatar frame" },
+  { id: 'cosmetic_theme_ocean', name: "Ocean Theme Unlock", color: "hsl(270, 70%, 60%)", type: "cosmetic", value: 'theme_ocean', weight: 1, icon: <Palette/>, dataAiHint: "theme abstract" },
+  { id: 'none_try_again', name: "Try Again!", color: "hsl(var(--muted-foreground))", type: "none", value: 0, weight: 6, icon: <RefreshCw/>, dataAiHint: "question mark" },
+  { id: 'coins_25', name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, icon: <Coins/>, dataAiHint: "coins stack"},
+  { id: 'coins_5', name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, icon: <Coins/>, dataAiHint: "few coins" }, // Orange
+  { id: 'cosmetic_avatar_rare', name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 'avatar_rare_01', weight: 1, icon: <UserCircle2/>, dataAiHint: "rare avatar cool" }, // Pink/Magenta
 ];
 
 const weightedRewards = rewards.flatMap(reward => Array(reward.weight).fill(reward));
@@ -28,6 +28,7 @@ const weightedRewards = rewards.flatMap(reward => Array(reward.weight).fill(rewa
 interface SpinHistoryEntry {
   rewardName: string;
   rewardType: string;
+  rewardValue?: number | string;
   timestamp: string;
 }
 
@@ -61,7 +62,7 @@ export default function RewardsWheelPage() {
     const randomRewardIndex = Math.floor(Math.random() * weightedRewards.length);
     const selectedReward = weightedRewards[randomRewardIndex];
     
-    const actualRewardIndexInDisplay = rewards.findIndex(r => r.name === selectedReward.name && r.value === selectedReward.value && r.type === selectedReward.type);
+    const actualRewardIndexInDisplay = rewards.findIndex(r => r.id === selectedReward.id);
 
     const segmentAngle = 360 / rewards.length;
     const targetSegmentMiddle = (actualRewardIndexInDisplay * segmentAngle) + (segmentAngle / 2);
@@ -79,7 +80,9 @@ export default function RewardsWheelPage() {
     setTimeout(async () => {
       setIsSpinning(false);
       setFinalReward(selectedReward);
-      setCanSpin(false); // For demo: allow one spin per session/load. Real app would use daily limits.
+      // setCanSpin(false); // For demo: allow one spin per session/load. Real app would use daily limits.
+      // Instead of disabling after one spin, we'll just let the demo allow multiple spins.
+      // A real app would check apiClient.canUserSpin() which would talk to backend.
       
       toast({
         title: "You Won!",
@@ -89,26 +92,28 @@ export default function RewardsWheelPage() {
       
       if (selectedReward.type === 'coins') {
         const currentCoins = await apiClient.fetchUserFocusCoins();
-        await apiClient.updateUserFocusCoins(currentCoins + selectedReward.value);
-        // Consider updating UI to show new coin balance immediately if displayed on this page
+        await apiClient.updateUserFocusCoins(currentCoins + (selectedReward.value as number));
+      } else if (selectedReward.type === 'cosmetic') {
+        // Conceptual: Add to user's inventory
+        console.log(`Cosmetic item won: ${selectedReward.name} (ID: ${selectedReward.value})`);
+        // In a real app: await apiClient.addUserCosmetic(userId, selectedReward.value as string);
       }
       
-      await apiClient.addSpinToHistory(selectedReward.name, selectedReward.type);
-      loadSpinHistory(); // Refresh history
+      await apiClient.addSpinToHistory(selectedReward.name, selectedReward.type, selectedReward.value);
+      loadSpinHistory(); 
 
     }, 4100); 
   };
   
-  useEffect(() => { 
-    // Conceptual: Check daily spin limit from backend. For now, just one spin per page load.
-    // const lastSpinTime = localStorage.getItem('lastSpinTime');
-    // if (lastSpinTime && new Date().toDateString() === new Date(lastSpinTime).toDateString()) {
-    //   setCanSpin(false);
-    //   toast({ title: "Spin Used for Today", description: "You've already spun the wheel today. Come back tomorrow!" });
-    // }
-  }, [toast]);
-
   const segmentAngle = 360 / rewards.length;
+
+  const getRewardDisplayValue = (spin: SpinHistoryEntry): string => {
+    if (spin.rewardType === 'coins') {
+      return `+${spin.rewardValue} Focus Coins`;
+    }
+    return spin.rewardName; // For cosmetic, token, or "Try Again!"
+  };
+
 
   return (
     <div className="space-y-10 pb-16 md:pb-0">
@@ -117,7 +122,7 @@ export default function RewardsWheelPage() {
           <Gift className="mr-4 h-10 w-10 text-primary" /> Spin-the-Wheel Rewards
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Feeling lucky? Spin the wheel daily for a chance to win awesome rewards! (Demo: One spin per page visit)
+          Feeling lucky? Spin the wheel daily for a chance to win awesome rewards! (Demo allows multiple spins)
         </p>
       </header>
 
@@ -140,7 +145,7 @@ export default function RewardsWheelPage() {
             >
               {rewards.map((reward, index) => (
                   <div 
-                      key={index}
+                      key={reward.id}
                       className="absolute w-1/2 h-1/2 origin-bottom-right flex items-center justify-center"
                       style={{ 
                           transform: `rotate(${segmentAngle * index}deg)`,
@@ -149,15 +154,15 @@ export default function RewardsWheelPage() {
                       }}
                   >
                        <div 
-                        className="transform -rotate-45 text-center"
+                        className="transform -rotate-45 text-center flex flex-col items-center justify-center"
                         style={{
                              transform: `translateY(-25%) rotate(${segmentAngle/2 + 90}deg)`, 
                              color: reward.color, 
                              maxWidth: '70%',
                         }}
                        >
-                        {reward.type === 'coins' ? <Coins className="h-5 w-5 inline-block mr-1"/> : null}
-                        <span className="text-xs font-bold truncate block">{reward.name}</span>
+                        {React.cloneElement(reward.icon, { className: "h-5 w-5 mb-0.5"})}
+                        <span className="text-xs font-bold truncate block leading-tight">{reward.name}</span>
                        </div>
                   </div>
               ))}
@@ -170,7 +175,7 @@ export default function RewardsWheelPage() {
             className="w-full font-semibold text-xl py-6 glow-button"
           >
             {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <RefreshCw className="mr-2 h-6 w-6" />}
-            {isSpinning ? 'Spinning...' : (canSpin ? 'Spin the Wheel!' : 'Spun for this Session!')}
+            {isSpinning ? 'Spinning...' : 'Spin the Wheel!'}
           </Button>
 
           {finalReward && !isSpinning && (
@@ -183,8 +188,8 @@ export default function RewardsWheelPage() {
                 }}
                 data-ai-hint={finalReward.dataAiHint}
             >
-              <CardTitle className="text-2xl font-bold mb-1" style={{ color: finalReward.color }}>
-                {finalReward.type === 'coins' && <Coins className="inline-block mr-2 h-7 w-7" />}
+              <CardTitle className="text-2xl font-bold mb-1 flex items-center justify-center" style={{ color: finalReward.color }}>
+                {React.cloneElement(finalReward.icon, {className: "inline-block mr-2 h-7 w-7"})}
                 {finalReward.name}
               </CardTitle>
               <CardDescription className="text-sm" style={{ color: finalReward.color, opacity: 0.8 }}>
@@ -215,7 +220,7 @@ export default function RewardsWheelPage() {
                 {spinHistory.map((spin, index) => (
                   <li key={index} className="p-3 bg-muted/50 rounded-md border border-border/50">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium text-foreground">{spin.rewardName}</span>
+                      <span className="font-medium text-foreground">{getRewardDisplayValue(spin)}</span>
                       <span className="text-xs text-muted-foreground flex items-center">
                          <CalendarDays className="h-3 w-3 mr-1"/> {format(parseISO(spin.timestamp), "PPp")}
                       </span>
