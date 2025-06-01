@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Grid, RotateCcw, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as apiClient from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
 
 const GRID_SIZE = 4;
 
-type Tile = number; // 0 represents an empty cell
+type Tile = number; 
 type Board = Tile[][];
 
 const initialBoard = (): Board => {
@@ -35,11 +37,11 @@ const addRandomTile = (board: Board): void => {
 };
 
 const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): { newBoard: Board, moved: boolean, scoreAdded: number } => {
-  let newBoard = JSON.parse(JSON.stringify(board)) as Board; // Deep copy
+  let newBoard = JSON.parse(JSON.stringify(board)) as Board; 
   let moved = false;
   let scoreAdded = 0;
 
-  const rotateBoard = (b: Board): Board => { // Rotate 90 deg clockwise
+  const rotateBoard = (b: Board): Board => { 
     const rotated = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
@@ -54,7 +56,6 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
     let rowMoved = false;
     let rowScore = 0;
 
-    // Merge tiles
     for (let i = 0; i < newRow.length - 1; i++) {
       if (newRow[i] === newRow[i + 1]) {
         newRow[i] *= 2;
@@ -63,11 +64,9 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
         rowMoved = true;
       }
     }
-    // Pad with zeros
     while (newRow.length < GRID_SIZE) {
       newRow.push(0);
     }
-    // Check if actual movement occurred beyond merging
     if (!rowMoved) {
         for(let i = 0; i < GRID_SIZE; i++) {
             if (row[i] !== newRow[i]) {
@@ -93,7 +92,7 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
     scoreAdded += rowScore;
   }
 
-  for (let i = 0; i < rotations; i++) newBoard = rotateBoard(rotateBoard(rotateBoard(newBoard))); // Rotate back
+  for (let i = 0; i < rotations; i++) newBoard = rotateBoard(rotateBoard(rotateBoard(newBoard))); 
 
   return { newBoard, moved, scoreAdded };
 };
@@ -101,9 +100,9 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
 const canMove = (board: Board): boolean => {
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
-      if (board[r][c] === 0) return true; // Empty cell exists
-      if (r < GRID_SIZE - 1 && board[r][c] === board[r + 1][c]) return true; // Can merge vertically
-      if (c < GRID_SIZE - 1 && board[r][c] === board[r][c + 1]) return true; // Can merge horizontally
+      if (board[r][c] === 0) return true; 
+      if (r < GRID_SIZE - 1 && board[r][c] === board[r + 1][c]) return true; 
+      if (c < GRID_SIZE - 1 && board[r][c] === board[r][c + 1]) return true; 
     }
   }
   return false;
@@ -122,6 +121,8 @@ const tileColors: Record<number, string> = {
   512: 'bg-green-200 text-green-900 border-green-400',
   1024: 'bg-lime-300 text-lime-900 border-lime-500 font-bold',
   2048: 'bg-yellow-400 text-white border-yellow-600 font-bold shadow-lg shadow-yellow-500/50',
+  4096: 'bg-purple-500 text-white border-purple-700 font-bold shadow-lg shadow-purple-600/50',
+  8192: 'bg-pink-500 text-white border-pink-700 font-bold shadow-lg shadow-pink-600/50',
 };
 
 
@@ -131,6 +132,7 @@ export default function Puzzle2048Page() {
   const [highScore, setHighScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
      if (typeof window !== 'undefined') {
@@ -139,23 +141,31 @@ export default function Puzzle2048Page() {
     }
   }, []);
 
-  const updateHighScore = useCallback((currentScore: number) => {
+  const updateHighScoreAndReward = useCallback(async (currentScore: number) => {
     if (currentScore > highScore) {
       setHighScore(currentScore);
       if (typeof window !== 'undefined') {
         localStorage.setItem('2048HighScore', currentScore.toString());
       }
+      toast({
+        title: "New High Score in 2048!",
+        description: `You reached ${currentScore} points! +25 XP & +10 Focus Coins (Conceptual)!`,
+        className: "bg-primary/20 text-primary-foreground"
+      });
+      await apiClient.addUserXP(25);
+      const currentCoins = await apiClient.fetchUserFocusCoins();
+      await apiClient.updateUserFocusCoins(currentCoins + 10);
     }
-  }, [highScore]);
+  }, [highScore, toast]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (gameOver) return;
+    if (gameOver && !won) return; // If game is over and not won, don't allow moves. If won, can continue.
     let direction: 'left' | 'right' | 'up' | 'down' | null = null;
     switch (event.key) {
-      case 'ArrowLeft': direction = 'left'; break;
-      case 'ArrowRight': direction = 'right'; break;
-      case 'ArrowUp': direction = 'up'; break;
-      case 'ArrowDown': direction = 'down'; break;
+      case 'ArrowLeft': case 'a': case 'A': direction = 'left'; break;
+      case 'ArrowRight': case 'd': case 'D': direction = 'right'; break;
+      case 'ArrowUp': case 'w': case 'W': direction = 'up'; break;
+      case 'ArrowDown': case 's': case 'S': direction = 'down'; break;
       default: return;
     }
     event.preventDefault();
@@ -166,16 +176,25 @@ export default function Puzzle2048Page() {
       setBoard(newBoard);
       const newTotalScore = score + scoreAdded;
       setScore(newTotalScore);
-      updateHighScore(newTotalScore);
+      updateHighScoreAndReward(newTotalScore);
 
       if (newBoard.flat().includes(2048) && !won) {
         setWon(true);
+        toast({
+            title: "You Reached 2048!",
+            description: "Congratulations! You can continue playing. +50 XP & +20 Coins (Conceptual) for this milestone!",
+            className: "bg-green-500/20 text-green-300",
+            duration: 7000
+        });
+        // Award milestone bonus
+        apiClient.addUserXP(50);
+        apiClient.fetchUserFocusCoins().then(coins => apiClient.updateUserFocusCoins(coins + 20));
       }
       if (!canMove(newBoard)) {
         setGameOver(true);
       }
     }
-  }, [board, score, gameOver, won, updateHighScore]);
+  }, [board, score, gameOver, won, updateHighScoreAndReward, toast]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -196,7 +215,7 @@ export default function Puzzle2048Page() {
           <Grid className="mr-3 h-10 w-10 text-primary" /> 2048 Puzzle
         </h1>
         <p className="text-lg text-muted-foreground">
-          Use arrow keys to move tiles. Combine tiles to reach 2048!
+          Use arrow keys (or A,W,S,D) to move tiles. Combine tiles to reach 2048!
         </p>
       </header>
 
@@ -230,7 +249,7 @@ export default function Puzzle2048Page() {
           <CardFooter className="flex flex-col items-center pt-4">
             {won && !gameOver && <p className="text-2xl font-bold text-green-500 mb-2 flex items-center"><Trophy className="mr-2"/>You Reached 2048! Keep Going?</p>}
             {gameOver && !won && <p className="text-2xl font-bold text-red-500 mb-2">Game Over!</p>}
-            {gameOver && won && <p className="text-2xl font-bold text-yellow-500 mb-2">Game Over! But you reached 2048!</p>}
+            {gameOver && won && <p className="text-2xl font-bold text-yellow-500 mb-2"><Trophy className="mr-2 inline"/>Game Over! But you reached 2048!</p>}
             <Button onClick={restartGame} className="glow-button text-lg mt-2">
                 <RotateCcw className="mr-2"/> Play Again
             </Button>
@@ -240,4 +259,3 @@ export default function Puzzle2048Page() {
     </div>
   );
 }
-

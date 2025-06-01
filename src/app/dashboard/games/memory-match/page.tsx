@@ -7,21 +7,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Brain, CheckCircle, RotateCcw, Eye, EyeOff, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import * as apiClient from '@/lib/apiClient';
 
 interface MemoryCardItem {
   id: number;
-  value: string; // e.g., "A", "B", "C"
-  uniqueId: string; // To identify pairs e.g. "pair-A"
+  value: string; 
+  uniqueId: string; 
   isFlipped: boolean;
   isMatched: boolean;
-  content?: React.ReactNode; // Could be text, icon, or image path
+  content?: React.ReactNode; 
 }
 
 const cardValues = [
   {val: "⚛️", id: "atom"}, {val: "🔬", id: "microscope"}, {val: "🧬", id: "dna"}, 
   {val: "🧪", id: "testtube"}, {val: "🧲", id: "magnet"}, {val: "💡", id: "lightbulb"},
   {val: "📚", id: "books"}, {val: "🧠", id: "brain"}
-]; // 8 pairs for a 4x4 grid
+]; 
 
 const PAIRS_COUNT = 8;
 
@@ -51,18 +52,44 @@ export default function MemoryMatchPage() {
   const [moves, setMoves] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [bestMoves, setBestMoves] = useState<number | null>(null);
 
   const { toast } = useToast();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (matches === PAIRS_COUNT) {
-      setGameOver(true);
-      toast({ title: "Congratulations!", description: `You matched all pairs in ${moves} moves!`, className: "bg-primary/20 text-primary-foreground"});
+    if (typeof window !== 'undefined') {
+      const storedBestMoves = localStorage.getItem('memoryMatchBestMoves');
+      if (storedBestMoves) {
+        setBestMoves(parseInt(storedBestMoves, 10));
+      }
     }
-  }, [matches, moves, toast]);
+  }, []);
 
-  useEffect(() => { // Cleanup timeout on unmount
+  useEffect(() => {
+    const checkGameCompletion = async () => {
+      if (matches === PAIRS_COUNT) {
+        setGameOver(true);
+        let rewardMessage = "";
+        if (bestMoves === null || moves < bestMoves) {
+          setBestMoves(moves);
+          localStorage.setItem('memoryMatchBestMoves', moves.toString());
+          rewardMessage = ` New best: ${moves} moves! +25 XP & +10 Focus Coins (Conceptual)!`;
+          await apiClient.addUserXP(25);
+          const currentCoins = await apiClient.fetchUserFocusCoins();
+          await apiClient.updateUserFocusCoins(currentCoins + 10);
+        }
+        toast({ 
+          title: "Congratulations!", 
+          description: `You matched all pairs in ${moves} moves!${rewardMessage}`, 
+          className: "bg-primary/20 text-primary-foreground"
+        });
+      }
+    };
+    checkGameCompletion();
+  }, [matches, moves, toast, bestMoves]);
+
+  useEffect(() => { 
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -75,7 +102,7 @@ export default function MemoryMatchPage() {
       return;
     }
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current); // Clear previous timeout if any
+    if (timeoutRef.current) clearTimeout(timeoutRef.current); 
 
     const newCards = [...cards];
     newCards[index].isFlipped = true;
@@ -137,7 +164,7 @@ export default function MemoryMatchPage() {
         <CardHeader className="flex flex-row justify-between items-center">
           <div>
             <CardTitle className="text-xl font-headline glow-text-accent">Moves: {moves}</CardTitle>
-            <CardDescription>Pairs Found: {matches}/{PAIRS_COUNT}</CardDescription>
+            <CardDescription>Pairs Found: {matches}/{PAIRS_COUNT} | Best: {bestMoves === null ? 'N/A' : `${bestMoves} moves`}</CardDescription>
           </div>
           <Button onClick={restartGame} variant="outline" className="glow-button">
             <RotateCcw /> Restart

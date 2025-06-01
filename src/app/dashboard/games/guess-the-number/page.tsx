@@ -1,12 +1,11 @@
-
 // src/app/dashboard/games/guess-the-number/page.tsx
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react'; // Added React
+import React, { useState, useEffect, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Hash, Target, Award, RotateCcw, Loader2, Lightbulb } from 'lucide-react';
+import { Hash, Target, Award, RotateCcw, Loader2, Lightbulb, Trophy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import * as apiClient from '@/lib/apiClient';
@@ -21,13 +20,13 @@ export default function GuessTheNumberPage() {
   const [feedback, setFeedback] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [isWon, setIsWon] = useState(false);
-  const [highScore, setHighScore] = useState(0); 
+  const [highScore, setHighScore] = useState(MAX_ATTEMPTS + 1); // Lower attempts is better, so init high
   const [isProcessing, startTransition] = useTransition();
 
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedHighScore = localStorage.getItem('guessTheNumberHighScore');
+    const storedHighScore = localStorage.getItem('guessTheNumberHighScore'); // Stores attempts
     if (storedHighScore) {
       setHighScore(parseInt(storedHighScore, 10));
     }
@@ -35,36 +34,41 @@ export default function GuessTheNumberPage() {
 
   const handleGuess = () => {
     if (gameOver || isProcessing) return;
-    startTransition(async () => { // Made async for apiClient calls
+    startTransition(async () => {
       const numGuess = parseInt(guess);
       if (isNaN(numGuess) || numGuess < 1 || numGuess > MAX_NUMBER) {
         setFeedback(`Please enter a number between 1 and ${MAX_NUMBER}.`);
         return;
       }
 
+      const currentAttemptsMade = MAX_ATTEMPTS - attemptsLeft + 1;
       setAttemptsLeft(prev => prev - 1);
       setGuess('');
 
       if (numGuess === targetNumber) {
-        setFeedback(`Correct! The number was ${targetNumber}. You guessed it in ${MAX_ATTEMPTS - attemptsLeft +1} attempts.`);
+        setFeedback(`Correct! The number was ${targetNumber}. You guessed it in ${currentAttemptsMade} attempts.`);
         setIsWon(true);
         setGameOver(true);
-        const currentAttempts = MAX_ATTEMPTS - attemptsLeft + 1;
-        const currentScore = MAX_ATTEMPTS - currentAttempts + 1; 
-        if (currentScore > highScore) {
-          setHighScore(currentScore);
-          localStorage.setItem('guessTheNumberHighScore', currentScore.toString());
-          toast({title: "New High Score!", description: `You set a new high score of ${currentScore}!`});
-        }
         
-        try {
-            const currentCoins = await apiClient.fetchUserFocusCoins();
-            await apiClient.updateUserFocusCoins(currentCoins + 10); // Add 10 coins for winning
-            toast({title: "You Won!", description: "You earned +10 Focus Coins (Demo)!", className: "bg-primary/20 text-primary-foreground"});
-        } catch (e) {
-            console.error("Error updating focus coins:", e);
-            toast({variant: "destructive", title: "Coin Error", description: "Could not update Focus Coins (demo)."});
+        if (currentAttemptsMade < highScore) {
+          setHighScore(currentAttemptsMade);
+          localStorage.setItem('guessTheNumberHighScore', currentAttemptsMade.toString());
+          toast({
+            title: "New Best!", 
+            description: `You guessed it in just ${currentAttemptsMade} attempts! +25 XP & +10 Focus Coins (Conceptual)!`,
+            className: "bg-primary/20 text-primary-foreground"
+          });
+          await apiClient.addUserXP(25);
+          const currentCoins = await apiClient.fetchUserFocusCoins();
+          await apiClient.updateUserFocusCoins(currentCoins + 10);
+        } else {
+             toast({title: "You Won!", description: "Great guessing skills!", className: "bg-green-500/20 text-green-300"});
         }
+        // Award coins for winning regardless of high score
+        const currentCoins = await apiClient.fetchUserFocusCoins();
+        await apiClient.updateUserFocusCoins(currentCoins + 5); // Smaller win bonus
+        await apiClient.addUserXP(10);
+
 
       } else if (attemptsLeft -1 === 0) {
         setFeedback(`Game Over! The number was ${targetNumber}. Better luck next time!`);
@@ -131,7 +135,7 @@ export default function GuessTheNumberPage() {
             Attempts left: <span className="font-bold text-primary">{attemptsLeft}</span>
           </p>
           <p className="text-sm text-muted-foreground text-center">
-            High Score (Lowest Attempts): {highScore > 0 ? `${MAX_ATTEMPTS - highScore + 1} attempts` : 'Not Set'}
+            Best Score (Lowest Attempts): {highScore <= MAX_ATTEMPTS ? `${highScore} attempts` : 'Not Set'}
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">

@@ -32,12 +32,22 @@ const games = [
     isImplemented: true,
   },
   {
-    id: 'dino-run', // Changed from flappy-brain
-    title: 'Dino Run', // Changed title
-    description: 'Classic T-Rex runner game. Jump over obstacles! How high can you score?', // Updated description
+    id: 'flappy-brain',
+    title: 'Flappy Brain',
+    description: 'Navigate the brainy bird through conceptual pipes! Advanced version with increasing difficulty.',
     genre: 'Arcade Reflex Game',
-    icon: <Bird className="h-12 w-12 text-secondary" />, // Bird icon can stay, or use Rocket if preferred
-    imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Dino+Run', // Updated text
+    icon: <Bird className="h-12 w-12 text-pink-400" />,
+    imageUrl: 'https://placehold.co/600x400/F06292/FFFFFF.png?text=Flappy+Brain',
+    dataAiHint: 'bird pixel game',
+    isImplemented: true,
+  },
+  {
+    id: 'dino-run',
+    title: 'Dino Run',
+    description: 'Classic T-Rex runner game. Jump over obstacles! How high can you score?',
+    genre: 'Arcade Reflex Game',
+    icon: <Rocket className="h-12 w-12 text-secondary" />,
+    imageUrl: 'https://placehold.co/600x400/7B59E0/FFFFFF.png?text=Dino+Run', 
     dataAiHint: 'dinosaur pixel game',
     isImplemented: true,
   },
@@ -86,7 +96,7 @@ const games = [
     title: '2048 Puzzle Challenge',
     description: 'Slide tiles and combine matching numbers to reach the 2048 tile.',
     genre: 'Puzzle / Number Game',
-    icon: <Grid className="h-12 w-12 text-orange-400" />, // Changed icon
+    icon: <Grid className="h-12 w-12 text-orange-400" />, 
     imageUrl: 'https://placehold.co/600x400/FFB74D/FFFFFF.png?text=2048',
     dataAiHint: 'number puzzle tiles',
     isImplemented: true,
@@ -160,10 +170,14 @@ export default function GamesHubPage() {
               </div>
               <CardDescription className="text-base text-muted-foreground min-h-[60px]">{game.description}</CardDescription>
               
-              <Button asChild className="w-full glow-button text-lg py-3">
-                <Link href={`/dashboard/games/${game.id}`}>
-                  <PlayCircle className="mr-2" /> Play Game
-                </Link>
+              <Button asChild className="w-full glow-button text-lg py-3" disabled={!game.isImplemented}>
+                {game.isImplemented ? (
+                  <Link href={`/dashboard/games/${game.id}`}>
+                    <PlayCircle className="mr-2" /> Play Game
+                  </Link>
+                ) : (
+                  <span><PlayCircle className="mr-2" /> Coming Soon</span>
+                )}
               </Button>
             </CardContent>
           </Card>

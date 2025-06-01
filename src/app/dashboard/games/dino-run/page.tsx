@@ -4,7 +4,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bird, PlayCircle, RotateCcw, ArrowUp, ArrowLeft, ArrowRight, ChevronUp } from 'lucide-react'; // Added Arrow icons
+import { Bird, PlayCircle, RotateCcw, ArrowUp, ArrowLeft, ArrowRight, ChevronUp, Trophy } from 'lucide-react'; 
+import * as apiClient from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
 
 // Game constants
 const CANVAS_WIDTH = 320;
@@ -35,6 +37,7 @@ export default function DinoRunPage() {
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameOver'>('idle');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const { toast } = useToast();
 
   const dinoY = useRef(GROUND_Y);
   const dinoVelocity = useRef(0);
@@ -53,14 +56,22 @@ export default function DinoRunPage() {
     }
   }, []);
 
-  const updateHighScore = useCallback((currentScore: number) => {
+  const updateHighScoreAndReward = useCallback(async (currentScore: number) => {
     if (currentScore > highScore) {
       setHighScore(currentScore);
       if (typeof window !== 'undefined') {
         localStorage.setItem('dinoRunHighScore', currentScore.toString());
       }
+      toast({
+        title: "New High Score!",
+        description: `You reached ${currentScore} points! +25 XP & +10 Focus Coins (Conceptual)!`,
+        className: "bg-primary/20 text-primary-foreground"
+      });
+      await apiClient.addUserXP(25);
+      const currentCoins = await apiClient.fetchUserFocusCoins();
+      await apiClient.updateUserFocusCoins(currentCoins + 10);
     }
-  }, [highScore]);
+  }, [highScore, toast]);
 
   const resetGameValues = useCallback(() => {
     dinoY.current = GROUND_Y;
@@ -77,7 +88,7 @@ export default function DinoRunPage() {
   }, [resetGameValues]);
 
   const dinoJump = useCallback(() => {
-    if (gameState !== 'playing') return; // Only allow jump if game is playing
+    if (gameState !== 'playing') return; 
     if (dinoY.current === GROUND_Y) { 
       dinoVelocity.current = JUMP_STRENGTH;
     }
@@ -184,7 +195,7 @@ export default function DinoRunPage() {
         
         if ( DINO_X < obsRight && dinoRight > obstacle.x &&
              dinoY.current < obsBottom && dinoBottom > obstacle.y ) {
-          updateHighScore(newScore);
+          updateHighScoreAndReward(newScore);
           setGameState('gameOver');
           break;
         }
@@ -205,7 +216,7 @@ export default function DinoRunPage() {
         cancelAnimationFrame(gameLoopId.current);
       }
     };
-  }, [gameState, score, highScore, draw, updateHighScore]);
+  }, [gameState, score, highScore, draw, updateHighScoreAndReward]);
 
   const handleInteraction = useCallback(() => {
     if (gameState === 'playing') {
@@ -223,7 +234,6 @@ export default function DinoRunPage() {
       }
     };
     window.addEventListener('keydown', handleKeyPress);
-    // Add touch event listener for canvas
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.addEventListener('touchstart', handleInteraction, { passive: false });
@@ -258,15 +268,15 @@ export default function DinoRunPage() {
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          onClick={handleInteraction} // Canvas click also triggers jump/start
-          className="cursor-pointer border-2 border-primary rounded-md game-canvas" // Added game-canvas class
+          onClick={handleInteraction}
+          className="cursor-pointer border-2 border-primary rounded-md game-canvas"
         />
       </Card>
        <div className="flex flex-col items-center space-y-2">
-            <Button onClick={dinoJump} disabled={gameState !== 'playing'} className="glow-button w-32 py-3 text-lg">
-              <ChevronUp className="mr-2" /> Jump
+            <Button onClick={dinoJump} disabled={gameState !== 'playing'} className="glow-button w-40 py-4 text-xl">
+              <ChevronUp className="mr-2 h-6 w-6" /> Jump
             </Button>
-            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-32">
+            <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-40 py-3 text-lg">
               <PlayCircle className="mr-2" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
             </Button>
         </div>

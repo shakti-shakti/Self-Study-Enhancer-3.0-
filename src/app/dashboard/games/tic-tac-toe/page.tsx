@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Grid, Users, Bot, RotateCcw, X, Circle as CircleIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label'; // Added import for Label
 import { cn } from '@/lib/utils';
 
 type Player = 'X' | 'O';
@@ -90,7 +91,7 @@ export default function TicTacToePage() {
         setIsComputerTurn(false);
       }, 700); // Simulate thinking time
     }
-  }, [currentPlayer, board, winner, gameMode, isComputerTurn]);
+  }, [currentPlayer, board, winner, gameMode, isComputerTurn, computerMove]);
 
 
   const handleClick = (index: number) => {

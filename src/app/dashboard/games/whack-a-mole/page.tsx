@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { MousePointerClick, PlayCircle, RotateCcw, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import * as apiClient from '@/lib/apiClient';
+import { useToast } from '@/hooks/use-toast';
 
-const GRID_SIZE = 3; // 3x3 grid
+const GRID_SIZE = 3; 
 const GAME_DURATION_SECONDS = 30;
-const MOLE_UP_TIME_MS = 900; // How long a mole stays up
-const MOLE_SPAWN_INTERVAL_MS = 1000; // How often a new mole tries to spawn
+const MOLE_UP_TIME_MS_BASE = 900; 
+const MOLE_SPAWN_INTERVAL_MS_BASE = 1000; 
 
 export default function WhackAMolePage() {
   const [moles, setMoles] = useState<boolean[]>(Array(GRID_SIZE * GRID_SIZE).fill(false));
@@ -18,20 +20,57 @@ export default function WhackAMolePage() {
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION_SECONDS);
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [highScore, setHighScore] = useState(0);
+  const { toast } = useToast();
 
   const gameIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const moleIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const moleTimersRef = useRef<NodeJS.Timeout[]>([]);
+  const moleTimersRef = useRef<Map<number, NodeJS.Timeout>>(new Map()); // Store timers by index
 
-  const clearAllTimers = useCallback(() => {
-    if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
-    if (moleIntervalRef.current) clearInterval(moleIntervalRef.current);
-    moleTimersRef.current.forEach(clearTimeout);
-    moleTimersRef.current = [];
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedHighScore = localStorage.getItem('whackAMoleHighScore');
+      if (storedHighScore) setHighScore(parseInt(storedHighScore, 10));
+    }
   }, []);
 
+  const updateHighScoreAndReward = useCallback(async (currentScore: number) => {
+    if (currentScore > highScore) {
+      setHighScore(currentScore);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('whackAMoleHighScore', currentScore.toString());
+      }
+      toast({
+        title: "New High Score in Whack-a-Mole!",
+        description: `You whacked ${currentScore} moles! +25 XP & +10 Focus Coins (Conceptual)!`,
+        className: "bg-primary/20 text-primary-foreground"
+      });
+      await apiClient.addUserXP(25);
+      const currentCoins = await apiClient.fetchUserFocusCoins();
+      await apiClient.updateUserFocusCoins(currentCoins + 10);
+    }
+  }, [highScore, toast]);
+
+  const clearAllMoleTimers = useCallback(() => {
+    moleTimersRef.current.forEach(clearTimeout);
+    moleTimersRef.current.clear();
+  }, []);
+
+  const clearSpecificMoleTimer = useCallback((index: number) => {
+    if (moleTimersRef.current.has(index)) {
+        clearTimeout(moleTimersRef.current.get(index)!);
+        moleTimersRef.current.delete(index);
+    }
+  }, []);
+
+  const clearGameTimers = useCallback(() => {
+    if (gameIntervalRef.current) clearInterval(gameIntervalRef.current);
+    if (moleIntervalRef.current) clearInterval(moleIntervalRef.current);
+    clearAllMoleTimers();
+  }, [clearAllMoleTimers]);
+
   const startGame = () => {
-    clearAllTimers();
+    clearGameTimers();
     setScore(0);
     setTimeLeft(GAME_DURATION_SECONDS);
     setMoles(Array(GRID_SIZE * GRID_SIZE).fill(false));
@@ -48,17 +87,18 @@ export default function WhackAMolePage() {
       });
     }, 1000);
 
-    moleIntervalRef.current = setInterval(spawnMole, MOLE_SPAWN_INTERVAL_MS);
+    moleIntervalRef.current = setInterval(spawnMole, MOLE_SPAWN_INTERVAL_MS_BASE - (score * 5)); // Speed up spawn slightly with score
   };
 
   const endGame = useCallback(() => {
-    clearAllTimers();
+    clearGameTimers();
     setIsPlaying(false);
     setGameOver(true);
-  }, [clearAllTimers]);
+    updateHighScoreAndReward(score);
+  }, [clearGameTimers, score, updateHighScoreAndReward]);
 
   const spawnMole = () => {
-    if (!isPlaying) return;
+    if (!isPlaying || gameOver) return;
     const availableHoles = moles.map((isUp, index) => !isUp ? index : -1).filter(index => index !== -1);
     if (availableHoles.length === 0) return;
 
@@ -69,6 +109,9 @@ export default function WhackAMolePage() {
       newMoles[randomIndex] = true;
       return newMoles;
     });
+    
+    clearSpecificMoleTimer(randomIndex); // Clear existing timer if any for this hole (shouldn't happen often)
+    const moleDuration = Math.max(300, MOLE_UP_TIME_MS_BASE - (score * 10)); // Moles stay up for less time as score increases
 
     const moleTimer = setTimeout(() => {
       setMoles(prevMoles => {
@@ -76,12 +119,13 @@ export default function WhackAMolePage() {
         newMoles[randomIndex] = false;
         return newMoles;
       });
-    }, MOLE_UP_TIME_MS);
-    moleTimersRef.current.push(moleTimer);
+      moleTimersRef.current.delete(randomIndex);
+    }, moleDuration);
+    moleTimersRef.current.set(randomIndex, moleTimer);
   };
 
   const whackMole = (index: number) => {
-    if (!isPlaying || !moles[index]) return;
+    if (!isPlaying || !moles[index] || gameOver) return;
 
     setScore(prevScore => prevScore + 1);
     setMoles(prevMoles => {
@@ -89,13 +133,12 @@ export default function WhackAMolePage() {
       newMoles[index] = false;
       return newMoles;
     });
-    // Find and clear the specific timer for this mole to prevent it from hiding itself again
-    // This part is tricky without tracking specific mole timers, simplified for now.
+    clearSpecificMoleTimer(index); // Mole whacked, clear its hide timer
   };
   
   useEffect(() => {
-    return () => clearAllTimers(); // Cleanup on component unmount
-  }, [clearAllTimers]);
+    return () => clearGameTimers(); 
+  }, [clearGameTimers]);
 
 
   return (
@@ -113,7 +156,7 @@ export default function WhackAMolePage() {
         <CardHeader className="flex flex-row justify-between items-center">
           <div>
             <CardTitle className="text-xl font-headline glow-text-accent">Score: {score}</CardTitle>
-            <CardDescription>Time Left: {timeLeft}s</CardDescription>
+            <CardDescription>Time Left: {timeLeft}s | High Score: {highScore}</CardDescription>
           </div>
           {!isPlaying && !gameOver && (
             <Button onClick={startGame} className="glow-button">

@@ -1,4 +1,3 @@
-
 // src/app/dashboard/games/science-trivia-challenge/page.tsx
 'use client';
 
@@ -9,7 +8,7 @@ import { BrainCircuit, Check, X, RotateCcw, Loader2, Trophy, Lightbulb } from 'l
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import * as apiClient from '@/lib/apiClient';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'; // Added this import
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface TriviaQuestion {
   id: string;
@@ -41,8 +40,18 @@ export default function ScienceTriviaChallengePage() {
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [isProcessing, startTransition] = useTransition();
+  const [highScore, setHighScore] = useState(0);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedHighScore = localStorage.getItem('triviaHighScore');
+      if (storedHighScore) {
+        setHighScore(parseInt(storedHighScore, 10));
+      }
+    }
+  }, []);
 
   const shuffleArray = (array: any[]) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -81,18 +90,28 @@ export default function ScienceTriviaChallengePage() {
     });
   };
 
-  const handleNextQuestion = () => {
-    startTransition(() => {
+  const handleNextQuestion = async () => {
+    startTransition(async () => {
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
         setSelectedAnswer(null);
         setIsAnswerSubmitted(false);
       } else {
         setGameOver(true);
-        // Conceptual: Award Focus Coins based on score
-        const coinsEarned = score * 5; // Example: 5 coins per correct answer
-        apiClient.updateUserFocusCoins(currentCoins => (currentCoins || 0) + coinsEarned);
-        toast({title: "Game Over!", description: `You scored ${score}/${questions.length}. You earned ${coinsEarned} Focus Coins (Demo)!`, className: "bg-primary/20 text-primary-foreground"});
+        const coinsEarned = score * 5;
+        let rewardMessage = `You scored ${score}/${questions.length}. You earned ${coinsEarned} Focus Coins & +${score * 2} XP (Conceptual)!`;
+        
+        if (score > highScore) {
+          setHighScore(score);
+          localStorage.setItem('triviaHighScore', score.toString());
+          rewardMessage = `New High Score: ${score}/${questions.length}! You earned ${coinsEarned} Focus Coins & +${score * 2} XP (Conceptual)!`;
+        }
+        
+        toast({title: "Game Over!", description: rewardMessage, className: "bg-primary/20 text-primary-foreground"});
+        
+        await apiClient.addUserXP(score * 2); // Example: 2 XP per correct answer
+        const currentCoins = await apiClient.fetchUserFocusCoins();
+        await apiClient.updateUserFocusCoins(currentCoins + coinsEarned);
       }
     });
   };
@@ -117,6 +136,7 @@ export default function ScienceTriviaChallengePage() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold">Your final score: {score} / {questions.length}</p>
+            <p className="text-md text-muted-foreground">High Score: {highScore} / {questions.length}</p>
           </CardContent>
           <CardFooter className="flex-col gap-4">
             <Button onClick={startNewGame} className="w-full glow-button text-lg">
@@ -140,7 +160,7 @@ export default function ScienceTriviaChallengePage() {
           <BrainCircuit className="mr-3 h-10 w-10 text-primary" /> Science Trivia Challenge
         </h1>
         <p className="text-lg text-muted-foreground">
-          Test your knowledge! Question {currentQuestionIndex + 1} of {questions.length}. Score: {score}
+          Question {currentQuestionIndex + 1} of {questions.length}. Score: {score}
         </p>
         <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} className="w-full max-w-md mx-auto mt-2 h-3 [&>div]:bg-gradient-to-r [&>div]:from-primary [&>div]:to-accent"/>
       </header>
