@@ -287,10 +287,10 @@ export default function FlappyBrainPage() {
         />
       </Card>
        <div className="flex flex-col items-center space-y-3">
-          <Button onClick={birdJump} disabled={gameState !== 'playing'} className="glow-button w-48 py-6 text-2xl">
-            <ChevronUp className="mr-2 h-8 w-8" /> Flap
+          <Button onClick={birdJump} disabled={gameState !== 'playing'} className="glow-button w-64 py-10 text-4xl">
+            <ChevronUp className="mr-3 h-10 w-10" /> Flap
           </Button>
-          <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-48 py-4 text-xl">
+          <Button onClick={startGame} disabled={gameState === 'playing'} className="glow-button w-64 py-8 text-3xl">
             <PlayCircle className="mr-2 h-6 w-6" /> {gameState === 'gameOver' ? 'Play Again' : (gameState === 'idle' ? 'Start Game' : 'Restart')}
           </Button>
       </div>

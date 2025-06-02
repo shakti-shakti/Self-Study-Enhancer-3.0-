@@ -1161,6 +1161,67 @@ export type Database = {
           }
         ];
       }
+      puzzles: {
+ Row: {
+ id: string; // Unique ID for the puzzle (e.g., 'math_001', 'physics_ kinematics_001')
+ name: string; // Name of the puzzle (e.g., 'Basic Algebra', 'Projectile Motion')
+ subject: string | null; // Subject (e.g., 'Math', 'Physics')
+ description: string | null; // Description of the puzzle
+ base_definition: Json | null; // JSON object containing base parameters for generating levels
+ created_at: string;
+ };
+ Insert: {
+ id?: string;
+ name: string;
+ subject?: string | null;
+ description?: string | null;
+ base_definition?: Json | null;
+ created_at?: string;
+ };
+ Update: {
+ id?: string;
+ name?: string;
+ subject?: string | null;
+ description?: string | null;
+ base_definition?: Json | null;
+ created_at?: string;
+ };
+ Relationships: [];
+ };
+ user_puzzle_progress: {
+ Row: {
+ id: string;
+ user_id: string;
+ puzzle_id: string;
+ current_level: number;
+ unlocked_at: string | null;
+ updated_at: string | null;
+ };
+ Insert: {
+ id?: string;
+ user_id: string;
+ puzzle_id: string;
+ current_level?: number;
+ unlocked_at?: string | null;
+ updated_at?: string | null;
+ };
+ Update: {
+ id?: string;
+ user_id?: string;
+ puzzle_id?: string;
+ current_level?: number;
+ unlocked_at?: string | null;
+ updated_at?: string | null;
+ };
+ Relationships: [
+ {
+ foreignKeyName: "user_puzzle_progress_user_id_fkey";
+ columns: ["user_id"];
+ referencedRelation: "users";
+ referencedColumns: ["id"];
+ }
+ ];
+ };
       game_leaderboard: { 
         Row: {
           id: string;

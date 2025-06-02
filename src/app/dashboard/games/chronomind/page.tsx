@@ -147,7 +147,7 @@ export default function ChronoMindPage() {
             <Zap className="h-24 w-24 text-destructive mb-6" />
             <p className="text-2xl font-headline text-destructive-foreground glow-text-destructive">Authentication Required</p>
             <p className="text-lg text-muted-foreground">Please log in to access ChronoMind.</p>
-            <Button onClick={() => window.location.href = '/login'} className="mt-6 glow-button">Go to Login</Button>
+ <Button onClick={() => window.location.href = '/login'} className="mt-6 glow-button text-2xl px-8 py-4">Go to Login</Button>
         </div>
     );
   }
@@ -157,7 +157,7 @@ export default function ChronoMindPage() {
     switch (gameState.currentChapter) {
       case 'intro':
         return <IntroChrono onStartGame={handleStartGame} />;
-      case 'chapter1':
+ case 'chapter1':
         return <Chapter1TimeChamber gameState={gameState} updateGameState={updateGameState} advanceChapter={advanceChapter} />;
       // case 'chapter2':
       //   return <Chapter2ChemicalCollapse gameState={gameState} updateGameState={updateGameState} advanceChapter={advanceChapter} />;
@@ -175,7 +175,7 @@ export default function ChronoMindPage() {
                 <p className="text-xl text-foreground mb-6">You've successfully navigated the quantum decay. Your mind is truly unlocked.</p>
                 {/* TODO: Display specific ending based on playerChoices, accuracy etc. */}
                 <p className="text-lg text-muted-foreground">Thank you for playing ChronoMind.</p>
-                 <Button onClick={() => updateGameState(initialChronoMindState)} className="mt-8 glow-button">
+ <Button onClick={() => updateGameState(initialChronoMindState)} className="mt-8 glow-button text-2xl px-8 py-4">
                     Play Again <ChevronRight className="ml-2"/>
                 </Button>
             </div>

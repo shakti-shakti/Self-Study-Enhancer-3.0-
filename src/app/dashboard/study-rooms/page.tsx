@@ -9,11 +9,29 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client'; // Assuming this is your Supabase client
 import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from '@/lib/database.types';
 import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info, ShieldCheck } from 'lucide-react';
 import { moderateStudyRoom, type ModerateStudyRoomInput, type ModerateStudyRoomOutput } from '@/ai/flows/ai-moderated-study-rooms';
@@ -21,6 +39,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 
 
+import { Trash2 } from 'lucide-react'; // Import Trash2 icon
 const createRoomSchema = z.object({
   name: z.string().min(3, 'Room name must be at least 3 characters.').max(50),
   topic: z.string().max(100).optional(),
@@ -135,6 +154,24 @@ export default function StudyRoomsPage() {
     });
   };
 
+   // Function to handle deleting a study room
+  const handleDeleteRoom = async (roomId: string) => {
+    startRoomOperationTransition(async () => {
+      const { error } = await supabase.from('study_rooms').delete().eq('id', roomId);
+
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error deleting room', description: error.message });
+      } else {
+        toast({ title: 'Room deleted successfully!', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
+        // Remove the deleted room from the state
+        setRooms(prevRooms => prevRooms.filter(room => room.id !== roomId));
+        // If the deleted room was the selected one, clear selectedRoom
+        if (selectedRoom?.id === roomId) {
+            setSelectedRoom(null);
+        }
+      }
+    });
+  };
   const handleCreateRoom = async (values: CreateRoomFormData) => {
     if (!userId) {
         toast({ variant: 'destructive', title: 'Not authenticated' });
@@ -269,6 +306,36 @@ export default function StudyRoomsPage() {
               <CardContent>
                 <p className="text-sm text-muted-foreground">Created: {format(parseISO(room.created_at), "PP")}</p>
               </CardContent>
+              <CardFooter className="flex justify-between items-center"> {/* Added CardFooter for buttons */}
+                 <Button size="sm" className="glow-button" onClick={(e) => { e.stopPropagation(); handleSelectRoom(room); }}> {/* Prevent card click when clicking join */}
+                     <MessageSquare className="mr-1 h-4 w-4"/> Join Room
+                 </Button>
+
+                {/* **MODIFICATION STARTS HERE: Add Delete Button with Confirmation** */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button size="sm" variant="destructive" onClick={(e) => e.stopPropagation()} disabled={isRoomOperationPending}> {/* Prevent card click on button click */}
+                          <Trash2 className="h-4 w-4" /> Delete
+                       </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure you want to delete this room?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the "{room.name}" study room and all its messages.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isRoomOperationPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteRoom(room.id)} disabled={isRoomOperationPending}>
+                          {isRoomOperationPending ? <Loader2 className="animate-spin mr-2"/> : <Trash2 className="mr-2"/>} Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                {/* **MODIFICATION ENDS HERE** */}
+              </CardFooter>
             </Card>
           ))}
         </div>

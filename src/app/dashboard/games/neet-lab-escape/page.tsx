@@ -192,7 +192,7 @@ export default function NEETLabEscapePage() {
             <FlaskConical className="h-24 w-24 text-destructive mb-6" />
             <p className="text-2xl font-headline text-destructive-foreground glow-text-destructive">Access Denied</p>
             <p className="text-lg text-muted-foreground">Log in to attempt The NEET Lab Escape.</p>
-            <Button onClick={() => window.location.href = '/login'} className="mt-6 glow-button">Go to Login</Button>
+ <Button onClick={() => window.location.href = '/login'} className="mt-6 glow-button py-4 px-8 text-xl">Go to Login</Button>
         </div>
     );
   }
@@ -221,7 +221,7 @@ export default function NEETLabEscapePage() {
                 <p className="text-lg text-muted-foreground">Final Score: {calculateScore(gameState)}</p>
                 <p className="text-lg text-muted-foreground">Time Remaining: {Math.floor(gameState.remainingTime / 60)}m {gameState.remainingTime % 60}s</p>
                 <Button onClick={() => updateGameState(initialLabEscapeState)} className="mt-8 glow-button">
-                    Play Again <ChevronRight className="ml-2"/>
+ Play Again <ChevronRight className="ml-2"/>
                 </Button>
             </div>
         );
@@ -233,7 +233,7 @@ export default function NEETLabEscapePage() {
                 <p className="text-xl text-foreground mb-6">{gameState.remainingTime <= 0 ? "Time ran out!" : "Too many errors."} The lab remains sealed.</p>
                 <p className="text-lg text-muted-foreground">Final Score: {calculateScore(gameState)}</p>
                 <Button onClick={() => updateGameState(initialLabEscapeState)} className="mt-8 glow-button">
-                    Try Again <ChevronRight className="ml-2"/>
+ Try Again <ChevronRight className="ml-2"/>
                 </Button>
             </div>
         );
@@ -247,7 +247,7 @@ export default function NEETLabEscapePage() {
                 </CardHeader>
                 <CardContent>
                     <p className="text-lg text-muted-foreground mb-4">Room "{gameState.currentRoom}" is currently unstable or not yet constructed.</p>
-                     <Button onClick={() => updateGameState({currentRoom: 'intro'})} className="mt-4 glow-button">
+ <Button onClick={() => updateGameState({currentRoom: 'intro'})} className="mt-4 glow-button py-4 px-8 text-xl">
                         Return to Lab Entrance
                     </Button>
                 </CardContent>

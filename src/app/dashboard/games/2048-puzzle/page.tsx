@@ -225,7 +225,7 @@ export default function Puzzle2048Page() {
             <CardTitle className="text-2xl font-headline glow-text-accent">Score: {score}</CardTitle>
             <CardDescription>High Score: {highScore}</CardDescription>
           </div>
-          <Button onClick={restartGame} variant="outline" className="glow-button">
+ <Button onClick={restartGame} variant="outline" className="glow-button px-8 py-4 text-xl">
             <RotateCcw /> Restart
           </Button>
         </CardHeader>
@@ -250,7 +250,7 @@ export default function Puzzle2048Page() {
             {won && !gameOver && <p className="text-2xl font-bold text-green-500 mb-2 flex items-center"><Trophy className="mr-2"/>You Reached 2048! Keep Going?</p>}
             {gameOver && !won && <p className="text-2xl font-bold text-red-500 mb-2">Game Over!</p>}
             {gameOver && won && <p className="text-2xl font-bold text-yellow-500 mb-2"><Trophy className="mr-2 inline"/>Game Over! But you reached 2048!</p>}
-            <Button onClick={restartGame} className="glow-button text-lg mt-2">
+            <Button onClick={restartGame} className="glow-button px-10 py-5 text-2xl mt-4">
                 <RotateCcw className="mr-2"/> Play Again
             </Button>
           </CardFooter>

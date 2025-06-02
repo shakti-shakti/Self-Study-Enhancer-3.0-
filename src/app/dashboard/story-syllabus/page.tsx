@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Map, Compass, ScrollText, BookOpen, Zap, Atom, Leaf, PawPrint, ChevronRight, Lock, Coins, KeyRound, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import * as apiClient from '@/lib/apiClient'; // Using the placeholder API client
@@ -94,6 +95,7 @@ export default function StorySyllabusPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [passwordInput, setPasswordInput] = useState('');
   const [isProcessingUnlock, setIsProcessingUnlock] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const loadUnlockStatus = async () => {
@@ -159,9 +161,11 @@ export default function StorySyllabusPage() {
     setIsProcessingUnlock(false);
   };
 
-  const beginQuest = (realmName: string, chapterName: string, storySummary?: string) => {
-    alert(`Begin Quest: ${chapterName} in ${realmName}\n\nStory: ${storySummary || "The adventure begins..."}\n\n(Full quest gameplay to be implemented for each unique chapter/story)`);
-    // TODO: Navigate to specific quest page or component
+  const beginQuest = (chapterId: string) => {
+    // Removed the alert
+    console.log(`Attempting to begin Quest with ID: ${chapterId}`);
+    // You will need to determine how to generate a unique ID for each chapter/story
+    // and implement the corresponding route and component.
   };
 
   if (isLoading) {
@@ -259,7 +263,7 @@ export default function StorySyllabusPage() {
                         <Button
                             size="sm"
                             className="w-full glow-button"
-                            onClick={() => beginQuest(realm.name, chapter.name, chapter.story_summary)}
+                            onClick={() => beginQuest(chapter.id)}
                         >
                           Begin Quest <ChevronRight className="ml-1 h-4 w-4"/>
                         </Button>

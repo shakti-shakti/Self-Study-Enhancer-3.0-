@@ -192,20 +192,20 @@ export default function SnakeGamePage() {
             <CardDescription>High Score: {highScore}</CardDescription>
           </div>
           {!isPlaying && (
-             <Button onClick={startGame} className="glow-button">
-                <PlayCircle className="mr-2"/> {gameOver ? 'Play Again' : 'Start Game'}
+             <Button onClick={startGame} className="glow-button px-6 py-3">
+                <PlayCircle className="mr-2 h-6 w-6"/> {gameOver ? 'Play Again' : 'Start Game'}
             </Button>
           )}
            {isPlaying && !gameOver && (
-            <Button onClick={() => setIsPlaying(false)} variant="outline" className="glow-button">Pause</Button>
+            <Button onClick={() => setIsPlaying(false)} variant="outline" className="glow-button px-6 py-3">Pause</Button>
            )}
         </CardHeader>
-        <CardContent className="p-2 sm:p-3 bg-muted/40 rounded-lg game-canvas">
+        <CardContent className="p-4 sm:p-6 bg-muted/40 rounded-lg game-canvas">
           <div 
             className="grid relative aspect-square border-2 border-primary"
             style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
-          >
-            {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
+>
+            {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => { 
               const x = i % GRID_SIZE;
               const y = Math.floor(i / GRID_SIZE);
               const isSnakeSegment = snake.some(seg => seg.x === x && seg.y === y);
@@ -225,33 +225,34 @@ export default function SnakeGamePage() {
               );
             })}
              {gameOver && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-                    <Trophy className="h-12 w-12 text-yellow-400 mb-2"/>
-                    <p className="text-3xl font-bold text-white mb-2">Game Over!</p>
-                    <p className="text-xl text-gray-300 mb-4">Final Score: {score}</p>
-                     <Button onClick={startGame} className="glow-button">
-                        <RotateCcw className="mr-2"/> Play Again
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
+                    <Trophy className="h-16 w-16 text-yellow-400 mb-4"/>
+                    <p className="text-5xl font-bold text-white mb-4">Game Over!</p>
+                    <p className="text-2xl text-gray-300 mb-8">Final Score: {score}</p>
+                     <Button onClick={startGame} className="glow-button text-2xl px-10 py-6">
+                        <RotateCcw className="mr-3 h-8 w-8"/> Play Again
                     </Button>
                 </div>
             )}
              {!isPlaying && !gameOver && score === 0 && (
-                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-                    <p className="text-2xl font-bold text-white mb-4">Press Start</p>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60">
+                    <Button onClick={startGame} className="glow-button text-2xl px-10 py-6">
+                         <PlayCircle className="mr-3 h-8 w-8"/> Start Game
+                    </Button>
                 </div>
              )}
              {!isPlaying && !gameOver && score > 0 && ( 
                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-                    <p className="text-2xl font-bold text-white mb-4">Paused</p>
-                    <Button onClick={() => setIsPlaying(true)} className="glow-button"><PlayCircle className="mr-2"/>Resume</Button>
+                    <Button onClick={() => setIsPlaying(true)} className="glow-button text-2xl px-10 py-6"><PlayCircle className="mr-3 h-8 w-8"/>Resume</Button>
                 </div>
              )}
           </div>
         </CardContent>
       </Card>
       <div className="grid grid-cols-3 gap-2 w-72 sm:w-96 mt-4">
-        <div></div> 
+        <div></div>
         <Button variant="outline" onClick={() => changeDirection({ x: 0, y: -1 })} disabled={!isPlaying || direction.y === 1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowUp className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
-        <div></div> 
+        <div></div>
         <Button variant="outline" onClick={() => changeDirection({ x: -1, y: 0 })} disabled={!isPlaying || direction.x === 1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowLeft className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
         <Button variant="outline" onClick={() => changeDirection({ x: 0, y: 1 })} disabled={!isPlaying || direction.y === -1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowDown className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
         <Button variant="outline" onClick={() => changeDirection({ x: 1, y: 0 })} disabled={!isPlaying || direction.x === -1} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowRight className="w-12 h-12 sm:w-16 sm:h-16" /></Button>

@@ -37,7 +37,8 @@ export async function fetchUserFocusCoins(): Promise<number> {
       .eq('id', user.id)
       .single();
     if (error && error.code !== 'PGRST116') {
-      console.error("[apiClient] Error fetching coins from DB:", error);
+      // Log the full error object for better debugging
+      console.error("[apiClient] Error fetching coins from DB:", error); 
       return demoUserCoins; // Fallback to demo if DB error
     }
     return profile?.focus_coins || 0;
@@ -230,6 +231,7 @@ export async function fetchUnlockedContentIds(): Promise<string[]> {
         .eq('id', user.id)
         .single();
     if (error && error.code !== 'PGRST116') {
+        // Log the full error object for better debugging
         console.error("[apiClient] Error fetching unlocked content IDs from DB:", error);
         return Array.from(demoUnlockedContentIds);
     }

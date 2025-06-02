@@ -154,20 +154,20 @@ export default function ElementMatchMemoryPage() {
             <div className={`grid grid-cols-4 gap-3 sm:gap-4 p-2 sm:p-4 rounded-lg bg-muted/30 aspect-[4/3]`}>
               {cards.map((card, index) => (
                 <button
-                  key={card.id}
+ key={card.id}
                   onClick={() => handleCardClick(index)}
                   disabled={card.isFlipped || card.isMatched || isChecking || gameOver}
-                  className={`aspect-square rounded-md flex items-center justify-center text-lg sm:text-xl font-bold border-2 transition-all duration-300 transform focus:outline-none focus:ring-2 focus:ring-primary
-                    ${card.isFlipped || card.isMatched ? 'bg-card border-primary rotate-y-180' : 'bg-primary/70 border-primary text-primary-foreground hover:bg-primary'}
+ className={`aspect-square rounded-md flex items-center justify-center text-2xl sm:text-4xl font-bold border-2 transition-all duration-300 transform focus:outline-none focus:ring-4 focus:ring-primary p-4 sm:p-6 md:p-8
+                    ${card.isFlipped || card.isMatched ? 'bg-card border-primary' : 'bg-primary/70 border-primary text-primary-foreground hover:bg-primary'}
                     ${card.isMatched ? 'opacity-70 border-green-500 bg-green-500/20 text-green-400 cursor-default' : ''}
                   `}
                   style={{ transformStyle: "preserve-3d" }}
                 >
-                  <div className={`absolute w-full h-full flex items-center justify-center backface-hidden ${card.isFlipped || card.isMatched ? 'rotate-y-0' : 'rotate-y-180'}`}>
-                    {card.isFlipped || card.isMatched ? card.value : <EyeOff className="h-6 w-6 sm:h-8 sm:w-8"/>}
-                  </div>
-                   <div className={`absolute w-full h-full flex items-center justify-center backface-hidden ${card.isFlipped || card.isMatched ? 'rotate-y-180' : 'rotate-y-0'}`}>
-                    {card.isFlipped || card.isMatched ? card.value : <EyeOff className="h-6 w-6 sm:h-8 sm:w-8"/>}
+ <div className={`absolute w-full h-full flex items-center justify-center backface-hidden ${card.isFlipped || card.isMatched ? 'rotate-y-0' : 'rotate-y-180'} text-3xl sm:text-5xl`}>
+ {card.isFlipped || card.isMatched ? card.value : <EyeOff className="h-8 w-8 sm:h-12 sm:w-12"/>}
+ </div>
+ <div className={`absolute w-full h-full flex items-center justify-center backface-hidden ${card.isFlipped || card.isMatched ? 'rotate-y-180' : 'rotate-y-0'} text-3xl sm:text-5xl`}>
+ {card.isFlipped || card.isMatched ? card.value : <EyeOff className="h-8 w-8 sm:h-12 sm:w-12"/>}
                   </div>
                 </button>
               ))}

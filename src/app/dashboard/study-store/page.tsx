@@ -67,8 +67,12 @@ export default function StudyStorePage() {
         
         setCurrentFocusCoins(profile?.focus_coins || 0);
         // Assuming owned_store_items is an array of item IDs
-        setOwnedItemIds(new Set(profile?.owned_store_items as string[] || []));
-
+        // Check if owned_store_items is an array before creating a Set
+        if (Array.isArray(profile?.owned_store_items)) {
+ setOwnedItemIds(new Set(profile.owned_store_items as string[]));
+        } else {
+ setOwnedItemIds(new Set());
+        }
       } catch (error: any) {
           console.error("Error loading store data:", error);
           toast({variant: 'destructive', title: 'Error loading data', description: error.message});
@@ -76,7 +80,12 @@ export default function StudyStorePage() {
           const coins = await apiClient.fetchUserFocusCoins(); 
           setCurrentFocusCoins(coins);
           const ownedAvatars = await apiClient.fetchOwnedItemIds('avatar');
-          setOwnedItemIds(new Set(ownedAvatars));
+          // Check if ownedAvatars is an array before creating a Set
+ if (Array.isArray(ownedAvatars)) {
+ setOwnedItemIds(new Set(ownedAvatars));
+          } else {
+ setOwnedItemIds(new Set());
+          }
       } finally {
         setIsLoading(false);
       }
@@ -86,7 +95,12 @@ export default function StudyStorePage() {
     } else {
         // If no user, use demo data or clear
         setCurrentFocusCoins(apiClient.fetchUserFocusCoins() as unknown as number); // apiClient is sync for demo
-        setOwnedItemIds(new Set(apiClient.fetchOwnedItemIds() as unknown as string[]));
+        const ownedItems = apiClient.fetchOwnedItemIds() as unknown as string[];
+        if (Array.isArray(ownedItems)) {
+ setOwnedItemIds(new Set(ownedItems));
+        } else {
+ setOwnedItemIds(new Set());
+        }
         setIsLoading(false);
     }
   }, [userId, supabase, toast]);
