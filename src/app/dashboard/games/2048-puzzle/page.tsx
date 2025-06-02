@@ -1,17 +1,18 @@
+
 // src/app/dashboard/games/2048-puzzle/page.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Grid, RotateCcw, Trophy } from 'lucide-react';
+import { Grid, RotateCcw, Trophy, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as apiClient from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 
 const GRID_SIZE = 4;
 
-type Tile = number; 
+type Tile = number;
 type Board = Tile[][];
 
 const initialBoard = (): Board => {
@@ -37,11 +38,11 @@ const addRandomTile = (board: Board): void => {
 };
 
 const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): { newBoard: Board, moved: boolean, scoreAdded: number } => {
-  let newBoard = JSON.parse(JSON.stringify(board)) as Board; 
+  let newBoard = JSON.parse(JSON.stringify(board)) as Board;
   let moved = false;
   let scoreAdded = 0;
 
-  const rotateBoard = (b: Board): Board => { 
+  const rotateBoard = (b: Board): Board => {
     const rotated = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(0));
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
@@ -92,7 +93,7 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
     scoreAdded += rowScore;
   }
 
-  for (let i = 0; i < rotations; i++) newBoard = rotateBoard(rotateBoard(rotateBoard(newBoard))); 
+  for (let i = 0; i < rotations; i++) newBoard = rotateBoard(rotateBoard(rotateBoard(newBoard)));
 
   return { newBoard, moved, scoreAdded };
 };
@@ -100,9 +101,9 @@ const moveTiles = (board: Board, direction: 'left' | 'right' | 'up' | 'down'): {
 const canMove = (board: Board): boolean => {
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
-      if (board[r][c] === 0) return true; 
-      if (r < GRID_SIZE - 1 && board[r][c] === board[r + 1][c]) return true; 
-      if (c < GRID_SIZE - 1 && board[r][c] === board[r][c + 1]) return true; 
+      if (board[r][c] === 0) return true;
+      if (r < GRID_SIZE - 1 && board[r][c] === board[r + 1][c]) return true;
+      if (c < GRID_SIZE - 1 && board[r][c] === board[r][c + 1]) return true;
     }
   }
   return false;
@@ -158,17 +159,8 @@ export default function Puzzle2048Page() {
     }
   }, [highScore, toast]);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (gameOver && !won) return; // If game is over and not won, don't allow moves. If won, can continue.
-    let direction: 'left' | 'right' | 'up' | 'down' | null = null;
-    switch (event.key) {
-      case 'ArrowLeft': case 'a': case 'A': direction = 'left'; break;
-      case 'ArrowRight': case 'd': case 'D': direction = 'right'; break;
-      case 'ArrowUp': case 'w': case 'W': direction = 'up'; break;
-      case 'ArrowDown': case 's': case 'S': direction = 'down'; break;
-      default: return;
-    }
-    event.preventDefault();
+  const processMove = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    if (gameOver && !won) return;
 
     const { newBoard, moved, scoreAdded } = moveTiles(board, direction);
     if (moved) {
@@ -186,7 +178,6 @@ export default function Puzzle2048Page() {
             className: "bg-green-500/20 text-green-300",
             duration: 7000
         });
-        // Award milestone bonus
         apiClient.addUserXP(50);
         apiClient.fetchUserFocusCoins().then(coins => apiClient.updateUserFocusCoins(coins + 20));
       }
@@ -195,6 +186,20 @@ export default function Puzzle2048Page() {
       }
     }
   }, [board, score, gameOver, won, updateHighScoreAndReward, toast]);
+
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    let direction: 'left' | 'right' | 'up' | 'down' | null = null;
+    switch (event.key) {
+      case 'ArrowLeft': case 'a': case 'A': direction = 'left'; break;
+      case 'ArrowRight': case 'd': case 'D': direction = 'right'; break;
+      case 'ArrowUp': case 'w': case 'W': direction = 'up'; break;
+      case 'ArrowDown': case 's': case 'S': direction = 'down'; break;
+      default: return;
+    }
+    event.preventDefault();
+    processMove(direction);
+  }, [processMove]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -215,7 +220,7 @@ export default function Puzzle2048Page() {
           <Grid className="mr-3 h-10 w-10 text-primary" /> 2048 Puzzle
         </h1>
         <p className="text-lg text-muted-foreground">
-          Use arrow keys (or A,W,S,D) to move tiles. Combine tiles to reach 2048!
+          Use arrow keys (or A,W,S,D) or on-screen buttons to move tiles. Combine tiles to reach 2048!
         </p>
       </header>
 
@@ -225,8 +230,8 @@ export default function Puzzle2048Page() {
             <CardTitle className="text-2xl font-headline glow-text-accent">Score: {score}</CardTitle>
             <CardDescription>High Score: {highScore}</CardDescription>
           </div>
- <Button onClick={restartGame} variant="outline" className="glow-button px-8 py-4 text-xl">
-            <RotateCcw /> Restart
+          <Button onClick={restartGame} variant="outline" className="glow-button px-6 py-3 text-lg">
+            <RotateCcw className="mr-1"/> Restart
           </Button>
         </CardHeader>
         <CardContent className="p-2 sm:p-3 bg-muted/40 rounded-lg">
@@ -256,6 +261,15 @@ export default function Puzzle2048Page() {
           </CardFooter>
         )}
       </Card>
+
+      <div className="grid grid-cols-3 gap-2 w-72 sm:w-96 mt-4">
+        <div></div>
+        <Button variant="outline" onClick={() => processMove('up')} disabled={gameOver && !won} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowUp className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+        <div></div>
+        <Button variant="outline" onClick={() => processMove('left')} disabled={gameOver && !won} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowLeft className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+        <Button variant="outline" onClick={() => processMove('down')} disabled={gameOver && !won} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowDown className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+        <Button variant="outline" onClick={() => processMove('right')} disabled={gameOver && !won} className="glow-button aspect-square text-2xl p-0 h-20 sm:h-24"><ArrowRight className="w-12 h-12 sm:w-16 sm:h-16" /></Button>
+      </div>
     </div>
   );
 }

@@ -18,21 +18,21 @@ export type Database = {
           avatar_url: string | null
           updated_at: string | null
           username: string | null
-          class_level: string | null 
-          target_year: number | null 
-          theme: string | null 
+          class_level: string | null
+          target_year: number | null
+          theme: string | null
           alarm_tone_url: string | null
           custom_countdown_event_name: string | null
           custom_countdown_target_date: string | null
-          dataAiHint?: string | null 
-          focus_coins: number | null 
-          xp: number | null 
-          owned_content_ids: string[] | null 
-          owned_store_items: string[] | null 
-          unlocked_achievement_ids: string[] | null 
+          dataAiHint?: string | null
+          focus_coins: number | null
+          xp: number | null
+          owned_content_ids: string[] | null
+          owned_store_items: string[] | null
+          unlocked_achievement_ids: string[] | null
         }
         Insert: {
-          id: string 
+          id: string
           email?: string | null
           full_name?: string | null
           avatar_url?: string | null
@@ -45,11 +45,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null 
-          xp?: number | null 
-          owned_content_ids?: string[] | null 
-          owned_store_items?: string[] | null 
-          unlocked_achievement_ids?: string[] | null 
+          focus_coins?: number | null
+          xp?: number | null
+          owned_content_ids?: string[] | null
+          owned_store_items?: string[] | null
+          unlocked_achievement_ids?: string[] | null
         }
         Update: {
           id?: string
@@ -65,11 +65,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null 
-          xp?: number | null 
-          owned_content_ids?: string[] | null 
-          owned_store_items?: string[] | null 
-          unlocked_achievement_ids?: string[] | null 
+          focus_coins?: number | null
+          xp?: number | null
+          owned_content_ids?: string[] | null
+          owned_store_items?: string[] | null
+          unlocked_achievement_ids?: string[] | null
         }
         Relationships: [
           {
@@ -84,7 +84,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          created_at: string 
+          created_at: string
           mood: string
           focus_level: number
           suggestions: string[] | null
@@ -117,10 +117,10 @@ export type Database = {
       quizzes: {
         Row: {
           id: string
-          user_id: string | null 
+          user_id: string | null
           class_level: string | null
           subject: string | null
-          topic: string | null 
+          topic: string | null
           topics: string[] | null
           question_source: string | null
           difficulty: string
@@ -129,10 +129,10 @@ export type Database = {
         }
         Insert: {
           id?: string
-          user_id?: string | null 
+          user_id?: string | null
           class_level?: string | null
           subject?: string | null
-          topic?: string | null 
+          topic?: string | null
           topics?: string[] | null
           question_source?: string | null
           difficulty: string
@@ -144,7 +144,7 @@ export type Database = {
           user_id?: string | null
           class_level?: string | null
           subject?: string | null
-          topic?: string | null 
+          topic?: string | null
           topics?: string[] | null
           question_source?: string | null
           difficulty?: string
@@ -163,23 +163,23 @@ export type Database = {
       questions: {
         Row: {
           id: string
-          quiz_id: string | null 
+          quiz_id: string | null
           question_text: string
-          options: Json 
-          correct_option_index: number 
-          explanation_prompt: string | null 
+          options: Json
+          correct_option_index: number
+          explanation_prompt: string | null
           created_at: string
           class_level: string | null
           subject: string | null
           topic: string | null
-          source: string | null 
-          neet_syllabus_year: number | null 
+          source: string | null
+          neet_syllabus_year: number | null
         }
         Insert: {
           id?: string
           quiz_id?: string | null
           question_text: string
-          options: Json 
+          options: Json
           correct_option_index: number
           explanation_prompt?: string | null
           created_at?: string
@@ -216,7 +216,7 @@ export type Database = {
         Row: {
             id: string
             user_id: string
-            question_id: string | null 
+            question_id: string | null
             question_text: string
             options: Json
             correct_option_index: number
@@ -277,7 +277,7 @@ export type Database = {
           quiz_id: string
           score: number
           total_questions: number
-          answers_submitted: Json 
+          answers_submitted: Json
           completed_at: string
           created_at: string
         }
@@ -316,21 +316,21 @@ export type Database = {
           }
         ]
       }
-      study_plans: { 
+      study_plans: {
         Row: {
           id: string
           user_id: string
-          title: string 
+          title: string
           description: string | null
-          start_time: string | null 
-          duration_minutes: number | null 
-          due_date: string 
+          start_time: string | null
+          duration_minutes: number | null
+          due_date: string
           completed: boolean
           subject: string | null
-          class_level: string | null 
-          plan_type: string 
+          class_level: string | null
+          plan_type: string
           created_at: string
-          alarm_set_at: string | null 
+          alarm_set_at: string | null
         }
         Insert: {
           id?: string
@@ -339,7 +339,7 @@ export type Database = {
           description?: string | null
           start_time?: string | null
           duration_minutes?: number | null
-          due_date: string 
+          due_date: string
           completed?: boolean
           subject?: string | null
           class_level?: string | null
@@ -354,7 +354,7 @@ export type Database = {
           description?: string | null
           start_time?: string | null
           duration_minutes?: number | null
-          due_date?: string 
+          due_date?: string
           completed?: boolean
           subject?: string | null
           class_level?: string | null
@@ -376,7 +376,7 @@ export type Database = {
           id: string
           user_id: string
           tab_name: string
-          content: string 
+          content: string
           created_at: string
           updated_at: string
         }
@@ -408,9 +408,9 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          activity_type: string 
-          description: string 
-          details: Json | null 
+          activity_type: string
+          description: string
+          details: Json | null
           created_at: string
         }
         Insert: {
@@ -438,7 +438,7 @@ export type Database = {
           }
         ]
       }
-      custom_tasks: { 
+      custom_tasks: {
         Row: {
           id: string
           user_id: string
@@ -475,13 +475,13 @@ export type Database = {
           }
         ]
       }
-      user_files: { 
+      user_files: {
         Row: {
           id: string
           user_id: string
           file_name: string
-          file_path: string 
-          file_type: string 
+          file_path: string
+          file_type: string
           size_bytes: number
           description: string | null
           uploaded_at: string
@@ -640,7 +640,7 @@ export type Database = {
           {
             foreignKeyName: "study_rooms_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
-            referencedRelation: "users" // Changed from "profiles" to "users"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
@@ -650,14 +650,14 @@ export type Database = {
           id: string
           room_id: string
           user_id: string
-          message_text: string 
+          message_text: string
           created_at: string
         }
         Insert: {
           id?: string
           room_id: string
           user_id: string
-          message_text: string 
+          message_text: string
           created_at?: string
         }
         Update: {
@@ -677,7 +677,7 @@ export type Database = {
           {
             foreignKeyName: "study_room_messages_user_id_fkey"
             columns: ["user_id"]
-            referencedRelation: "users" // Changed from "profiles" to "users"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
@@ -686,7 +686,7 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          question_image_data_uri: string | null 
+          question_image_data_uri: string | null
           explanation: string | null
           created_at: string
         }
@@ -717,8 +717,8 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          content_type: string 
-          original_content_preview: string | null 
+          content_type: string
+          original_content_preview: string | null
           generated_notes: string
           created_at: string
         }
@@ -751,14 +751,14 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          session_id: string 
-          role: "user" | "ai" | "ai-tips" 
-          query: string | null 
-          content: string 
-          ai_answer: string | null 
-          ai_study_tips: Json | null 
-          context: string | null 
-          preferences: string | null 
+          session_id: string
+          role: "user" | "ai" | "ai-tips"
+          query: string | null
+          content: string
+          ai_answer: string | null
+          ai_study_tips: Json | null
+          context: string | null
+          preferences: string | null
           created_at: string
         }
         Insert: {
@@ -837,11 +837,11 @@ export type Database = {
           description: string;
           mission_type: "daily" | "weekly";
           reward_points: number;
-          badge_id_reward: string | null; 
+          badge_id_reward: string | null;
           is_active: boolean;
           created_at: string;
-          target_value: number; 
-          criteria_type: string; 
+          target_value: number;
+          criteria_type: string;
         };
         Insert: {
           id?: string;
@@ -882,7 +882,7 @@ export type Database = {
           user_id: string;
           mission_id: string;
           status: "locked" | "active" | "completed" | "failed";
-          current_progress: number; 
+          current_progress: number;
           completed_at: string | null;
           started_at: string;
         };
@@ -924,8 +924,8 @@ export type Database = {
           id: string;
           name: string;
           description: string;
-          icon_name_or_url: string; 
-          criteria: string; 
+          icon_name_or_url: string;
+          criteria: string;
           created_at: string;
         };
         Insert: {
@@ -984,7 +984,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          score: number; 
+          score: number;
           rank: number | null;
           period: "daily" | "weekly" | "all_time";
           last_updated: string;
@@ -1009,20 +1009,20 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "profiles"; 
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];
       }
-       ncert_books_metadata: { 
+       ncert_books_metadata: {
         Row: {
           id: string
-          class_level: string 
-          subject: string 
-          book_name: string 
-          chapters: Json 
+          class_level: string
+          subject: string
+          book_name: string
+          chapters: Json
           cover_image_url: string | null
-          dataAiHint?: string | null 
+          dataAiHint?: string | null
         }
         Insert: {
           id?: string
@@ -1044,14 +1044,14 @@ export type Database = {
         }
         Relationships: []
       }
-      user_ncert_notes: { 
+      user_ncert_notes: {
         Row: {
           id: string
           user_id: string
-          book_id: string 
-          chapter_name: string 
-          page_number: number | null 
-          note_content: string 
+          book_id: string
+          chapter_name: string
+          page_number: number | null
+          note_content: string
           created_at: string
           updated_at: string
         }
@@ -1091,7 +1091,7 @@ export type Database = {
       }
       game_metadata: {
         Row: {
-          id: string; 
+          id: string;
           title: string;
           description: string;
           genre: string;
@@ -1114,12 +1114,12 @@ export type Database = {
       }
       user_game_progress: {
         Row: {
-          id: string; 
+          id: string;
           user_id: string;
-          game_id: string; 
-          current_chapter: string | null; 
-          current_room: string | null; 
-          game_specific_state: Json | null; 
+          game_id: string;
+          current_chapter: string | null;
+          current_room: string | null;
+          game_specific_state: Json | null;
           score: number | null;
           last_played: string;
           completed_at: string | null;
@@ -1162,80 +1162,89 @@ export type Database = {
         ];
       }
       puzzles: {
- Row: {
- id: string; 
- name: string; 
- subject: string | null; 
- description: string | null; 
- base_definition: Json | null; 
- created_at: string;
- max_level: number; // Added max_level
- };
- Insert: {
- id?: string;
- name: string;
- subject?: string | null;
- description?: string | null;
- base_definition?: Json | null;
- created_at?: string;
- max_level?: number; // Added max_level
- };
- Update: {
- id?: string;
- name?: string;
- subject?: string | null;
- description?: string | null;
- base_definition?: Json | null;
- created_at?: string;
- max_level?: number; // Added max_level
- };
- Relationships: [];
- };
- user_puzzle_progress: {
- Row: {
- id: string;
- user_id: string;
- puzzle_id: string;
- current_level: number;
- unlocked_at: string | null;
- updated_at: string | null;
- };
- Insert: {
- id?: string;
- user_id: string;
- puzzle_id: string;
- current_level?: number;
- unlocked_at?: string | null;
- updated_at?: string | null;
- };
- Update: {
- id?: string;
- user_id?: string;
- puzzle_id?: string;
- current_level?: number;
- unlocked_at?: string | null;
- updated_at?: string | null;
- };
- Relationships: [
- {
- foreignKeyName: "user_puzzle_progress_user_id_fkey";
- columns: ["user_id"];
- referencedRelation: "users";
- referencedColumns: ["id"];
- },
- {
- foreignKeyName: "user_puzzle_progress_puzzle_id_fkey"; // Added foreign key to puzzles table
- columns: ["puzzle_id"];
- referencedRelation: "puzzles";
- referencedColumns: ["id"];
- }
- ];
- };
-      game_leaderboard: { 
+        Row: {
+         id: string;
+         name: string;
+         subject: string | null;
+         category: string;
+         description: string | null;
+         base_definition: Json | null; // For AI to generate levels
+         max_level: number; // Max levels for this puzzle
+         default_xp_award: number; // Base XP for solving a level
+         created_at: string;
+        };
+        Insert: {
+         id: string; // Puzzles are admin-defined, so ID is not UUID auto-gen
+         name: string;
+         subject?: string | null;
+         category: string;
+         description?: string | null;
+         base_definition?: Json | null;
+         max_level?: number;
+         default_xp_award?: number;
+         created_at?: string;
+        };
+        Update: {
+         id?: string;
+         name?: string;
+         subject?: string | null;
+         category?: string;
+         description?: string | null;
+         base_definition?: Json | null;
+         max_level?: number;
+         default_xp_award?: number;
+         created_at?: string;
+        };
+        Relationships: [];
+       };
+       user_puzzle_progress: {
+         Row: {
+           id: string; // UUID
+           user_id: string; // UUID, FK to auth.users
+           puzzle_id: string; // TEXT, FK to puzzles.id
+           current_level: number;
+           unlocked_at: string | null; // Timestamp when puzzle was first accessed/unlocked by user
+           last_updated_at: string; // Timestamp of last progress update
+           completed_at: string | null; // Timestamp when all levels completed
+         };
+         Insert: {
+           id?: string;
+           user_id: string;
+           puzzle_id: string;
+           current_level?: number;
+           unlocked_at?: string | null;
+           last_updated_at?: string;
+           completed_at?: string | null;
+         };
+         Update: {
+           id?: string;
+           user_id?: string;
+           puzzle_id?: string;
+           current_level?: number;
+           unlocked_at?: string | null;
+           last_updated_at?: string;
+           completed_at?: string | null;
+         };
+         Relationships: [
+           {
+             foreignKeyName: "user_puzzle_progress_user_id_fkey";
+             columns: ["user_id"];
+             referencedRelation: "users";
+             referencedColumns: ["id"];
+           },
+           {
+             foreignKeyName: "user_puzzle_progress_puzzle_id_fkey";
+             columns: ["puzzle_id"];
+             referencedRelation: "puzzles";
+             referencedColumns: ["id"];
+           }
+         ];
+       };
+      game_leaderboard: {
         Row: {
           id: string;
           user_id: string;
-          game_id: string; 
+          game_id: string;
           score: number;
           time_taken_seconds: number | null;
           completed_at: string;
@@ -1276,13 +1285,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      increment_leaderboard_score: { // Added for challenges page
+      increment_leaderboard_score: {
         Args: {
           p_user_id: string;
           p_score_increment: number;
           p_period: "daily" | "weekly" | "all_time";
         };
-        Returns: undefined; 
+        Returns: undefined;
       };
     }
     Enums: {
@@ -1366,14 +1375,14 @@ export type Enums<
     | keyof Database["public"]["Enums"]
     | { schema: keyof Database },
   EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Enums"]
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = PublicEnumNameOrOptions extends { schema: keyof Database }
   ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : PublicEnumNameOrOptions extends keyof Database["public"]["Enums"]
     ? Database["public"]["Enums"][PublicEnumNameOrOptions]
     : never
-    
+
 export type QuizAttemptWithQuizTopic = Tables<'quiz_attempts'> & {
   quizzes: { topic: string | null, class_level: string | null, subject: string | null } | null;
 };
@@ -1382,7 +1391,7 @@ export type StudyRoomMessageWithProfile = Tables<'study_room_messages'> & {
   profiles: { email: string | null; full_name: string | null; avatar_url: string | null } | null;
 };
 
-export type StudyPlanWithAlarm = Tables<'study_plans'>; 
+export type StudyPlanWithAlarm = Tables<'study_plans'>;
 export type Question = Tables<'questions'>;
 
 export type GameMetadata = Tables<'game_metadata'>;
@@ -1396,13 +1405,13 @@ export interface ChronoMindState {
     timeDilationSolved: boolean;
     projectileMotionSolved: boolean;
   };
-  playerChoices: Record<string, any>; 
-  memoryLossEvents: number; 
+  playerChoices: Record<string, any>;
+  memoryLossEvents: number;
 }
 
 export interface NEETLabEscapeState {
   currentRoom: 'intro' | 'physics' | 'chemistry' | 'botany' | 'zoology' | 'final_hallway' | 'escaped' | 'failed';
-  physicsPuzzlesSolved: boolean[]; 
+  physicsPuzzlesSolved: boolean[];
   chemistryPuzzlesSolved: boolean[];
   botanyPuzzlesSolved: boolean[];
   zoologyPuzzlesSolved: boolean[];
@@ -1412,38 +1421,57 @@ export interface NEETLabEscapeState {
     botany: boolean;
     zoology: boolean;
   };
-  remainingTime: number; 
-  retriesUsed: number; 
-  finalQuestionAnsweredCorrectly?: boolean; 
+  remainingTime: number;
+  retriesUsed: number;
+  finalQuestionAnsweredCorrectly?: boolean;
 }
 
-export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json; 
+export type GameSpecificState = ChronoMindState | NEETLabEscapeState | Json;
 
 export type ChatSessionPreview = {
   session_id: string;
   first_message_preview: string;
   last_message_at: string;
-  user_id: string; 
+  user_id: string;
 };
 
 export interface NcertBookMetadataRow extends Tables<'ncert_books_metadata'> {
   dataAiHint?: string | null;
 }
 
-export interface SearchResultItem { 
+export interface SearchResultItem {
   title: string;
   link: string;
   snippet: string;
   displayLink?: string;
 }
 
-// ActivityLog type to include conceptual selfie data
 export type ActivityLogWithSelfie = Tables<'activity_logs'> & {
   details?: {
     selfie_image_data_uri?: string;
     captured_at?: string;
-    [key: string]: any; // Keep it flexible for other details
+    [key: string]: any;
   } | null;
 };
 
-    
+// Puzzle specific types for dynamic content
+export type PuzzleTableRow = Tables<'puzzles'>;
+export type UserPuzzleProgressRow = Tables<'user_puzzle_progress'>;
+
+export interface GeneratedPuzzleLevelContent {
+  question: string;
+  options?: string[] | null; // For MCQ
+  inputType: 'text' | 'textarea' | 'radio' | 'checkbox' | 'number'; // Defines UI
+  data?: any; // Additional data like sequence for sequence_solver, image URLs for visual
+  solutionCriteriaForAI?: string; // For AI evaluation on backend
+  hint?: string;
+  level_specific_xp_award?: number;
+}
+
+export interface PuzzleSubmissionResponse {
+  isCorrect: boolean;
+  feedback?: string;
+  newLevel?: number; // If advanced
+  puzzleCompleted?: boolean; // If max level reached
+  newXP?: number;
+}
