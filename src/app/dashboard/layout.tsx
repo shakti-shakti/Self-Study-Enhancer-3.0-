@@ -7,7 +7,7 @@ import {
   BookOpen as BookOpenIcon, Brain, BarChart3, Lightbulb, FileText as FileTextIcon, 
   Bot, SlidersHorizontal, UserCircle, Settings, History, BookHeadphones, RadioTower,
   Calculator, Languages, SpellCheck, Info, Music, Globe, UploadCloud, Star, FolderOpen, AlarmClock,
-  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award, Bird, Puzzle // Added Puzzle
+  Gamepad2, ShieldHalf, MapIcon, BrainCog, ShoppingCart, ScrollText, Timer, Smile, Camera, Gift, Award, Bird, Puzzle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/auth/actions';
@@ -231,6 +231,7 @@ export default async function DashboardLayout({
                 <span className="text-2xl font-headline font-bold glow-text-primary">NEET Prep+</span>
               </Link>
               <div className="flex items-center gap-2">
+                 {/* Ensure SheetTitle is provided for accessibility */}
                 <SidebarTrigger className="md:hidden" />
               </div>
             </div>
@@ -249,9 +250,9 @@ export default async function DashboardLayout({
               {bottomNavItems.map(item => {
                 const Icon = item.icon;
                 return (
-                  <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center text-sidebar-foreground/70 hover:text-primary transition-colors p-2 flex-1">
-                    <Icon className="h-6 w-6 mb-0.5" />
-                    <span className="text-xs font-medium">{item.name}</span>
+                  <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center text-sidebar-foreground/70 hover:text-primary transition-colors p-1 pt-2 pb-1 flex-1 min-w-0">
+                    <Icon className="h-6 w-6 mb-0.5" /> {/* Adjusted icon size */}
+                    <span className="text-[0.65rem] font-medium truncate">{item.name}</span> {/* Adjusted text size and added truncate */}
                   </Link>
                 );
               })}
