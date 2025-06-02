@@ -1,10 +1,10 @@
+
 // src/lib/apiClient.ts
 // Placeholder API client to simulate backend interactions for the current session.
 // In a real application, these functions would make HTTP requests to your Supabase backend.
 import { createClient } from './supabase/client'; // Import Supabase client
 
-// --- DEMO STATE (Managed in memory by these placeholder functions for the current session) ---
-// These will be less relevant as we try to use Supabase more directly or through dedicated functions.
+// --- DEMO STATE (Used as a fallback IF NOT LOGGED IN or DB operations fail critically) ---
 let demoUserCoins = 500; 
 const demoUnlockedContentIds = new Set<string>();
 let demoOwnedItemIds = new Set<string>(); // Generic for store items
@@ -23,8 +23,8 @@ let demoSpinHistory: DemoSpinHistoryEntry[] = [];
 
 /**
  * Fetches the user's current Focus Coin balance.
- * In a real app, this would fetch from the 'profiles' table.
- * For now, it simulates or could fetch if a user is logged in.
+ * Attempts to fetch from Supabase 'profiles' table if user is logged in.
+ * Returns 0 if profile/coins not found for logged-in user, or demoUserCoins if not logged in.
  */
 export async function fetchUserFocusCoins(): Promise<number> {
   console.log('[apiClient] fetchUserFocusCoins called');
@@ -36,44 +36,50 @@ export async function fetchUserFocusCoins(): Promise<number> {
       .select('focus_coins')
       .eq('id', user.id)
       .single();
-    if (error && error.code !== 'PGRST116') {
-      // Log the full error object for better debugging
-      console.error("[apiClient] Error fetching coins from DB:", error); 
-      return demoUserCoins; // Fallback to demo if DB error
+    if (error && error.code !== 'PGRST116') { // PGRST116 means no row found
+      console.error("[apiClient] Error fetching coins from DB:", error);
+      return 0; // Default to 0 on error for a logged-in user
     }
-    return profile?.focus_coins || 0;
+    return profile?.focus_coins || 0; // Return 0 if profile or focus_coins is null
   }
-  return demoUserCoins; // Fallback for non-logged-in or if profile doesn't exist
+  return demoUserCoins; // Fallback for non-logged-in state
 }
 
 /**
  * Updates the user's Focus Coin balance.
- * In a real app, this would update the 'profiles' table.
- * This function should ideally be called from a place that already has user context.
+ * Attempts to update the 'profiles' table in Supabase if user is logged in.
  */
 export async function updateUserFocusCoins(newAmount: number): Promise<{ success: boolean; newCoinBalance: number }> {
   console.log(`[apiClient] updateUserFocusCoins called with newAmount ${newAmount}`);
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
-  demoUserCoins = Math.max(0, newAmount); // Update demo state as fallback/local cache
+  const actualNewAmount = Math.max(0, newAmount); // Ensure coins don't go negative
 
   if (user) {
     const { error } = await supabase
       .from('profiles')
-      .update({ focus_coins: demoUserCoins, updated_at: new Date().toISOString() })
+      .update({ focus_coins: actualNewAmount, updated_at: new Date().toISOString() })
       .eq('id', user.id);
     if (error) {
       console.error("[apiClient] Error updating coins in DB:", error);
-      return { success: false, newCoinBalance: demoUserCoins }; // Reflects demo state on failure
+      // Even if DB update fails, update local demo state for immediate UI feedback in demo
+      demoUserCoins = actualNewAmount;
+      return { success: false, newCoinBalance: demoUserCoins };
     }
-    return { success: true, newCoinBalance: demoUserCoins };
+    demoUserCoins = actualNewAmount; // Keep demo state in sync
+    return { success: true, newCoinBalance: actualNewAmount };
   }
-  // If no user, conceptually update demo coins, but real persistence fails
-  return { success: false, newCoinBalance: demoUserCoins }; 
+  // If no user, update demo coins
+  demoUserCoins = actualNewAmount;
+  return { success: true, newCoinBalance: demoUserCoins }; // Conceptually success for demo state
 }
 
-
+/**
+ * Fetches the user's current XP.
+ * Attempts to fetch from Supabase 'profiles' table if user is logged in.
+ * Returns 0 if profile/XP not found for logged-in user, or demoUserXP if not logged in.
+ */
 export async function fetchUserXP(): Promise<number> {
     console.log('[apiClient] fetchUserXP called');
     const supabase = createClient();
@@ -86,23 +92,24 @@ export async function fetchUserXP(): Promise<number> {
             .single();
         if (error && error.code !== 'PGRST116') {
             console.error("[apiClient] Error fetching XP from DB:", error);
-            return demoUserXP; 
+            return 0; // Default to 0 on error for a logged-in user
         }
-        return profile?.xp || 0;
+        return profile?.xp || 0; // Return 0 if profile or xp is null
     }
-    return demoUserXP;
+    return demoUserXP; // Fallback for non-logged-in state
 }
 
+/**
+ * Adds XP to the user's total.
+ * Attempts to update the 'profiles' table in Supabase if user is logged in.
+ */
 export async function addUserXP(amount: number): Promise<{ success: boolean; newXP: number }> {
     console.log(`[apiClient] addUserXP called with amount ${amount}`);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    demoUserXP += amount; // Update demo state as fallback/local cache
-
     if (user) {
-        // It's better to fetch current XP and add, or use an RPC to increment
-        const currentXP = await fetchUserXP(); // Fetches potentially from DB
+        const currentXP = await fetchUserXP(); // Fetches potentially from DB or 0
         const newTotalXP = currentXP + amount;
 
         const { error } = await supabase
@@ -112,17 +119,22 @@ export async function addUserXP(amount: number): Promise<{ success: boolean; new
         
         if (error) {
             console.error("[apiClient] Error updating XP in DB:", error);
+            // Update demo state even on DB error for UI consistency in demo
+            demoUserXP = newTotalXP;
             return { success: false, newXP: demoUserXP };
         }
         
         // Conceptual XP-based achievement check (example)
         if (newTotalXP >= 100 && !demoUnlockedAchievementIds.has('ach_xp_100')) {
             console.log('[apiClient] Unlocking ach_xp_100 due to XP threshold');
-            await unlockAchievement('ach_xp_100');
+            await unlockAchievement('ach_xp_100'); // This also attempts DB update
         }
+        demoUserXP = newTotalXP; // Keep demo state in sync
         return { success: true, newXP: newTotalXP };
     }
-    return { success: false, newXP: demoUserXP };
+    // If no user, update demo XP
+    demoUserXP += amount;
+    return { success: true, newXP: demoUserXP }; // Conceptually success for demo state
 }
 
 
@@ -140,7 +152,7 @@ export async function unlockContentWithCoins(
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('focus_coins, owned_content_ids') // Assuming 'owned_content_ids' is an array of strings
+    .select('focus_coins, owned_content_ids') 
     .eq('id', user.id)
     .single();
 
@@ -170,7 +182,8 @@ export async function unlockContentWithCoins(
       console.error("[apiClient] Error updating profile for unlock:", updateError);
       return { success: false, message: "Failed to update profile after deducting coins." };
     }
-    demoUnlockedContentIds.add(contentId); // Keep demo state in sync if needed for immediate UI
+    demoUnlockedContentIds.add(contentId); 
+    demoUserCoins = newCoinBalance; // Sync demo state
     return { success: true, newCoinBalance: newCoinBalance, message: `Successfully unlocked! ${cost} coins deducted.` };
   } else {
     return { success: false, message: 'Not enough Focus Coins.' };
@@ -196,7 +209,7 @@ export async function unlockContentWithPassword(
       .eq('id', user.id)
       .single();
 
-    if (profileError) {
+    if (profileError && profileError.code !== 'PGRST116') { // Still fetch even if no profile row for owned_content_ids
         console.error("[apiClient] Error fetching profile for password unlock:", profileError);
         return { success: false, message: "Failed to fetch user profile." };
     }
@@ -231,22 +244,20 @@ export async function fetchUnlockedContentIds(): Promise<string[]> {
         .eq('id', user.id)
         .single();
     if (error && error.code !== 'PGRST116') {
-        // Log the full error object for better debugging
         console.error("[apiClient] Error fetching unlocked content IDs from DB:", error);
-        return Array.from(demoUnlockedContentIds);
+        return []; // Return empty array on error for logged-in user
     }
     return profile?.owned_content_ids as string[] || [];
   }
-  return Array.from(demoUnlockedContentIds);
+  return Array.from(demoUnlockedContentIds); // Fallback for non-logged-in
 }
 
 
 export async function purchaseStoreItem(
   itemId: string,
-  itemType: 'avatar' | 'theme' | 'booster', // itemType might be used by backend
   cost: number
 ): Promise<{ success: boolean; newCoinBalance?: number; message?: string }> {
-  console.log(`[apiClient] purchaseStoreItem called for ${itemId} (type: ${itemType}) with cost ${cost}`);
+  console.log(`[apiClient] purchaseStoreItem called for ${itemId} with cost ${cost}`);
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "User not authenticated for purchase." };
@@ -281,7 +292,8 @@ export async function purchaseStoreItem(
         console.error("[apiClient] Error updating profile after purchase:", updateError);
         return { success: false, message: "Failed to update profile after purchase." };
     }
-    demoOwnedItemIds.add(itemId); // Sync demo state
+    demoOwnedItemIds.add(itemId); 
+    demoUserCoins = newCoinBalance; // Sync demo state
     return { success: true, newCoinBalance: newCoinBalance, message: `Successfully purchased! ${cost} coins deducted.` };
   } else {
     return { success: false, message: 'Not enough Focus Coins.' };
@@ -289,8 +301,8 @@ export async function purchaseStoreItem(
 }
 
 
-export async function fetchOwnedItemIds(itemType?: 'avatar' | 'theme' | 'booster'): Promise<string[]> {
-  console.log(`[apiClient] fetchOwnedItemIds called (type: ${itemType || 'any'})`);
+export async function fetchOwnedItemIds(): Promise<string[]> {
+  console.log(`[apiClient] fetchOwnedItemIds called`);
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
@@ -301,9 +313,8 @@ export async function fetchOwnedItemIds(itemType?: 'avatar' | 'theme' | 'booster
         .single();
     if (error && error.code !== 'PGRST116') {
         console.error("[apiClient] Error fetching owned item IDs from DB:", error);
-        return Array.from(demoOwnedItemIds);
+        return [];
     }
-    // Here you could filter by itemType if your 'owned_store_items' stores type information or if item IDs have prefixes
     return profile?.owned_store_items as string[] || [];
   }
   return Array.from(demoOwnedItemIds);
@@ -317,12 +328,12 @@ export async function fetchUnlockedAchievements(): Promise<string[]> {
     if (user) {
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('unlocked_achievement_ids') // Assuming this field exists
+            .select('unlocked_achievement_ids') 
             .eq('id', user.id)
             .single();
         if (error && error.code !== 'PGRST116') {
             console.error("[apiClient] Error fetching unlocked achievements from DB:", error);
-            return Array.from(demoUnlockedAchievementIds);
+            return [];
         }
         return profile?.unlocked_achievement_ids as string[] || [];
     }
@@ -348,7 +359,7 @@ export async function unlockAchievement(achievementId: string): Promise<{ succes
         const currentUnlockedAchievements = new Set(profile?.unlocked_achievement_ids as string[] || []);
         if (currentUnlockedAchievements.has(achievementId)) {
             console.log(`[apiClient] Achievement ${achievementId} already unlocked.`);
-            return { success: true }; // Already unlocked
+            return { success: true }; 
         }
         
         currentUnlockedAchievements.add(achievementId);
@@ -364,8 +375,8 @@ export async function unlockAchievement(achievementId: string): Promise<{ succes
         demoUnlockedAchievementIds.add(achievementId);
         return { success: true };
     }
-    demoUnlockedAchievementIds.add(achievementId); // Fallback for demo
-    return { success: false }; // No user, conceptually didn't save to DB
+    demoUnlockedAchievementIds.add(achievementId); 
+    return { success: true }; // For demo, assume success if no user
 }
 
 
@@ -375,7 +386,6 @@ export async function addSpinToHistory(
   rewardValue?: number | string
 ): Promise<void> {
     console.log(`[apiClient] addSpinToHistory called for ${rewardName}, type ${rewardType}, value ${rewardValue} (demo)`);
-    // This is purely client-side demo. A real implementation would save to a user-specific table.
     await new Promise(resolve => setTimeout(resolve, 50));
     const newEntry: DemoSpinHistoryEntry = {
       rewardName,
@@ -392,31 +402,30 @@ export async function addSpinToHistory(
 
 export async function fetchSpinHistory(): Promise<DemoSpinHistoryEntry[]> {
     console.log('[apiClient] fetchSpinHistory called (demo)');
-    // This is purely client-side demo. A real implementation would fetch from a user-specific table.
     await new Promise(resolve => setTimeout(resolve, 50));
     return [...demoSpinHistory]; 
 }
 
 
 export function resetDemoApiClientState() {
-  demoUserCoins = 500;
+  demoUserCoins = 0; // Reset to 0 to better reflect new user state
   demoUnlockedContentIds.clear();
   demoOwnedItemIds.clear();
-  demoUserXP = 0;
+  demoUserXP = 0; // Reset to 0
   demoUnlockedAchievementIds.clear();
   demoSpinHistory = [];
-  console.log('[apiClient] Demo state has been reset.');
+  console.log('[apiClient] Demo state has been reset to initial values (0 coins, 0 XP).');
 }
 
 if (typeof window !== 'undefined') {
   (window as any).resetDemoState = resetDemoApiClientState;
-  // Initialize demo state from localStorage if it exists, to provide some cross-session persistence for the demo
-  // const storedDemoCoins = localStorage.getItem('demoUserCoins');
-  // if (storedDemoCoins) demoUserCoins = parseInt(storedDemoCoins, 10);
-  // const storedDemoXP = localStorage.getItem('demoUserXP');
-  // if (storedDemoXP) demoUserXP = parseInt(storedDemoXP, 10);
-  // // Note: Sets (like unlocked IDs) are harder to persist easily in localStorage this way.
 }
-// TODO: For coin/XP persistence in the demo, consider saving to localStorage and loading on init.
-// However, the request was for REAL persistence, so focusing on DB structure for that.
-// The functions above now TRY to use Supabase for logged-in users, falling back to demo values.
+// The initial values for demoUserCoins and demoUserXP are set above.
+// These are only used if a user is NOT logged in, or if DB calls fail.
+// For logged-in users, the functions now prioritize fetching from DB and default to 0.
+// This change primarily affects the fallback behavior for logged-in users when DB data is missing/null.
+// True persistence relies on the Supabase 'profiles' table being correctly updated by all relevant app actions.
+// Calling resetDemoState() in the console will reset these demo fallbacks.
+// Actual new user profiles should be initialized with 0 coins/XP upon signup in a production app.
+
+    
