@@ -1,4 +1,3 @@
-
 // src/app/dashboard/story-syllabus/play/[chapterId]/page.tsx
 'use client';
 
@@ -7,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollText, ChevronLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { initialSyllabusRealms } from '@/app/dashboard/story-syllabus/page'; // Import the data
+import { initialSyllabusRealms } from '@/lib/story-data'; // Import the data
 
 interface ChapterData {
   id: string;

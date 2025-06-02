@@ -656,7 +656,6 @@ BEGIN;
   CREATE PUBLICATION supabase_realtime;
 COMMIT;
 
--- Add tables that need realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.study_room_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.study_rooms; -- If you want realtime updates for room list too
 -- Add other tables as needed

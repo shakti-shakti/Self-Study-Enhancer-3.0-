@@ -1,4 +1,3 @@
-
 // src/app/dashboard/puzzles/page.tsx
 'use client';
 
@@ -13,6 +12,7 @@ import * as apiClient from '@/lib/apiClient';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { PuzzleTableRow } from '@/lib/database.types';
+import puzzleDatabase from '@/lib/puzzle-data';
 
 
 interface PuzzleItemClient extends PuzzleTableRow {
@@ -62,20 +62,21 @@ export default function PuzzleDashboardPage() {
     }
     setIsLoading(true);
     try {
-        const { data: dbPuzzles, error: puzzlesError } = await supabase
-            .from('puzzles')
-            .select('*');
+        // const { data: dbPuzzles, error: puzzlesError } = await supabase
+        //     .from('puzzles')
+        //     .select('*');
 
-        if (puzzlesError) throw puzzlesError;
+        // if (puzzlesError) throw puzzlesError;
 
         const unlockedIds = await apiClient.fetchUnlockedContentIds(); // Assuming this fetches puzzle_ids
         const coins = await apiClient.fetchUserFocusCoins();
         setCurrentFocusCoins(coins);
 
-        const clientPuzzles = (dbPuzzles || []).map((puzzle): PuzzleItemClient => {
+        // const clientPuzzles = (dbPuzzles || []).map((puzzle): PuzzleItemClient => {
+        const clientPuzzles = Object.values(puzzleDatabase).map((puzzle): PuzzleItemClient => {
             // Check if this puzzle ID is in the user's owned_content_ids
             // Also consider puzzles might not have a cost/password and are unlocked by default
-            const isLockedByOwnership = puzzle.base_definition?.unlock_cost_coins || puzzle.base_definition?.is_password_unlockable
+            const isLockedByOwnership = (puzzle as any).unlock_cost_coins || (puzzle as any).is_password_unlockable
                                       ? !unlockedIds.includes(puzzle.id)
                                       : false; // If no specific unlock mechanism, assume unlocked (or handle differently if needed)
             
@@ -87,8 +88,10 @@ export default function PuzzleDashboardPage() {
                 icon: categoryInfo?.icon,
                 // base_definition might contain unlock_cost_coins or is_password_unlockable
                 // These are conceptual and would be part of the JSONB in a real scenario
-                unlock_cost_coins: (puzzle.base_definition as any)?.unlock_cost_coins,
-                is_password_unlockable: (puzzle.base_definition as any)?.is_password_unlockable,
+                unlock_cost_coins: (puzzle as any)?.unlock_cost_coins,
+                is_password_unlockable: (puzzle as any)?.is_password_unlockable,
+                max_level: 30,
+                base_definition: { type: puzzle.type, original_data: puzzle.data }
             };
         });
         setPuzzles(clientPuzzles);
@@ -108,9 +111,9 @@ export default function PuzzleDashboardPage() {
 
 
   const handleUnlockWithCoins = async (puzzle: PuzzleItemClient) => {
-    if (!puzzle.unlock_cost_coins || !userId) return;
+    if (!(puzzle as any).unlock_cost_coins || !userId) return;
     setIsProcessingUnlock(true);
-    const result = await apiClient.unlockContentWithCoins(puzzle.id, puzzle.unlock_cost_coins);
+    const result = await apiClient.unlockContentWithCoins(puzzle.id, (puzzle as any).unlock_cost_coins);
     if (result.success) {
       toast({ title: "Unlock Successful!", description: `${puzzle.name} unlocked. ${result.message}`, className: 'bg-primary/10 border-primary text-primary-foreground' });
       if (result.newCoinBalance !== undefined) setCurrentFocusCoins(result.newCoinBalance);
@@ -174,19 +177,19 @@ export default function PuzzleDashboardPage() {
                     <CardContent className="flex-grow flex flex-col justify-end">
                       {puzzle.locked ? (
                           <div className="space-y-2 mt-auto">
-                            {puzzle.unlock_cost_coins && (
+                            {(puzzle as any).unlock_cost_coins && (
                               <Button
                                   size="sm"
                                   className="w-full glow-button"
                                   variant="outline"
                                   onClick={() => handleUnlockWithCoins(puzzle)}
-                                  disabled={isProcessingUnlock || currentFocusCoins < puzzle.unlock_cost_coins}
+                                  disabled={isProcessingUnlock || currentFocusCoins < (puzzle as any).unlock_cost_coins}
                               >
                                 {isProcessingUnlock ? <Loader2 className="h-4 w-4 animate-spin mr-1"/> : <Coins className="mr-1 h-4 w-4"/>}
-                                {currentFocusCoins < puzzle.unlock_cost_coins ? `Need ${puzzle.unlock_cost_coins} Coins` : `Unlock with ${puzzle.unlock_cost_coins} Coins`}
+                                {currentFocusCoins < (puzzle as any).unlock_cost_coins ? `Need ${(puzzle as any).unlock_cost_coins} Coins` : `Unlock with ${(puzzle as any).unlock_cost_coins} Coins`}
                               </Button>
                             )}
-                            {puzzle.is_password_unlockable && (
+                            {(puzzle as any).is_password_unlockable && (
                                <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                       <Button size="sm" className="w-full glow-button" variant="outline" disabled={isProcessingUnlock}>
@@ -216,7 +219,7 @@ export default function PuzzleDashboardPage() {
                                   </AlertDialogContent>
                               </AlertDialog>
                             )}
-                            {!puzzle.unlock_cost_coins && !puzzle.is_password_unlockable && puzzle.locked && (
+                            {! (puzzle as any).unlock_cost_coins && !(puzzle as any).is_password_unlockable && puzzle.locked && (
                                <Button size="sm" className="w-full" disabled>
                                   <Lock className="mr-1 h-4 w-4"/> Locked (Story Progression)
                               </Button>
