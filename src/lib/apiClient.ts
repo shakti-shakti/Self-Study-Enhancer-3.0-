@@ -24,7 +24,8 @@ let demoSpinHistory: DemoSpinHistoryEntry[] = [];
 /**
  * Fetches the user's current Focus Coin balance.
  * Attempts to fetch from Supabase 'profiles' table if user is logged in.
- * Returns 0 if profile/coins not found for logged-in user, or demoUserCoins if not logged in.
+ * Returns 0 if profile/coins not found or error for logged-in user.
+ * Returns demoUserCoins if not logged in.
  */
 export async function fetchUserFocusCoins(): Promise<number> {
   console.log('[apiClient] fetchUserFocusCoins called');
@@ -36,7 +37,7 @@ export async function fetchUserFocusCoins(): Promise<number> {
       .select('focus_coins')
       .eq('id', user.id)
       .single();
-    if (error && error.code !== 'PGRST116') { // PGRST116 means no row found
+    if (error) { 
       console.error("[apiClient] Error fetching coins from DB:", error);
       return 0; // Default to 0 on error for a logged-in user
     }
@@ -67,7 +68,7 @@ export async function updateUserFocusCoins(newAmount: number): Promise<{ success
       demoUserCoins = actualNewAmount;
       return { success: false, newCoinBalance: demoUserCoins };
     }
-    demoUserCoins = actualNewAmount; // Keep demo state in sync
+    // demoUserCoins = actualNewAmount; // Keep demo state in sync with what SHOULD be in DB
     return { success: true, newCoinBalance: actualNewAmount };
   }
   // If no user, update demo coins
@@ -78,7 +79,8 @@ export async function updateUserFocusCoins(newAmount: number): Promise<{ success
 /**
  * Fetches the user's current XP.
  * Attempts to fetch from Supabase 'profiles' table if user is logged in.
- * Returns 0 if profile/XP not found for logged-in user, or demoUserXP if not logged in.
+ * Returns 0 if profile/XP not found or error for logged-in user.
+ * Returns demoUserXP if not logged in.
  */
 export async function fetchUserXP(): Promise<number> {
     console.log('[apiClient] fetchUserXP called');
@@ -90,7 +92,7 @@ export async function fetchUserXP(): Promise<number> {
             .select('xp')
             .eq('id', user.id)
             .single();
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
             console.error("[apiClient] Error fetching XP from DB:", error);
             return 0; // Default to 0 on error for a logged-in user
         }
@@ -120,8 +122,8 @@ export async function addUserXP(amount: number): Promise<{ success: boolean; new
         if (error) {
             console.error("[apiClient] Error updating XP in DB:", error);
             // Update demo state even on DB error for UI consistency in demo
-            demoUserXP = newTotalXP;
-            return { success: false, newXP: demoUserXP };
+            // demoUserXP = newTotalXP;
+            return { success: false, newXP: currentXP }; // Return current DB XP on failure
         }
         
         // Conceptual XP-based achievement check (example)
@@ -129,7 +131,7 @@ export async function addUserXP(amount: number): Promise<{ success: boolean; new
             console.log('[apiClient] Unlocking ach_xp_100 due to XP threshold');
             await unlockAchievement('ach_xp_100'); // This also attempts DB update
         }
-        demoUserXP = newTotalXP; // Keep demo state in sync
+        // demoUserXP = newTotalXP; // Keep demo state in sync
         return { success: true, newXP: newTotalXP };
     }
     // If no user, update demo XP
@@ -182,8 +184,8 @@ export async function unlockContentWithCoins(
       console.error("[apiClient] Error updating profile for unlock:", updateError);
       return { success: false, message: "Failed to update profile after deducting coins." };
     }
-    demoUnlockedContentIds.add(contentId); 
-    demoUserCoins = newCoinBalance; // Sync demo state
+    // demoUnlockedContentIds.add(contentId); 
+    // demoUserCoins = newCoinBalance; // Sync demo state
     return { success: true, newCoinBalance: newCoinBalance, message: `Successfully unlocked! ${cost} coins deducted.` };
   } else {
     return { success: false, message: 'Not enough Focus Coins.' };
@@ -225,7 +227,7 @@ export async function unlockContentWithPassword(
         console.error("[apiClient] Error updating profile for password unlock:", updateError);
         return { success: false, message: "Failed to save unlock status." };
     }
-    demoUnlockedContentIds.add(contentId);
+    // demoUnlockedContentIds.add(contentId);
     return { success: true, message: 'Password correct! Content unlocked.' };
   } else {
     return { success: false, message: 'Incorrect password.' };
@@ -243,7 +245,7 @@ export async function fetchUnlockedContentIds(): Promise<string[]> {
         .select('owned_content_ids')
         .eq('id', user.id)
         .single();
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
         console.error("[apiClient] Error fetching unlocked content IDs from DB:", error);
         return []; // Return empty array on error for logged-in user
     }
@@ -292,8 +294,8 @@ export async function purchaseStoreItem(
         console.error("[apiClient] Error updating profile after purchase:", updateError);
         return { success: false, message: "Failed to update profile after purchase." };
     }
-    demoOwnedItemIds.add(itemId); 
-    demoUserCoins = newCoinBalance; // Sync demo state
+    // demoOwnedItemIds.add(itemId); 
+    // demoUserCoins = newCoinBalance; // Sync demo state
     return { success: true, newCoinBalance: newCoinBalance, message: `Successfully purchased! ${cost} coins deducted.` };
   } else {
     return { success: false, message: 'Not enough Focus Coins.' };
@@ -311,7 +313,7 @@ export async function fetchOwnedItemIds(): Promise<string[]> {
         .select('owned_store_items')
         .eq('id', user.id)
         .single();
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
         console.error("[apiClient] Error fetching owned item IDs from DB:", error);
         return [];
     }
@@ -331,7 +333,7 @@ export async function fetchUnlockedAchievements(): Promise<string[]> {
             .select('unlocked_achievement_ids') 
             .eq('id', user.id)
             .single();
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
             console.error("[apiClient] Error fetching unlocked achievements from DB:", error);
             return [];
         }
@@ -372,7 +374,7 @@ export async function unlockAchievement(achievementId: string): Promise<{ succes
             console.error("[apiClient] Error updating achievements in DB:", updateError);
             return { success: false };
         }
-        demoUnlockedAchievementIds.add(achievementId);
+        // demoUnlockedAchievementIds.add(achievementId);
         return { success: true };
     }
     demoUnlockedAchievementIds.add(achievementId); 
