@@ -33,12 +33,16 @@ const isPotentiallyValidUrl = (string: string): boolean => {
 };
 
 const convertToEmbedUrl = (url: string): string => {
+    let newUrl = url;
     if (url.includes("youtube.com/watch?v=")) {
         const videoId = url.split("watch?v=")[1].split('&')[0];
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    } else if (url.includes("youtu.be/")) {
+        const videoId = url.split("youtu.be/")[1].split('?')[0];
+        newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
     }
     // Add more conversions if needed (e.g., Vimeo)
-    return url;
+    return newUrl;
 };
 
 
@@ -53,27 +57,29 @@ export default function InAppBrowserPage() {
 
   const setSafeCurrentDisplayUrl = useCallback((url: string | null) => {
     if (url === null) {
-      setCurrentDisplayUrl(null); // Explicitly set to null for no content
+      setCurrentDisplayUrl(null); 
       setIsLoadingIframe(false);
       return;
     }
     try {
       let fullUrl = url.trim();
       
-      if (fullUrl.includes("youtube.com/watch?v=")) {
-        fullUrl = convertToEmbedUrl(fullUrl);
-      } else if (fullUrl.startsWith('//')) {
-        fullUrl = `https:${fullUrl}`;
-      } else if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        fullUrl = `https://${fullUrl}`;
+      fullUrl = convertToEmbedUrl(fullUrl); // Use the converter
+      
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        if (fullUrl.startsWith('//')) {
+             fullUrl = `https:${fullUrl}`;
+        } else {
+            fullUrl = `https://${fullUrl}`;
+        }
       }
       
-      new URL(fullUrl); // Validate the fully constructed URL
+      new URL(fullUrl); 
       setCurrentDisplayUrl(fullUrl);
       setIsLoadingIframe(true);
     } catch (e) {
       console.error("Invalid URL for iframe:", url, e);
-      setCurrentDisplayUrl("/iframe-error.html"); // Fallback to an error page
+      setCurrentDisplayUrl("/iframe-error.html"); 
       setIsLoadingIframe(false);
       toast({
         variant: "destructive",
@@ -103,12 +109,20 @@ export default function InAppBrowserPage() {
       setSafeCurrentDisplayUrl(null); 
       startSearchTransition(async () => {
         try {
-          const result: GoogleSearchOutput = await googleSearch({ query: trimmedInput, numResults: 7 });
+          // Modify query to bias towards YouTube results
+          const queryForGoogle = `${trimmedInput} youtube`;
+          const result: GoogleSearchOutput = await googleSearch({ query: queryForGoogle, numResults: 7 });
           if (result.error) {
             toast({ variant: 'destructive', title: "Search Error", description: result.error });
             setSafeCurrentDisplayUrl("/iframe-error.html"); 
           } else if (result.items && result.items.length > 0) {
-            setSearchResults(result.items);
+            const youtubeResults = result.items.filter(item => item.link.includes("youtube.com/watch") || item.link.includes("youtu.be/"));
+            if (youtubeResults.length > 0) {
+                 setSearchResults(youtubeResults);
+            } else {
+                 toast({ title: "No YouTube Videos Found", description: `Your search for "${trimmedInput}" did not return direct YouTube video links. Please try a more specific query.` });
+                 setSearchResults([]); 
+            }
           } else {
             toast({ title: "No Results", description: `Your search for "${trimmedInput}" returned no results.` });
             setSearchResults([]); 
@@ -143,7 +157,7 @@ export default function InAppBrowserPage() {
           <Globe className="mr-4 h-10 w-10" /> Web Explorer
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Enter a URL to view in-app, or search the web. External sites may prevent embedding.
+          Enter a URL to view in-app, or search the web for YouTube videos. External sites may prevent embedding.
         </p>
       </header>
 
@@ -156,7 +170,7 @@ export default function InAppBrowserPage() {
               value={inputUrlOrQuery}
               onChange={(e) => setInputUrlOrQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleNavigate()}
-              placeholder="Search or enter URL (e.g., wikipedia.org)"
+              placeholder="Search YouTube or enter URL (e.g., wikipedia.org)"
               className="flex-1 h-10 input-glow"
             />
             <Button onClick={handleNavigate} className="glow-button" disabled={isSearching || isLoadingIframe}>
@@ -192,7 +206,7 @@ export default function InAppBrowserPage() {
                   </CardContent>
                    <CardFooter className="pb-3 pt-0">
                      <Button variant="default" size="sm" onClick={() => initiateLoadUrl(result.link)} className="glow-button">
-                           <Eye className="mr-1.5 h-4 w-4"/> View Page in App
+                           <Eye className="mr-1.5 h-4 w-4"/> View Video
                      </Button>
                   </CardFooter>
                 </Card>
@@ -213,12 +227,13 @@ export default function InAppBrowserPage() {
                 <iframe
                   ref={iframeRef}
                   key={currentDisplayUrl} // Force re-render on URL change
-                  src={currentDisplayUrl} // Bind directly to state
+                  src={currentDisplayUrl} 
                   title="In-app browser content"
                   className="w-full h-full border-0"
                   sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" 
                   onLoad={handleIframeLoad}
                   onError={handleIframeError}
+                  allow="autoplay; encrypted-media; picture-in-picture"
                 />
               </>
             ) : (
@@ -241,12 +256,10 @@ export default function InAppBrowserPage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary">Web Explorer Usage</AlertTitle>
         <AlertDescription>
-            Direct URLs and quick links attempt to load in this window. Clicking search results will also attempt to load in this window. Some websites may prevent in-app embedding and show a "refused to connect" error or a blank page within the frame.
+            Direct URLs and quick links attempt to load in this window. Search results will prioritize YouTube. Some websites may prevent in-app embedding and show a "refused to connect" error or a blank page within the frame.
         </AlertDescription>
       </Alert>
     </div>
   );
 }
-
-
     

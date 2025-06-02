@@ -8,19 +8,19 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Map, Compass, ScrollText, BookOpen, Zap, Atom, Leaf, PawPrint, ChevronRight, Lock, Coins, KeyRound, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import * as apiClient from '@/lib/apiClient'; // Using the placeholder API client
+import * as apiClient from '@/lib/apiClient'; 
 
 interface Chapter {
   id: string;
   name: string;
   level_hint?: string;
   quest: string;
-  locked: boolean; // This will now be dynamically determined based on API response
+  locked: boolean; 
   unlock_cost_coins?: number | null;
-  is_password_unlockable?: boolean | null; // Renamed for clarity
+  is_password_unlockable?: boolean | null; 
   story_summary?: string;
 }
 
@@ -35,7 +35,7 @@ interface SyllabusRealm {
   dataAiHint?: string;
 }
 
-// Initial static data for realms and chapters
+// Initial static data for realms and chapters (can be moved to DB eventually)
 const initialSyllabusRealms: SyllabusRealm[] = [
   {
     id: 'physics_realm',
@@ -95,13 +95,11 @@ export default function StorySyllabusPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [passwordInput, setPasswordInput] = useState('');
   const [isProcessingUnlock, setIsProcessingUnlock] = useState(false);
-  const router = useRouter();
+  const router = useRouter(); // Initialize useRouter
 
   useEffect(() => {
     const loadUnlockStatus = async () => {
       setIsLoading(true);
-      // TODO: In a real app, you would fetch this from your Supabase backend
-      // For now, we use the placeholder API client which uses in-memory state for this demo
       const unlockedIds = await apiClient.fetchUnlockedContentIds();
       
       setSyllabusData(prevData => 
@@ -109,7 +107,7 @@ export default function StorySyllabusPage() {
           ...realm,
           chapters: realm.chapters.map(chapter => ({
             ...chapter,
-            locked: chapter.unlock_cost_coins || chapter.is_password_unlockable ? !unlockedIds.includes(chapter.id) : false, // Default to unlocked if no cost/password
+            locked: chapter.unlock_cost_coins || chapter.is_password_unlockable ? !unlockedIds.includes(chapter.id) : false,
           }))
         }))
       );
@@ -136,11 +134,10 @@ export default function StorySyllabusPage() {
   const handleUnlockWithCoins = async (realmName: string, chapter: Chapter) => {
     if (!chapter.unlock_cost_coins) return;
     setIsProcessingUnlock(true);
-    // TODO: Replace with actual backend call
     const result = await apiClient.unlockContentWithCoins(chapter.id, chapter.unlock_cost_coins);
     if (result.success) {
       toast({ title: "Unlock Successful!", description: `${chapter.name} in ${realmName} unlocked. ${result.message}`, className: 'bg-primary/10 border-primary text-primary-foreground' });
-      await refreshUnlockStatus(); // Refresh UI
+      await refreshUnlockStatus(); 
     } else {
       toast({ variant: 'destructive', title: 'Unlock Failed', description: result.message || "Could not unlock with coins." });
     }
@@ -149,23 +146,19 @@ export default function StorySyllabusPage() {
 
   const handleUnlockWithPassword = async (realmName: string, chapter: Chapter) => {
     setIsProcessingUnlock(true);
-    // TODO: Replace with actual backend call
     const result = await apiClient.unlockContentWithPassword(chapter.id, passwordInput);
     if (result.success) {
       toast({ title: "Unlock Successful!", description: `${chapter.name} in ${realmName} unlocked. ${result.message}`, className: 'bg-accent/10 border-accent text-accent-foreground' });
-      await refreshUnlockStatus(); // Refresh UI
+      await refreshUnlockStatus(); 
     } else {
       toast({ variant: 'destructive', title: 'Unlock Failed', description: result.message || "Incorrect password." });
     }
-    setPasswordInput(''); // Clear password input
+    setPasswordInput(''); 
     setIsProcessingUnlock(false);
   };
 
   const beginQuest = (chapterId: string) => {
-    // Removed the alert
-    console.log(`Attempting to begin Quest with ID: ${chapterId}`);
-    // You will need to determine how to generate a unique ID for each chapter/story
-    // and implement the corresponding route and component.
+    router.push(`/dashboard/story-syllabus/play/${chapterId}`);
   };
 
   if (isLoading) {
@@ -282,5 +275,4 @@ export default function StorySyllabusPage() {
     </div>
   );
 }
-
     
