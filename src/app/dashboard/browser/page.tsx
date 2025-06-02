@@ -18,22 +18,27 @@ const GOOGLE_HOME_URL = "https://www.google.com/webhp?igu=1"; // igu=1 attempts 
 const isPotentiallyValidUrl = (string: string): boolean => {
   try {
     const s = string.trim();
-    // Basic check for common protocols or domain-like structure
     if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('//')) {
-      new URL(s.startsWith('//') ? `https:${s}` : s); // Prepend https for protocol-relative URLs
+      new URL(s.startsWith('//') ? `https:${s}` : s); 
       return true;
     }
-    // Check for domain-like strings (e.g., example.com, www.example.com)
-    // This is a heuristic and might not catch all valid URLs or might misidentify some strings.
     if (s.includes('.') && !s.includes(' ') && !s.startsWith('/') && s.length > 3) {
-       new URL(`https://${s}`); // Assume https for domain-like strings
+       new URL(`https://${s}`); 
        return true;
     }
   } catch (_) {
-    // If URL construction fails, it's not a valid absolute URL in the expected format
     return false;
   }
   return false;
+};
+
+const convertToEmbedUrl = (url: string): string => {
+    if (url.includes("youtube.com/watch?v=")) {
+        const videoId = url.split("watch?v=")[1].split('&')[0];
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    }
+    // Add more conversions if needed (e.g., Vimeo)
+    return url;
 };
 
 
@@ -48,23 +53,27 @@ export default function InAppBrowserPage() {
 
   const setSafeCurrentDisplayUrl = useCallback((url: string | null) => {
     if (url === null) {
-      setCurrentDisplayUrl(null);
+      setCurrentDisplayUrl(null); // Explicitly set to null for no content
       setIsLoadingIframe(false);
       return;
     }
     try {
       let fullUrl = url.trim();
-      if (fullUrl.startsWith('//')) { // Handle protocol-relative URLs
+      
+      if (fullUrl.includes("youtube.com/watch?v=")) {
+        fullUrl = convertToEmbedUrl(fullUrl);
+      } else if (fullUrl.startsWith('//')) {
         fullUrl = `https:${fullUrl}`;
       } else if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
         fullUrl = `https://${fullUrl}`;
       }
+      
       new URL(fullUrl); // Validate the fully constructed URL
       setCurrentDisplayUrl(fullUrl);
       setIsLoadingIframe(true);
     } catch (e) {
       console.error("Invalid URL for iframe:", url, e);
-      setCurrentDisplayUrl("/iframe-error.html");
+      setCurrentDisplayUrl("/iframe-error.html"); // Fallback to an error page
       setIsLoadingIframe(false);
       toast({
         variant: "destructive",
@@ -75,9 +84,9 @@ export default function InAppBrowserPage() {
   }, [toast]);
 
   const initiateLoadUrl = useCallback((url: string) => {
-    setInputUrlOrQuery(url); // Update the address bar
-    setSearchResults([]);    // Clear any previous search results
-    setSafeCurrentDisplayUrl(url); // Attempt to load the URL in the iframe
+    setInputUrlOrQuery(url); 
+    setSearchResults([]);    
+    setSafeCurrentDisplayUrl(url); 
   }, [setSafeCurrentDisplayUrl]);
 
 
@@ -91,23 +100,22 @@ export default function InAppBrowserPage() {
     if (isPotentiallyValidUrl(trimmedInput)) {
       initiateLoadUrl(trimmedInput);
     } else {
-      // Treat as search query
-      setSafeCurrentDisplayUrl(null); // Hide iframe while searching
+      setSafeCurrentDisplayUrl(null); 
       startSearchTransition(async () => {
         try {
           const result: GoogleSearchOutput = await googleSearch({ query: trimmedInput, numResults: 7 });
           if (result.error) {
             toast({ variant: 'destructive', title: "Search Error", description: result.error });
-            setSafeCurrentDisplayUrl("/iframe-error.html"); // Show error in iframe area
+            setSafeCurrentDisplayUrl("/iframe-error.html"); 
           } else if (result.items && result.items.length > 0) {
             setSearchResults(result.items);
           } else {
             toast({ title: "No Results", description: `Your search for "${trimmedInput}" returned no results.` });
-            setSearchResults([]); // Ensure search results area is cleared
+            setSearchResults([]); 
           }
         } catch (e: any) {
           toast({ variant: 'destructive', title: "Search Request Failed", description: e.message || "Could not connect to search service." });
-          setSafeCurrentDisplayUrl("/iframe-error.html"); // Show error in iframe area
+          setSafeCurrentDisplayUrl("/iframe-error.html"); 
         }
       });
     }
@@ -118,18 +126,14 @@ export default function InAppBrowserPage() {
   const goToNcert = () => { initiateLoadUrl(NCERT_BOOKS_URL); }
 
   useEffect(() => {
-    goHome(); // Load Google home page initially
+    goHome(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleIframeLoad = () => setIsLoadingIframe(false);
   const handleIframeError = (e: React.SyntheticEvent<HTMLIFrameElement, Event>) => {
     setIsLoadingIframe(false);
-    // Note: X-Frame-Options errors don't reliably trigger onError. Browser handles them.
-    // This is more for network issues or if the src attribute itself was malformed before an attempt.
     console.warn("Iframe loading error event triggered for:", currentDisplayUrl, e);
-    // No need to set to iframe-error.html here if setSafeCurrentDisplayUrl already did for a bad URL.
-    // If it was a valid URL that then failed (e.g. network), this might be a spot to update UI.
   };
 
   return (
@@ -208,7 +212,8 @@ export default function InAppBrowserPage() {
                 )}
                 <iframe
                   ref={iframeRef}
-                  src={currentDisplayUrl}
+                  key={currentDisplayUrl} // Force re-render on URL change
+                  src={currentDisplayUrl} // Bind directly to state
                   title="In-app browser content"
                   className="w-full h-full border-0"
                   sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" 
@@ -217,12 +222,12 @@ export default function InAppBrowserPage() {
                 />
               </>
             ) : (
-              isSearching ? ( // Only show this specific loader if actively searching, not just if URL is null
+              isSearching ? ( 
                  <div className="flex flex-col justify-center items-center h-full text-center p-8">
                   <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
                   <p className="text-xl text-muted-foreground">Searching for "{inputUrlOrQuery}"...</p>
                 </div>
-              ) : ( // Default placeholder if no URL and not searching
+              ) : ( 
                 <div className="flex flex-col justify-center items-center h-full text-center p-8">
                   <Globe className="h-24 w-24 text-muted-foreground/30 mb-6" />
                   <p className="text-2xl text-muted-foreground">Enter a URL or search query above.</p>
@@ -242,3 +247,6 @@ export default function InAppBrowserPage() {
     </div>
   );
 }
+
+
+    
