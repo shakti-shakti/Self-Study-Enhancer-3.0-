@@ -1,3 +1,4 @@
+
 // src/app/dashboard/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
@@ -6,11 +7,12 @@ import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact, type GenerateSyllabusFactOutput } from '@/ai/flows/random-fact-generator';
 import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow';
 import { generateDailyMotivation, type GenerateDailyMotivationOutput } from '@/ai/flows/daily-motivation-flow';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck, Users } from 'lucide-react';
-import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables } from '@/lib/database.types';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck, Users, Camera } from 'lucide-react';
+import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables, ActivityLogWithSelfie } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
+import NextImage from 'next/image'; // For selfie display
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -55,6 +57,7 @@ export default async function DashboardPage() {
 
   let recentQuizAttempts: QuizAttemptWithQuizTopic[] = [];
   let profileData: Tables<'profiles'> | null = null;
+  let recentSelfieAttendances: ActivityLogWithSelfie[] = [];
 
   if (user) {
     const { data: attemptsData, error: attemptsError } = await supabase
@@ -78,7 +81,7 @@ export default async function DashboardPage() {
 
     const { data: fetchedProfileData, error: profileError } = await supabase
       .from('profiles')
-      .select('custom_countdown_event_name, custom_countdown_target_date, focus_coins, xp') // Added focus_coins, xp
+      .select('custom_countdown_event_name, custom_countdown_target_date, focus_coins, xp') 
       .eq('id', user.id)
       .single();
     
@@ -86,6 +89,21 @@ export default async function DashboardPage() {
       console.error("[ Server ] Error fetching profile for dashboard:", profileError.message);
     } else {
       profileData = fetchedProfileData;
+    }
+
+    // Fetch recent selfie attendances
+    const { data: selfieLogs, error: selfieLogError } = await supabase
+      .from('activity_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('activity_type', 'selfie_attendance_marked')
+      .order('created_at', { ascending: false })
+      .limit(2); // Show latest 2 selfies on dashboard
+    
+    if (selfieLogError) {
+      console.error("[ Server ] Error fetching selfie attendances:", selfieLogError.message);
+    } else {
+      recentSelfieAttendances = selfieLogs as ActivityLogWithSelfie[] || [];
     }
   }
   
@@ -234,7 +252,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <Card className="interactive-card shadow-lg">
           <CardHeader>
             <CardTitle className="font-headline text-2xl glow-text-accent flex items-center"><TrendingUp className="mr-2"/>Recent Quiz Scores</CardTitle>
@@ -291,7 +309,48 @@ export default async function DashboardPage() {
             <Button variant="link" asChild className="text-primary hover:text-accent"><Link href="/dashboard/ai-study-assistant">Go to AI Assistant <ChevronRight className="ml-1 h-4 w-4"/></Link></Button>
           </CardFooter>
         </Card>
+
+        <Card className="interactive-card shadow-lg md:col-span-2 lg:col-span-1">
+            <CardHeader>
+                <CardTitle className="font-headline text-2xl glow-text-accent flex items-center"><Camera className="mr-2"/>Recent Selfie Attendances</CardTitle>
+                <CardDescription>Your latest check-ins.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {recentSelfieAttendances.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-3">
+                        {recentSelfieAttendances.map(log => (
+                            <div key={log.id} className="border rounded-md overflow-hidden bg-muted/30">
+                                {log.details?.selfie_image_data_uri ? (
+                                    <NextImage 
+                                        src={log.details.selfie_image_data_uri} 
+                                        alt={`Selfie from ${log.details.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`} 
+                                        width={150} 
+                                        height={150} 
+                                        className="w-full aspect-square object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full aspect-square bg-muted flex items-center justify-center">
+                                        <Camera className="h-8 w-8 text-muted-foreground"/>
+                                    </div>
+                                )}
+                                <p className="text-xs text-center p-1 bg-background text-muted-foreground">
+                                    {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : 'Unknown Time'}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground text-center py-4">No recent selfie attendances found.</p>
+                )}
+            </CardContent>
+            <CardFooter>
+                <Button variant="link" asChild className="text-primary hover:text-accent"><Link href="/dashboard/selfie-attendance">View All Attendances <ChevronRight className="ml-1 h-4 w-4"/></Link></Button>
+            </CardFooter>
+        </Card>
+
       </div>
     </div>
   );
 }
+
+    

@@ -25,11 +25,11 @@ export type Database = {
           custom_countdown_event_name: string | null
           custom_countdown_target_date: string | null
           dataAiHint?: string | null 
-          focus_coins: number | null // Added
-          xp: number | null // Added
-          owned_content_ids: string[] | null // Added for story/puzzle unlocks
-          owned_store_items: string[] | null // Added for store purchases
-          unlocked_achievement_ids: string[] | null // Added for achievements
+          focus_coins: number | null 
+          xp: number | null 
+          owned_content_ids: string[] | null 
+          owned_store_items: string[] | null 
+          unlocked_achievement_ids: string[] | null 
         }
         Insert: {
           id: string 
@@ -45,11 +45,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null // Added
-          xp?: number | null // Added
-          owned_content_ids?: string[] | null // Added
-          owned_store_items?: string[] | null // Added
-          unlocked_achievement_ids?: string[] | null // Added
+          focus_coins?: number | null 
+          xp?: number | null 
+          owned_content_ids?: string[] | null 
+          owned_store_items?: string[] | null 
+          unlocked_achievement_ids?: string[] | null 
         }
         Update: {
           id?: string
@@ -65,11 +65,11 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null // Added
-          xp?: number | null // Added
-          owned_content_ids?: string[] | null // Added
-          owned_store_items?: string[] | null // Added
-          unlocked_achievement_ids?: string[] | null // Added
+          focus_coins?: number | null 
+          xp?: number | null 
+          owned_content_ids?: string[] | null 
+          owned_store_items?: string[] | null 
+          unlocked_achievement_ids?: string[] | null 
         }
         Relationships: [
           {
@@ -640,7 +640,7 @@ export type Database = {
           {
             foreignKeyName: "study_rooms_created_by_user_id_fkey"
             columns: ["created_by_user_id"]
-            referencedRelation: "users"
+            referencedRelation: "users" // Changed from "profiles" to "users"
             referencedColumns: ["id"]
           }
         ]
@@ -677,7 +677,7 @@ export type Database = {
           {
             foreignKeyName: "study_room_messages_user_id_fkey"
             columns: ["user_id"]
-            referencedRelation: "users"
+            referencedRelation: "users" // Changed from "profiles" to "users"
             referencedColumns: ["id"]
           }
         ]
@@ -1163,12 +1163,13 @@ export type Database = {
       }
       puzzles: {
  Row: {
- id: string; // Unique ID for the puzzle (e.g., 'math_001', 'physics_ kinematics_001')
- name: string; // Name of the puzzle (e.g., 'Basic Algebra', 'Projectile Motion')
- subject: string | null; // Subject (e.g., 'Math', 'Physics')
- description: string | null; // Description of the puzzle
- base_definition: Json | null; // JSON object containing base parameters for generating levels
+ id: string; 
+ name: string; 
+ subject: string | null; 
+ description: string | null; 
+ base_definition: Json | null; 
  created_at: string;
+ max_level: number; // Added max_level
  };
  Insert: {
  id?: string;
@@ -1177,6 +1178,7 @@ export type Database = {
  description?: string | null;
  base_definition?: Json | null;
  created_at?: string;
+ max_level?: number; // Added max_level
  };
  Update: {
  id?: string;
@@ -1185,6 +1187,7 @@ export type Database = {
  description?: string | null;
  base_definition?: Json | null;
  created_at?: string;
+ max_level?: number; // Added max_level
  };
  Relationships: [];
  };
@@ -1218,6 +1221,12 @@ export type Database = {
  foreignKeyName: "user_puzzle_progress_user_id_fkey";
  columns: ["user_id"];
  referencedRelation: "users";
+ referencedColumns: ["id"];
+ },
+ {
+ foreignKeyName: "user_puzzle_progress_puzzle_id_fkey"; // Added foreign key to puzzles table
+ columns: ["puzzle_id"];
+ referencedRelation: "puzzles";
  referencedColumns: ["id"];
  }
  ];
@@ -1267,7 +1276,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_leaderboard_score: { // Added for challenges page
+        Args: {
+          p_user_id: string;
+          p_score_increment: number;
+          p_period: "daily" | "weekly" | "all_time";
+        };
+        Returns: undefined; 
+      };
     }
     Enums: {
       [_ in never]: never
@@ -1410,14 +1426,24 @@ export type ChatSessionPreview = {
   user_id: string; 
 };
 
-// Added this for type consistency in NcertBookMetadata
 export interface NcertBookMetadataRow extends Tables<'ncert_books_metadata'> {
   dataAiHint?: string | null;
 }
 
-export interface SearchResultItem { // For Google Search Flow
+export interface SearchResultItem { 
   title: string;
   link: string;
   snippet: string;
   displayLink?: string;
 }
+
+// ActivityLog type to include conceptual selfie data
+export type ActivityLogWithSelfie = Tables<'activity_logs'> & {
+  details?: {
+    selfie_image_data_uri?: string;
+    captured_at?: string;
+    [key: string]: any; // Keep it flexible for other details
+  } | null;
+};
+
+    

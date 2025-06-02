@@ -31,15 +31,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { createClient } from '@/lib/supabase/client'; // Assuming this is your Supabase client
-import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile } from '@/lib/database.types';
-import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info, ShieldCheck } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client'; 
+import type { Tables, TablesInsert, Database, StudyRoomMessageWithProfile, ActivityLogWithSelfie } from '@/lib/database.types';
+import { Loader2, MessageSquare, PlusCircle, Send, Users, Bot, Info, ShieldCheck, Trash2 } from 'lucide-react';
 import { moderateStudyRoom, type ModerateStudyRoomInput, type ModerateStudyRoomOutput } from '@/ai/flows/ai-moderated-study-rooms';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow, parseISO, format } from 'date-fns';
 
-
-import { Trash2 } from 'lucide-react'; // Import Trash2 icon
 const createRoomSchema = z.object({
   name: z.string().min(3, 'Room name must be at least 3 characters.').max(50),
   topic: z.string().max(100).optional(),
@@ -115,9 +113,6 @@ export default function StudyRoomsPage() {
               .eq('id', newMessage.user_id)
               .single();
             
-            console.log(`[Realtime] New message for room ${selectedRoom.id}, profile for ${newMessage.user_id}:`, profileData, "Error:", profileError);
-
-
             const newMessageWithProfile: StudyRoomMessageWithProfile = {
                 ...newMessage,
                 profiles: profileData ? { email: profileData.email, full_name: profileData.full_name, avatar_url: profileData.avatar_url } : {email: 'Unknown User', full_name: 'Unknown', avatar_url: null}
@@ -141,7 +136,7 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles!user_id(email, full_name, avatar_url)') // Corrected join syntax based on how profiles are usually linked
+        .select('*, profiles!user_id(email, full_name, avatar_url)') 
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100); 
@@ -154,24 +149,47 @@ export default function StudyRoomsPage() {
     });
   };
 
-   // Function to handle deleting a study room
   const handleDeleteRoom = async (roomId: string) => {
+    if (!userId) return;
+    const roomToDelete = rooms.find(r => r.id === roomId);
+
     startRoomOperationTransition(async () => {
+      // First, attempt to delete associated messages (optional, depends on RLS/cascade)
+      const { error: messagesError } = await supabase
+        .from('study_room_messages')
+        .delete()
+        .eq('room_id', roomId);
+
+      if (messagesError) {
+        console.warn("Error deleting messages for room", roomId, messagesError.message);
+        // Decide if you want to proceed with room deletion or stop
+      }
+
       const { error } = await supabase.from('study_rooms').delete().eq('id', roomId);
 
       if (error) {
         toast({ variant: 'destructive', title: 'Error deleting room', description: error.message });
       } else {
         toast({ title: 'Room deleted successfully!', className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary' });
-        // Remove the deleted room from the state
+        
+        if (roomToDelete) {
+            const activityLog: TablesInsert<'activity_logs'> = {
+                user_id: userId,
+                activity_type: 'study_room_deleted',
+                description: `Deleted study room: "${roomToDelete.name}"`,
+                details: { room_id: roomId, room_name: roomToDelete.name }
+            };
+            await supabase.from('activity_logs').insert(activityLog);
+        }
+
         setRooms(prevRooms => prevRooms.filter(room => room.id !== roomId));
-        // If the deleted room was the selected one, clear selectedRoom
         if (selectedRoom?.id === roomId) {
             setSelectedRoom(null);
         }
       }
     });
   };
+
   const handleCreateRoom = async (values: CreateRoomFormData) => {
     if (!userId) {
         toast({ variant: 'destructive', title: 'Not authenticated' });
@@ -214,10 +232,8 @@ export default function StudyRoomsPage() {
                 studentQuestion: values.message_text, 
                 currentActivity: 'Chatting / Discussion',
             };
-            console.log('[AI Moderation] Calling AI with input:', aiInput);
             try {
                 const modResult = await moderateStudyRoom(aiInput);
-                console.log('[AI Moderation] Received result:', modResult);
                 setAiModeration(modResult); 
             } catch (aiError: any) {
                 console.warn("[AI Moderation] Error calling AI:", aiError.message);
@@ -230,8 +246,7 @@ export default function StudyRoomsPage() {
   
   const handleSelectRoom = (room: StudyRoom) => {
     setSelectedRoom(room);
-    setAiModeration(null); // Reset AI moderation on room change
-    // Set an initial informative message for the AI panel
+    setAiModeration(null); 
     if (room.topic) {
         setAiModeration({
             clarificationOrAnswer: "AI Moderator is listening. Suggestions related to the room topic will appear here based on the chat."
@@ -298,24 +313,23 @@ export default function StudyRoomsPage() {
         {!isRoomOperationPending && rooms.length === 0 && <p className="text-center text-muted-foreground py-10 text-lg">No study rooms available. Create one to get started!</p>}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map(room => (
-            <Card key={room.id} className="interactive-card shadow-lg shadow-primary/10 cursor-pointer hover:border-primary" onClick={() => handleSelectRoom(room)}>
-              <CardHeader>
+            <Card key={room.id} className="interactive-card shadow-lg shadow-primary/10 hover:border-primary">
+              <CardHeader className="cursor-pointer" onClick={() => handleSelectRoom(room)}>
                 <CardTitle className="font-headline text-xl glow-text-primary">{room.name}</CardTitle>
                 {room.topic && <CardDescription>Topic: {room.topic}</CardDescription>}
               </CardHeader>
-              <CardContent>
+              <CardContent className="cursor-pointer" onClick={() => handleSelectRoom(room)}>
                 <p className="text-sm text-muted-foreground">Created: {format(parseISO(room.created_at), "PP")}</p>
               </CardContent>
-              <CardFooter className="flex justify-between items-center"> {/* Added CardFooter for buttons */}
-                 <Button size="sm" className="glow-button" onClick={(e) => { e.stopPropagation(); handleSelectRoom(room); }}> {/* Prevent card click when clicking join */}
+              <CardFooter className="flex justify-between items-center">
+                 <Button size="sm" className="glow-button" onClick={(e) => { e.stopPropagation(); handleSelectRoom(room); }}>
                      <MessageSquare className="mr-1 h-4 w-4"/> Join Room
                  </Button>
-
-                {/* **MODIFICATION STARTS HERE: Add Delete Button with Confirmation** */}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                       <Button size="sm" variant="destructive" onClick={(e) => e.stopPropagation()} disabled={isRoomOperationPending}> {/* Prevent card click on button click */}
-                          <Trash2 className="h-4 w-4" /> Delete
+                       <Button size="sm" variant="destructive" onClick={(e) => e.stopPropagation()} disabled={isRoomOperationPending}> 
+                          <Trash2 className="h-4 w-4" /> 
+                          <span className="sr-only sm:not-sr-only sm:ml-1">Delete</span>
                        </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -327,14 +341,12 @@ export default function StudyRoomsPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={isRoomOperationPending}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteRoom(room.id)} disabled={isRoomOperationPending}>
+                        <AlertDialogAction onClick={() => handleDeleteRoom(room.id)} disabled={isRoomOperationPending} className="bg-destructive hover:bg-destructive/90">
                           {isRoomOperationPending ? <Loader2 className="animate-spin mr-2"/> : <Trash2 className="mr-2"/>} Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                )}
-                {/* **MODIFICATION ENDS HERE** */}
               </CardFooter>
             </Card>
           ))}
@@ -434,4 +446,6 @@ export default function StudyRoomsPage() {
     </div>
   );
 }
+    
 
+    

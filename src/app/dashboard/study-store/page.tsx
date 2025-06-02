@@ -1,3 +1,4 @@
+
 // src/app/dashboard/study-store/page.tsx
 'use client';
 
@@ -12,7 +13,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { TablesUpdate } from '@/lib/database.types';
 
 const storeItems = [
-  { id: 'theme_ocean', name: 'Ocean Blue Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-blue-400" />, image: 'https://placehold.co/300x200/E0F7FA/00796B.png?text=Ocean+Theme', dataAiHint: 'ocean waves', item_payload: { theme: 'ocean_blue_theme_config' } }, // payload could be CSS vars or class name
+  { id: 'theme_ocean', name: 'Ocean Blue Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-blue-400" />, image: 'https://placehold.co/300x200/E0F7FA/00796B.png?text=Ocean+Theme', dataAiHint: 'ocean waves', item_payload: { theme: 'ocean_blue_theme_config' } }, 
   { id: 'music_focus', name: 'Focus Beats Pack', type: 'Music', price: 50, icon: <Music className="h-8 w-8 text-purple-400" />, image: 'https://placehold.co/300x200/EDE7F6/5E35B1.png?text=Focus+Music', dataAiHint: 'headphones music', item_payload: { playlist_id: 'spotify:playlist:focus_beats' } },
   { id: 'booster_ai_token', name: 'AI Help Token', type: 'Booster', price: 200, icon: <Zap className="h-8 w-8 text-green-400" />, image: 'https://placehold.co/300x200/E8F5E9/388E3C.png?text=AI+Token', dataAiHint: 'brain gears', item_payload: { token_type: 'ai_help', count: 1 } },
   
@@ -21,7 +22,6 @@ const storeItems = [
   { id: 'avatar_space_explorer', name: 'Space Explorer', type: 'Avatar', price: 175, icon: <UserCircle2 className="h-8 w-8 text-indigo-400" />, image: 'https://api.dicebear.com/8.x/lorelei/svg?seed=SpaceExplorer&size=150', dataAiHint: 'space astronaut', item_payload: { avatar_url: 'https://api.dicebear.com/8.x/lorelei/svg?seed=SpaceExplorer&size=150' } },
   { id: 'theme_forest', name: 'Forest Green Theme', type: 'Theme', price: 100, icon: <Palette className="h-8 w-8 text-green-500" />, image: 'https://placehold.co/300x200/C8E6C9/2E7D32.png?text=Forest+Theme', dataAiHint: 'forest path', item_payload: { theme: 'forest_green_theme_config' } },
   { id: 'avatar_pixel_hero', name: 'Pixel Hero', type: 'Avatar', price: 120, icon: <UserCircle2 className="h-8 w-8 text-orange-400" />, image: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=Hero&size=150', dataAiHint: 'pixel character hero', item_payload: { avatar_url: 'https://api.dicebear.com/8.x/pixel-art-neutral/svg?seed=Hero&size=150' } },
-  // ... more items based on the list provided in user code ...
   { id: 'avatar_monster_buddy', name: 'Monster Buddy', type: 'Avatar', price: 160, icon: <UserCircle2 className="h-8 w-8 text-teal-400" />, image: 'https://robohash.org/monsterbuddy.png?set=set2&size=300x200', dataAiHint: 'cute monster', item_payload: { avatar_url: 'https://robohash.org/monsterbuddy.png?set=set2&size=150x150' } },
   { id: 'avatar_kitten_codey', name: 'Codey the Kitten', type: 'Avatar', price: 180, icon: <UserCircle2 className="h-8 w-8 text-pink-400" />, image: 'https://robohash.org/codeykitten.png?set=set4&size=300x200', dataAiHint: 'coding cat', item_payload: { avatar_url: 'https://robohash.org/codeykitten.png?set=set4&size=150x150' } },
 ];
@@ -52,7 +52,7 @@ export default function StudyStorePage() {
   useEffect(() => {
     const loadInitialData = async () => {
       if (!userId) {
-        setIsLoading(false); // No user, nothing to load related to them
+        setIsLoading(false); 
         return;
       }
       setIsLoading(true);
@@ -66,26 +66,10 @@ export default function StudyStorePage() {
         if (profileError && profileError.code !== 'PGRST116') throw profileError;
         
         setCurrentFocusCoins(profile?.focus_coins || 0);
-        // Assuming owned_store_items is an array of item IDs
-        // Check if owned_store_items is an array before creating a Set
-        if (Array.isArray(profile?.owned_store_items)) {
- setOwnedItemIds(new Set(profile.owned_store_items as string[]));
-        } else {
- setOwnedItemIds(new Set());
-        }
+        setOwnedItemIds(new Set(profile?.owned_store_items as string[] || []));
       } catch (error: any) {
           console.error("Error loading store data:", error);
           toast({variant: 'destructive', title: 'Error loading data', description: error.message});
-          // Fallback to apiClient demo data if DB fails for some reason during dev
-          const coins = await apiClient.fetchUserFocusCoins(); 
-          setCurrentFocusCoins(coins);
-          const ownedAvatars = await apiClient.fetchOwnedItemIds('avatar');
-          // Check if ownedAvatars is an array before creating a Set
- if (Array.isArray(ownedAvatars)) {
- setOwnedItemIds(new Set(ownedAvatars));
-          } else {
- setOwnedItemIds(new Set());
-          }
       } finally {
         setIsLoading(false);
       }
@@ -93,14 +77,8 @@ export default function StudyStorePage() {
     if (userId) {
         loadInitialData();
     } else {
-        // If no user, use demo data or clear
-        setCurrentFocusCoins(apiClient.fetchUserFocusCoins() as unknown as number); // apiClient is sync for demo
-        const ownedItems = apiClient.fetchOwnedItemIds() as unknown as string[];
-        if (Array.isArray(ownedItems)) {
- setOwnedItemIds(new Set(ownedItems));
-        } else {
- setOwnedItemIds(new Set());
-        }
+        setCurrentFocusCoins(0); 
+        setOwnedItemIds(new Set());
         setIsLoading(false);
     }
   }, [userId, supabase, toast]);
@@ -114,7 +92,6 @@ export default function StudyStorePage() {
     setIsProcessingPurchase(item.id);
     
     try {
-        // 1. Check current coins from DB (important to prevent race conditions)
         const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('focus_coins, owned_store_items')
@@ -142,15 +119,13 @@ export default function StudyStorePage() {
         const newCoinBalance = currentCoins - item.price;
         const newOwnedItems = Array.from(currentOwnedItems.add(item.id));
 
-        // 2. Update profile with new coin balance and owned items
         const { error: updateError } = await supabase
             .from('profiles')
-            .update({ focus_coins: newCoinBalance, owned_store_items: newOwnedItems })
+            .update({ focus_coins: newCoinBalance, owned_store_items: newOwnedItems, updated_at: new Date().toISOString() })
             .eq('id', userId);
 
         if (updateError) throw updateError;
 
-        // 3. Update local state
         setCurrentFocusCoins(newCoinBalance);
         setOwnedItemIds(new Set(newOwnedItems));
         
@@ -170,20 +145,22 @@ export default function StudyStorePage() {
   
   const handleApplyAvatar = async (avatarUrl: string) => {
     if (!userId || !avatarUrl) return;
-    setIsProcessingPurchase(`apply-${avatarUrl}`); // Use a unique key for processing state
+    setIsProcessingPurchase(`apply-${avatarUrl}`);
 
     try {
         const updateData: TablesUpdate<'profiles'> = { avatar_url: avatarUrl, updated_at: new Date().toISOString() };
-        const { error } = await supabase
+        const { error: profileUpdateError } = await supabase
             .from('profiles')
             .update(updateData)
             .eq('id', userId);
-        if (error) throw error;
+        if (profileUpdateError) throw profileUpdateError;
         
-        // Update user auth metadata as well if possible (for immediate reflection in some parts of app)
-        await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+        const { error: authUpdateError } = await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+        if (authUpdateError) {
+            console.warn("Error updating auth user metadata for avatar:", authUpdateError.message);
+        }
 
-        toast({ title: 'Avatar Applied!', description: 'Your profile picture has been updated.', className: 'bg-green-500/10 border-green-400 text-green-300' });
+        toast({ title: 'Avatar Applied!', description: 'Your profile picture has been updated. Refresh may be needed to see changes everywhere.', className: 'bg-green-500/10 border-green-400 text-green-300' });
     } catch(error: any) {
         toast({ variant: 'destructive', title: 'Error Applying Avatar', description: error.message });
     } finally {
@@ -237,7 +214,7 @@ export default function StudyStorePage() {
                         variant="outline"
                         size="sm"
                         className="w-full glow-button border-green-500 text-green-500 hover:bg-green-500/10"
-                        onClick={() => handleApplyAvatar(item.item_payload.avatar_url)}
+                        onClick={() => handleApplyAvatar(item.item_payload.avatar_url!)}
                         disabled={isProcessingPurchase === `apply-${item.item_payload.avatar_url}`}
                     >
                          {isProcessingPurchase === `apply-${item.item_payload.avatar_url}` ? <Loader2 className="h-4 w-4 animate-spin mr-1"/> : <CheckCircle className="mr-1 h-4 w-4"/>}
@@ -281,3 +258,5 @@ export default function StudyStorePage() {
     </div>
   );
 }
+
+    

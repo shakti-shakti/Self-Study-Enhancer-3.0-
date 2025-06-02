@@ -1,25 +1,30 @@
+
 // src/app/dashboard/selfie-attendance/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef, useTransition } from 'react'; 
+import React, { useState, useEffect, useRef, useTransition, useCallback } from 'react'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info } from 'lucide-react';
+import { Camera, CheckCircle, AlertTriangle, Loader2, Timer, Info, Users } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { createClient } from '@/lib/supabase/client'; // For conceptual Supabase interaction
-import type { TablesInsert } from '@/lib/database.types'; // For conceptual Supabase interaction
+import { createClient } from '@/lib/supabase/client';
+import type { TablesInsert, ActivityLogWithSelfie } from '@/lib/database.types';
+import { format, parseISO } from 'date-fns';
+import NextImage from 'next/image'; // For displaying stored images
 
 export default function SelfieAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null); // For capturing image
+  const canvasRef = useRef<HTMLCanvasElement>(null); 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isProcessing, startProcessingTransition] = useTransition();
+  const [isFetchingHistory, startFetchingHistoryTransition] = useTransition();
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  const supabase = createClient(); // For conceptual Supabase interaction
-  const [userId, setUserId] = useState<string | null>(null); // For conceptual Supabase interaction
+  const supabase = createClient(); 
+  const [userId, setUserId] = useState<string | null>(null);
+  const [selfieHistory, setSelfieHistory] = useState<ActivityLogWithSelfie[]>([]);
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -34,6 +39,31 @@ export default function SelfieAttendancePage() {
         authListener.subscription.unsubscribe();
     };
   }, [supabase]);
+
+  const fetchSelfieHistory = useCallback(async () => {
+    if (!userId) return;
+    startFetchingHistoryTransition(async () => {
+        const { data, error } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('activity_type', 'selfie_attendance_marked')
+            .order('created_at', { ascending: false })
+            .limit(10); // Show last 10 selfies
+
+        if (error) {
+            toast({ variant: 'destructive', title: 'Error Fetching Attendance History', description: error.message });
+        } else {
+            setSelfieHistory(data as ActivityLogWithSelfie[] || []);
+        }
+    });
+  }, [userId, supabase, toast]);
+
+  useEffect(() => {
+    if (userId) {
+        fetchSelfieHistory();
+    }
+  }, [userId, fetchSelfieHistory]);
 
 
   useEffect(() => {
@@ -87,7 +117,8 @@ export default function SelfieAttendancePage() {
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/png');
+        // For higher quality, use image/jpeg with quality, but png is fine for demo.
+        const dataUri = canvas.toDataURL('image/png'); 
         return dataUri;
       }
     }
@@ -107,32 +138,29 @@ export default function SelfieAttendancePage() {
                     captureSelfie().then(async (imageDataUri) => {
                         if (imageDataUri) {
                             console.log("Captured Selfie Data URI (first 100 chars):", imageDataUri.substring(0, 100) + "...");
-                            // Conceptual: Save imageDataUri to Supabase Storage and log attendance
                             if (userId) {
                                 try {
-                                    // const fileName = `selfie_${userId}_${Date.now()}.png`;
-                                    // const { data: storageData, error: storageError } = await supabase.storage
-                                    //     .from('selfie_attendance') // Ensure this bucket exists with proper policies
-                                    //     .upload(fileName, imageDataUri, { contentType: 'image/png', upsert: true });
-                                    // if (storageError) throw storageError;
-                                    // const selfieUrl = supabase.storage.from('selfie_attendance').getPublicUrl(fileName).data.publicUrl;
-
-                                    const attendanceLog: TablesInsert<'activity_logs'> = { // Assuming an 'activity_logs' table
+                                    const attendanceLog: TablesInsert<'activity_logs'> = { 
                                         user_id: userId,
                                         activity_type: 'selfie_attendance_marked',
                                         description: 'Selfie attendance marked.',
-                                        details: { captured_at: new Date().toISOString(), /* selfie_image_url: selfieUrl */ }
+                                        details: { 
+                                            selfie_image_data_uri: imageDataUri, // Storing for demo display
+                                            captured_at: new Date().toISOString() 
+                                        }
                                     };
-                                    // await supabase.from('activity_logs').insert(attendanceLog);
-                                    console.log("Conceptual: Selfie attendance log created for user:", userId, attendanceLog);
+                                    const { error: logError } = await supabase.from('activity_logs').insert(attendanceLog);
+                                    if (logError) throw logError;
+
                                     toast({
-                                        title: 'Attendance Marked (Conceptual)!',
-                                        description: 'Your presence has been noted. Image captured (conceptually saved).',
+                                        title: 'Attendance Marked!',
+                                        description: 'Your presence has been noted. Image captured and (conceptually) saved.',
                                         className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
                                     });
+                                    fetchSelfieHistory(); // Refresh history
                                 } catch (error: any) {
-                                     console.error("Error in conceptual save:", error);
-                                     toast({variant: "destructive", title: "Conceptual Save Error", description: error.message});
+                                     console.error("Error saving attendance log:", error);
+                                     toast({variant: "destructive", title: "Error Saving Attendance", description: error.message});
                                 }
                             } else {
                                  toast({variant: "destructive", title: "User ID Missing", description: "Cannot save attendance without user ID."});
@@ -159,14 +187,14 @@ export default function SelfieAttendancePage() {
           Mark your daily attendance with a quick selfie. Stay consistent!
         </p>
       </header>
-      <canvas ref={canvasRef} style={{ display: 'none' }} /> {/* Hidden canvas for image capture */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} /> 
       <Card className="max-w-lg mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-primary/10">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">Camera View</CardTitle>
           <CardDescription>Ensure your face is clearly visible. Smile!</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center relative game-canvas"> {/* Added game-canvas */}
+          <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border shadow-inner flex items-center justify-center relative game-canvas">
             {hasCameraPermission === null && <Loader2 className="h-12 w-12 animate-spin text-primary" />}
             {hasCameraPermission === false && (
               <div className="text-center p-4">
@@ -175,7 +203,6 @@ export default function SelfieAttendancePage() {
                 <p className="text-sm text-muted-foreground">Please grant camera permission in your browser.</p>
               </div>
             )}
-            {/* Always render video tag to prevent race condition, control visibility via hasCameraPermission */}
             <video 
                 ref={videoRef} 
                 className={`w-full h-full object-cover ${hasCameraPermission === true ? 'block' : 'hidden'}`} 
@@ -210,13 +237,52 @@ export default function SelfieAttendancePage() {
           </Button>
         </CardContent>
       </Card>
+      
+      <Card className="max-w-3xl mx-auto interactive-card p-2 md:p-4 shadow-xl shadow-secondary/10 mt-8">
+        <CardHeader>
+            <CardTitle className="text-2xl font-headline glow-text-secondary flex items-center"><Users className="mr-2"/>Recent Selfie Attendances</CardTitle>
+            <CardDescription>Your last few check-ins.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {isFetchingHistory && selfieHistory.length === 0 && <div className="text-center p-4"><Loader2 className="h-8 w-8 animate-spin text-secondary"/></div>}
+            {!isFetchingHistory && selfieHistory.length === 0 && <p className="text-muted-foreground text-center p-4">No selfie attendances recorded yet.</p>}
+            {selfieHistory.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {selfieHistory.map(log => (
+                        <Card key={log.id} className="overflow-hidden bg-card/70 border-border/50 shadow-md">
+                            {log.details?.selfie_image_data_uri ? (
+                                <NextImage 
+                                    src={log.details.selfie_image_data_uri} 
+                                    alt={`Selfie from ${format(parseISO(log.created_at), "PPp")}`} 
+                                    width={150} 
+                                    height={150} 
+                                    className="w-full aspect-square object-cover"
+                                />
+                            ) : (
+                                <div className="w-full aspect-square bg-muted flex items-center justify-center">
+                                    <Camera className="h-10 w-10 text-muted-foreground"/>
+                                </div>
+                            )}
+                            <p className="text-xs text-center p-1.5 bg-muted/50 text-muted-foreground">
+                                {format(parseISO(log.created_at), "MMM d, HH:mm")}
+                            </p>
+                        </Card>
+                    ))}
+                </div>
+            )}
+        </CardContent>
+      </Card>
+
       <Alert variant="default" className="max-w-lg mx-auto bg-muted/30 border-primary/30">
         <Info className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Feature Note</AlertTitle>
+        <AlertTitle className="font-semibold text-primary">Feature Note & Data Storage</AlertTitle>
         <AlertDescription>
-            This feature captures an image from your webcam. In a full implementation, this image would be uploaded and stored on a server (e.g., Supabase Storage) and linked to your attendance record. Currently, the image is captured and displayed in console (conceptually) but not persistently saved.
+            This feature captures an image from your webcam. For demonstration purposes, the image data (as a Base64 string) is conceptually stored in the 'activity_logs' table to enable display on this page.
+            <strong className="block mt-1 text-destructive-foreground bg-destructive/20 p-1 rounded">In a production application, storing full image data directly in a primary database table is highly discouraged due to size and performance implications.</strong> Images should be uploaded to a dedicated file storage service (like Supabase Storage), and only the URL/path to the image should be stored in the database.
         </AlertDescription>
       </Alert>
     </div>
   );
 }
+
+    
