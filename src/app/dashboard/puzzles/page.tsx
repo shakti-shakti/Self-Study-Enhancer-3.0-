@@ -2,7 +2,7 @@
 // src/app/dashboard/puzzles/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -45,7 +45,7 @@ export default function PuzzleDashboardPage() {
     });
     const getInitialUser = async () => {
         const {data: {user}} = await supabase.auth.getUser();
-        setUserId(user?.id || null);
+        setUserId(user?.id ?? null);
     };
     getInitialUser();
     return () => {
