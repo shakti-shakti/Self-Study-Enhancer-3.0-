@@ -49,7 +49,7 @@ export default function SelfieAttendancePage() {
             .eq('user_id', userId)
             .eq('activity_type', 'selfie_attendance_marked')
             .order('created_at', { ascending: false })
-            .limit(10); // Show last 10 selfies
+            .limit(10); 
 
         if (error) {
             toast({ variant: 'destructive', title: 'Error Fetching Attendance History', description: error.message });
@@ -108,7 +108,18 @@ export default function SelfieAttendancePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
-  const captureSelfie = async (): Promise<string | null> => {
+  const dataURItoBlob = (dataURI: string) => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  };
+
+  const captureSelfieAndUpload = async (): Promise<string | null> => {
     if (videoRef.current && canvasRef.current && hasCameraPermission) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -117,9 +128,33 @@ export default function SelfieAttendancePage() {
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // For higher quality, use image/jpeg with quality, but png is fine for demo.
-        const dataUri = canvas.toDataURL('image/png'); 
-        return dataUri;
+        const dataUri = canvas.toDataURL('image/png');
+        
+        if (!userId) {
+            toast({variant: "destructive", title: "User ID missing", description: "Cannot upload image."});
+            return null;
+        }
+
+        const blob = dataURItoBlob(dataUri);
+        const fileName = `selfie_${userId}_${Date.now()}.png`;
+        const filePath = `${userId}/${fileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('selfie-attendances') // Ensure this bucket exists
+            .upload(filePath, blob, {
+                cacheControl: '3600',
+                upsert: false, // true if you want to overwrite if file name clashes, false to error
+            });
+
+        if (uploadError) {
+            console.error("Error uploading selfie to storage:", uploadError);
+            toast({ variant: "destructive", title: "Upload Failed", description: uploadError.message });
+            return null;
+        }
+        
+        // Get public URL of the uploaded file
+        const { data: publicUrlData } = supabase.storage.from('selfie-attendances').getPublicUrl(filePath);
+        return publicUrlData.publicUrl;
       }
     }
     return null;
@@ -135,9 +170,8 @@ export default function SelfieAttendancePage() {
                     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
                     setCountdown(null);
                     
-                    captureSelfie().then(async (imageDataUri) => {
-                        if (imageDataUri) {
-                            console.log("Captured Selfie Data URI (first 100 chars):", imageDataUri.substring(0, 100) + "...");
+                    captureSelfieAndUpload().then(async (imageStoragePath) => {
+                        if (imageStoragePath) {
                             if (userId) {
                                 try {
                                     const attendanceLog: TablesInsert<'activity_logs'> = { 
@@ -145,7 +179,7 @@ export default function SelfieAttendancePage() {
                                         activity_type: 'selfie_attendance_marked',
                                         description: 'Selfie attendance marked.',
                                         details: { 
-                                            selfie_image_data_uri: imageDataUri, // Storing for demo display
+                                            image_storage_path: imageStoragePath, // Store path instead of data URI
                                             captured_at: new Date().toISOString() 
                                         }
                                     };
@@ -154,7 +188,7 @@ export default function SelfieAttendancePage() {
 
                                     toast({
                                         title: 'Attendance Marked!',
-                                        description: 'Your presence has been noted. Image captured and (conceptually) saved.',
+                                        description: 'Your presence has been noted and image saved.',
                                         className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
                                     });
                                     fetchSelfieHistory(); // Refresh history
@@ -166,7 +200,7 @@ export default function SelfieAttendancePage() {
                                  toast({variant: "destructive", title: "User ID Missing", description: "Cannot save attendance without user ID."});
                             }
                         } else {
-                            toast({ variant: "destructive", title: "Capture Failed", description: "Could not capture selfie." });
+                            toast({ variant: "destructive", title: "Capture or Upload Failed", description: "Could not capture or upload selfie." });
                         }
                     });
                     return null;
@@ -250,13 +284,14 @@ export default function SelfieAttendancePage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {selfieHistory.map(log => (
                         <Card key={log.id} className="overflow-hidden bg-card/70 border-border/50 shadow-md">
-                            {log.details?.selfie_image_data_uri ? (
+                            {log.details?.image_storage_path ? (
                                 <NextImage 
-                                    src={log.details.selfie_image_data_uri} 
-                                    alt={`Selfie from ${format(parseISO(log.created_at), "PPp")}`} 
+                                    src={log.details.image_storage_path} 
+                                    alt={`Selfie from ${log.details.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`} 
                                     width={150} 
                                     height={150} 
                                     className="w-full aspect-square object-cover"
+                                    onError={(e) => { e.currentTarget.src = 'https://placehold.co/150x150/CCCCCC/777777.png?text=Error';}} // Fallback image
                                 />
                             ) : (
                                 <div className="w-full aspect-square bg-muted flex items-center justify-center">
@@ -264,7 +299,7 @@ export default function SelfieAttendancePage() {
                                 </div>
                             )}
                             <p className="text-xs text-center p-1.5 bg-muted/50 text-muted-foreground">
-                                {format(parseISO(log.created_at), "MMM d, HH:mm")}
+                                {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : format(parseISO(log.created_at), "MMM d, HH:mm")}
                             </p>
                         </Card>
                     ))}
@@ -275,14 +310,12 @@ export default function SelfieAttendancePage() {
 
       <Alert variant="default" className="max-w-lg mx-auto bg-muted/30 border-primary/30">
         <Info className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Feature Note & Data Storage</AlertTitle>
+        <AlertTitle className="font-semibold text-primary">Data Storage</AlertTitle>
         <AlertDescription>
-            This feature captures an image from your webcam. For demonstration purposes, the image data (as a Base64 string) is conceptually stored in the 'activity_logs' table to enable display on this page.
-            <strong className="block mt-1 text-destructive-foreground bg-destructive/20 p-1 rounded">In a production application, storing full image data directly in a primary database table is highly discouraged due to size and performance implications.</strong> Images should be uploaded to a dedicated file storage service (like Supabase Storage), and only the URL/path to the image should be stored in the database.
+            Selfies are uploaded to secure cloud storage, and only the path is stored in the database for display. This ensures privacy and efficient data management.
         </AlertDescription>
       </Alert>
     </div>
   );
 }
-
     

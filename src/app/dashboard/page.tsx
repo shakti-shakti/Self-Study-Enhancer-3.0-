@@ -7,12 +7,12 @@ import { createClient } from '@/lib/supabase/server';
 import { generateSyllabusFact, type GenerateSyllabusFactOutput } from '@/ai/flows/random-fact-generator';
 import { generateDailyChallenge, type GenerateDailyChallengeOutput } from '@/ai/flows/daily-challenge-flow';
 import { generateDailyMotivation, type GenerateDailyMotivationOutput } from '@/ai/flows/daily-motivation-flow';
-import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck, Users, Camera } from 'lucide-react';
+import { Lightbulb, MessageSquare, TrendingUp, ChevronRight, CalendarDays, Edit, Award, Zap, BookOpenCheck, Users, Camera, Coins } from 'lucide-react';
 import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables, ActivityLogWithSelfie } from '@/lib/database.types';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
-import NextImage from 'next/image'; // For selfie display
+import NextImage from 'next/image'; 
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -91,19 +91,25 @@ export default async function DashboardPage() {
       profileData = fetchedProfileData;
     }
 
-    // Fetch recent selfie attendances
     const { data: selfieLogs, error: selfieLogError } = await supabase
       .from('activity_logs')
       .select('*')
       .eq('user_id', user.id)
       .eq('activity_type', 'selfie_attendance_marked')
       .order('created_at', { ascending: false })
-      .limit(2); // Show latest 2 selfies on dashboard
+      .limit(2); 
     
     if (selfieLogError) {
       console.error("[ Server ] Error fetching selfie attendances:", selfieLogError.message);
     } else {
-      recentSelfieAttendances = selfieLogs as ActivityLogWithSelfie[] || [];
+      recentSelfieAttendances = (selfieLogs as ActivityLogWithSelfie[] || []).map(log => ({
+          ...log,
+          details: log.details ? {
+              ...log.details,
+              // Ensure image_storage_path is used, not selfie_image_data_uri for display
+              selfie_image_storage_path: (log.details as any).image_storage_path || (log.details as any).selfie_image_data_uri, 
+          } : null,
+      }));
     }
   }
   
@@ -152,7 +158,7 @@ export default async function DashboardPage() {
             Welcome Back, Aspirant!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            This is your command center for NEET conquest. Coins: {profileData?.focus_coins || 0} 🪙 | XP: {profileData?.xp || 0} ✨
+            This is your command center for NEET conquest. <Coins className="inline h-5 w-5 text-accent"/> {profileData?.focus_coins || 0} | ✨ {profileData?.xp || 0} XP
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -241,13 +247,9 @@ export default async function DashboardPage() {
             <Button asChild variant="outline" className="glow-button text-base py-6"><Link href="/dashboard/ai-study-assistant">AI Study Assistant</Link></Button>
             <Button asChild variant="outline" className="glow-button text-base py-6 col-span-1 sm:col-span-2 lg:col-span-3 flex items-center">
                 <Link href="/dashboard/study-rooms">
-                    <Users className="mr-2 h-5 w-5"/> Enter Study Rooms (Conceptual Button)
+                    <Users className="mr-2 h-5 w-5"/> Enter Study Rooms
                 </Link>
             </Button>
-            <CardDescription className="text-xs text-muted-foreground col-span-1 sm:col-span-2 lg:col-span-3 text-center">
-                (The "Enter Study Rooms" button is a placeholder. Full functionality would involve listing available rooms or joining by ID.)
-            </CardDescription>
-
           </div>
         </CardContent>
       </Card>
@@ -320,13 +322,14 @@ export default async function DashboardPage() {
                     <div className="grid grid-cols-2 gap-3">
                         {recentSelfieAttendances.map(log => (
                             <div key={log.id} className="border rounded-md overflow-hidden bg-muted/30">
-                                {log.details?.selfie_image_data_uri ? (
+                                {log.details?.image_storage_path ? (
                                     <NextImage 
-                                        src={log.details.selfie_image_data_uri} 
+                                        src={log.details.image_storage_path} 
                                         alt={`Selfie from ${log.details.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`} 
                                         width={150} 
                                         height={150} 
                                         className="w-full aspect-square object-cover"
+                                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/150x150/CCCCCC/777777.png?text=Error';}} // Fallback image
                                     />
                                 ) : (
                                     <div className="w-full aspect-square bg-muted flex items-center justify-center">
@@ -334,7 +337,7 @@ export default async function DashboardPage() {
                                     </div>
                                 )}
                                 <p className="text-xs text-center p-1 bg-background text-muted-foreground">
-                                    {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : 'Unknown Time'}
+                                    {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : format(parseISO(log.created_at), "MMM d, HH:mm")}
                                 </p>
                             </div>
                         ))}
@@ -352,5 +355,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
-
     

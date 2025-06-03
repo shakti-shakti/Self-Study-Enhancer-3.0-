@@ -2,7 +2,7 @@
 // src/app/dashboard/study-store/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Sparkles, Palette, Music, Zap, UserCircle2, AlertTriangle, Coins, Loader2, CheckCircle } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function StudyStorePage() {
     });
     const getInitialUser = async () => {
         const {data: {user}} = await supabase.auth.getUser();
-        setUserId(user?.id || null);
+        setUserId(user?.id ?? null);
     };
     getInitialUser();
     return () => {
@@ -53,20 +53,16 @@ export default function StudyStorePage() {
     const loadInitialData = async () => {
       if (!userId) {
         setIsLoading(false); 
+        setCurrentFocusCoins(0); 
+        setOwnedItemIds(new Set());
         return;
       }
       setIsLoading(true);
       try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('focus_coins, owned_store_items')
-          .eq('id', userId)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') throw profileError;
-        
-        setCurrentFocusCoins(profile?.focus_coins || 0);
-        setOwnedItemIds(new Set(profile?.owned_store_items as string[] || []));
+        const coins = await apiClient.fetchUserFocusCoins();
+        const ownedIds = await apiClient.fetchOwnedItemIds();
+        setCurrentFocusCoins(coins);
+        setOwnedItemIds(new Set(ownedIds));
       } catch (error: any) {
           console.error("Error loading store data:", error);
           toast({variant: 'destructive', title: 'Error loading data', description: error.message});
@@ -74,14 +70,8 @@ export default function StudyStorePage() {
         setIsLoading(false);
       }
     };
-    if (userId) {
-        loadInitialData();
-    } else {
-        setCurrentFocusCoins(0); 
-        setOwnedItemIds(new Set());
-        setIsLoading(false);
-    }
-  }, [userId, supabase, toast]);
+    loadInitialData();
+  }, [userId, toast]);
 
 
   const handlePurchase = async (item: typeof storeItems[0]) => {
@@ -91,56 +81,20 @@ export default function StudyStorePage() {
     }
     setIsProcessingPurchase(item.id);
     
-    try {
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('focus_coins, owned_store_items')
-            .eq('id', userId)
-            .single();
+    const result = await apiClient.purchaseStoreItem(item.id, item.price);
 
-        if (profileError) throw profileError;
-        if (!profileData) throw new Error("User profile not found.");
-
-        const currentCoins = profileData.focus_coins || 0;
-        const currentOwnedItems = new Set(profileData.owned_store_items as string[] || []);
-
-        if (currentOwnedItems.has(item.id)) {
-            toast({ title: "Already Owned", description: `You already own ${item.name}.` });
-            setIsProcessingPurchase(null);
-            return;
-        }
-
-        if (currentCoins < item.price) {
-            toast({ variant: 'destructive', title: 'Purchase Failed', description: 'Not enough Focus Coins.' });
-            setIsProcessingPurchase(null);
-            return;
-        }
-
-        const newCoinBalance = currentCoins - item.price;
-        const newOwnedItems = Array.from(currentOwnedItems.add(item.id));
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ focus_coins: newCoinBalance, owned_store_items: newOwnedItems, updated_at: new Date().toISOString() })
-            .eq('id', userId);
-
-        if (updateError) throw updateError;
-
-        setCurrentFocusCoins(newCoinBalance);
-        setOwnedItemIds(new Set(newOwnedItems));
-        
+    if (result.success) {
         toast({
             title: 'Purchase Successful!',
-            description: `You've unlocked ${item.name}! ${item.price} coins deducted.`,
+            description: result.message || `You've unlocked ${item.name}!`,
             className: 'bg-primary/10 border-primary text-primary-foreground',
         });
-
-    } catch (error: any) {
-        console.error("Error purchasing item:", error);
-        toast({ variant: 'destructive', title: 'Purchase Failed', description: error.message || `Could not purchase ${item.name}.` });
-    } finally {
-        setIsProcessingPurchase(null);
+        if (result.newCoinBalance !== undefined) setCurrentFocusCoins(result.newCoinBalance);
+        setOwnedItemIds(prev => new Set(prev).add(item.id));
+    } else {
+        toast({ variant: 'destructive', title: 'Purchase Failed', description: result.message || `Could not purchase ${item.name}.` });
     }
+    setIsProcessingPurchase(null);
   };
   
   const handleApplyAvatar = async (avatarUrl: string) => {
@@ -155,10 +109,9 @@ export default function StudyStorePage() {
             .eq('id', userId);
         if (profileUpdateError) throw profileUpdateError;
         
-        const { error: authUpdateError } = await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
-        if (authUpdateError) {
-            console.warn("Error updating auth user metadata for avatar:", authUpdateError.message);
-        }
+        // Also update auth.users.user_metadata if needed, usually for broader Supabase integration
+        // const { error: authUpdateError } = await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+        // if (authUpdateError) console.warn("Error updating auth user metadata for avatar:", authUpdateError.message);
 
         toast({ title: 'Avatar Applied!', description: 'Your profile picture has been updated. Refresh may be needed to see changes everywhere.', className: 'bg-green-500/10 border-green-400 text-green-300' });
     } catch(error: any) {
@@ -236,7 +189,7 @@ export default function StudyStorePage() {
         <CardContent className="space-y-3 text-muted-foreground">
           <p><strong>Earning Focus Coins:</strong></p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>Excel in quizzes: Higher scores can yield more coins!</li>
+            <li>Excel in quizzes: Higher scores yield more coins!</li>
             <li>Complete daily and weekly challenges from the "Challenges" page.</li>
             <li>Spin the Rewards Wheel daily.</li>
             <li>Win games in the Games Arcade.</li>
@@ -246,17 +199,16 @@ export default function StudyStorePage() {
           <ul className="list-disc pl-5 space-y-1">
             <li>Unlock exclusive app themes.</li>
             <li>Get unique avatars and accessories.</li>
-            <li>Purchase study boosters like AI help tokens.</li>
+            <li>Purchase study boosters like AI help tokens (conceptual for now).</li>
             <li>Unlock premium content in Story Syllabus or Puzzles.</li>
           </ul>
           <p className="mt-4 text-xs">
             <AlertTriangle className="inline h-4 w-4 mr-1 text-yellow-500" />
-            Focus Coins and XP are now being tracked in your profile. More ways to earn and spend will be added!
+            Focus Coins are now tracked in your profile. More ways to earn and spend will be added!
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
-
     

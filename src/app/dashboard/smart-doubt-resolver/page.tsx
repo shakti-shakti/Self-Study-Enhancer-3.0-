@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { resolveDoubt, type ResolveDoubtInput, type ResolveDoubtOutput } from '@/ai/flows/smart-doubt-resolver';
 import { Lightbulb, Loader2, UploadCloud, Sparkles, Image as ImageIcon } from 'lucide-react';
-import NextImage from 'next/image'; // Renamed to avoid conflict with Lucide's Image
+import NextImage from 'next/image'; 
 import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert } from '@/lib/database.types';
 
@@ -39,7 +39,7 @@ type DoubtResolverFormData = z.infer<typeof doubtResolverSchema>;
 export default function SmartDoubtResolverPage() {
   const [isPending, startTransition] = useTransition();
   const [aiExplanation, setAiExplanation] = useState<ResolveDoubtOutput | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null); // This will hold the Data URI for UI preview
   const { toast } = useToast();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,62 +68,87 @@ export default function SmartDoubtResolverPage() {
     }
   };
 
+  const dataURItoBlob = (dataURI: string) => {
+    const byteString = atob(dataURI.split(',')[1]);
+    const mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+  };
+
   async function onSubmit(values: DoubtResolverFormData) {
     setAiExplanation(null);
-    if (!values.questionImage || values.questionImage.length === 0) {
+    if (!values.questionImage || values.questionImage.length === 0 || !previewImage) {
         toast({ variant: 'destructive', title: 'No image selected', description: 'Please upload an image of your question.' });
         return;
     }
     
     const file = values.questionImage[0];
-    const reader = new FileReader();
+    const imageDataUriForAI = previewImage; // Use the Data URI from state for AI processing
 
-    reader.onloadend = () => {
-        const imageDataUri = reader.result as string;
-        startTransition(async () => {
-          try {
-            const input: ResolveDoubtInput = { 
-                questionImage: imageDataUri,
-                subjectContext: values.subjectContext
-            };
-            const result = await resolveDoubt(input);
-            setAiExplanation(result);
+    startTransition(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            toast({ variant: "destructive", title: "Not authenticated", description: "Please log in."});
+            return;
+        }
 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                // Store a smaller preview or just metadata if imageDataUri is too large for DB
-                const previewDataUri = imageDataUri.length > 1000000 ? 'Image too large for DB preview' : imageDataUri;
-                const logEntry: TablesInsert<'doubt_resolution_logs'> = {
-                    user_id: user.id,
-                    question_image_data_uri: previewDataUri, 
-                    explanation: result.explanation,
-                };
-                await supabase.from('doubt_resolution_logs').insert(logEntry);
-                
-                const activityLog: TablesInsert<'activity_logs'> = {
-                  user_id: user.id,
-                  activity_type: 'doubt_resolved',
-                  description: `Used Smart Doubt Resolver for a question${values.subjectContext ? ` on ${values.subjectContext}` : ''}.`,
-                  details: { subject: values.subjectContext, question_interpretation: result.questionText }
-                };
-                await supabase.from('activity_logs').insert(activityLog);
-            }
+        // 1. Upload image to Supabase Storage
+        const blob = dataURItoBlob(imageDataUriForAI);
+        const fileName = `doubt_${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
+        const filePath = `${user.id}/${fileName}`;
 
-            toast({
-              title: 'Explanation Ready!',
-              description: 'AI has analyzed your question.',
-              className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
-            });
-          } catch (error: any) {
-            toast({
-              variant: 'destructive',
-              title: 'Error resolving doubt',
-              description: error.message || 'An unexpected error occurred.',
-            });
-          }
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('doubt-resolver-images') // Ensure this bucket exists
+            .upload(filePath, blob, { upsert: false });
+
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage.from('doubt-resolver-images').getPublicUrl(filePath);
+        const imageStoragePath = publicUrlData.publicUrl;
+
+
+        // 2. Call AI flow with Data URI
+        const input: ResolveDoubtInput = { 
+            questionImage: imageDataUriForAI, // AI flow expects Data URI
+            subjectContext: values.subjectContext
+        };
+        const result = await resolveDoubt(input);
+        setAiExplanation(result);
+
+        // 3. Log to DB with storage path
+        const logEntry: TablesInsert<'doubt_resolution_logs'> = {
+            user_id: user.id,
+            question_image_storage_path: imageStoragePath, 
+            explanation: result.explanation,
+        };
+        await supabase.from('doubt_resolution_logs').insert(logEntry);
+        
+        const activityLog: TablesInsert<'activity_logs'> = {
+          user_id: user.id,
+          activity_type: 'doubt_resolved',
+          description: `Used Smart Doubt Resolver for a question${values.subjectContext ? ` on ${values.subjectContext}` : ''}.`,
+          details: { subject: values.subjectContext, question_interpretation: result.questionText, image_path: imageStoragePath }
+        };
+        await supabase.from('activity_logs').insert(activityLog);
+
+        toast({
+          title: 'Explanation Ready!',
+          description: 'AI has analyzed your question.',
+          className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
         });
-    };
-    reader.readAsDataURL(file);
+      } catch (error: any) {
+        console.error("Error in doubt resolver submission:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Error resolving doubt',
+          description: error.message || 'An unexpected error occurred.',
+        });
+      }
+    });
   }
 
   return (
@@ -262,4 +287,4 @@ export default function SmartDoubtResolverPage() {
     </div>
   );
 }
-
+    

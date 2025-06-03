@@ -2,7 +2,7 @@
 // src/app/dashboard/rewards-wheel/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'; // Added React
+import React, { useState, useEffect, useRef, useCallback } from 'react'; 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Gift, RefreshCw, Loader2, AlertTriangle, Coins, History, CalendarDays, Sparkles, Palette, UserCircle2, Radio } from 'lucide-react';
@@ -16,11 +16,11 @@ const rewards = [
   { id: 'coins_10', name: "+10 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 10, weight: 5, icon: <Coins/>, dataAiHint: "gold coins" },
   { id: 'token_ai', name: "AI Help Token", color: "hsl(var(--accent))", type: "token", value: 1, weight: 2, icon: <Sparkles/>, dataAiHint: "token bright" },
   { id: 'cosmetic_avatar_frame', name: "New Avatar Frame", color: "hsl(120, 60%, 50%)", type: "cosmetic", value: 'avatar_frame_01', weight: 3, icon: <UserCircle2/>, dataAiHint: "avatar frame" },
-  { id: 'cosmetic_theme_ocean', name: "Ocean Theme Unlock", color: "hsl(270, 70%, 60%)", type: "cosmetic", value: 'theme_ocean', weight: 1, icon: <Palette/>, dataAiHint: "theme abstract" },
+  { id: 'cosmetic_theme_ocean', name: "Ocean Blue Theme", color: "hsl(270, 70%, 60%)", type: "cosmetic", value: 'theme_ocean', weight: 1, icon: <Palette/>, dataAiHint: "theme abstract" },
   { id: 'none_try_again', name: "Try Again!", color: "hsl(var(--muted-foreground))", type: "none", value: 0, weight: 6, icon: <RefreshCw/>, dataAiHint: "question mark" },
   { id: 'coins_25', name: "+25 Focus Coins", color: "hsl(var(--primary))", type: "coins", value: 25, weight: 2, icon: <Coins/>, dataAiHint: "coins stack"},
-  { id: 'coins_5', name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, icon: <Coins/>, dataAiHint: "few coins" }, // Orange
-  { id: 'avatar_rare_01', name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 'avatar_rare_01', weight: 1, icon: <UserCircle2/>, dataAiHint: "rare avatar cool" }, // Pink/Magenta
+  { id: 'coins_5', name: "+5 Focus Coins", color: "hsl(30, 90%, 55%)", type: "coins", value: 5, weight: 4, icon: <Coins/>, dataAiHint: "few coins" }, 
+  { id: 'avatar_rare_01', name: "Rare Avatar!", color: "hsl(330, 80%, 60%)", type: "cosmetic", value: 'avatar_rare_01', weight: 1, icon: <UserCircle2/>, dataAiHint: "rare avatar cool" }, 
 ];
 
 const weightedRewards = rewards.flatMap(reward => Array(reward.weight).fill(reward));
@@ -50,6 +50,9 @@ export default function RewardsWheelPage() {
 
   useEffect(() => {
     loadSpinHistory();
+    // TODO: Implement daily spin limit check
+    // Example: const lastSpinDate = await apiClient.getLastSpinDate();
+    // if (lastSpinDate && isToday(parseISO(lastSpinDate))) setCanSpin(false);
   }, [loadSpinHistory]);
 
 
@@ -58,6 +61,9 @@ export default function RewardsWheelPage() {
 
     setIsSpinning(true);
     setFinalReward(null);
+
+    // Simulate daily spin limit for demo
+    // setCanSpin(false); // Uncomment to enforce one spin per session/day (needs proper backend)
 
     const randomRewardIndex = Math.floor(Math.random() * weightedRewards.length);
     const selectedReward = weightedRewards[randomRewardIndex];
@@ -87,12 +93,21 @@ export default function RewardsWheelPage() {
         className: `bg-opacity-20 border border-[${selectedReward.color}] text-[${selectedReward.color}]`,
       });
       
+      let xpEarned = 0;
       if (selectedReward.type === 'coins' && typeof selectedReward.value === 'number') {
-        const currentCoins = await apiClient.fetchUserFocusCoins();
-        await apiClient.updateUserFocusCoins(currentCoins + selectedReward.value);
+        await apiClient.updateUserFocusCoins((await apiClient.fetchUserFocusCoins()) + selectedReward.value);
+        xpEarned = selectedReward.value; // Example: 1 XP per coin
+      } else if (selectedReward.type === 'token') {
+        xpEarned = 20; // XP for a token
+        // await apiClient.addAiHelpToken(); // Conceptual
       } else if (selectedReward.type === 'cosmetic') {
-        console.log(`Cosmetic item won: ${selectedReward.name} (ID: ${selectedReward.value})`);
-        // In a real app: await apiClient.addUserCosmetic(userId, selectedReward.value as string);
+        xpEarned = 15; // XP for cosmetic
+        // await apiClient.unlockStoreItem(selectedReward.value as string); // Conceptual
+      }
+
+      if (xpEarned > 0) {
+          await apiClient.addUserXP(xpEarned);
+          toast({ title: "XP Gained!", description: `You earned +${xpEarned} XP from the wheel!`, className: "bg-secondary/10 border-secondary text-secondary-foreground" });
       }
       
       await apiClient.addSpinToHistory(selectedReward.name, selectedReward.type, selectedReward.value);
@@ -107,7 +122,7 @@ export default function RewardsWheelPage() {
     if (spin.rewardType === 'coins') {
       return `+${spin.rewardValue} Focus Coins`;
     }
-    return spin.rewardName; // For cosmetic, token, or "Try Again!"
+    return spin.rewardName; 
   };
 
 
@@ -118,7 +133,7 @@ export default function RewardsWheelPage() {
           <Gift className="mr-4 h-10 w-10 text-primary" /> Spin-the-Wheel Rewards
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Feeling lucky? Spin the wheel daily for a chance to win awesome rewards! (Demo allows multiple spins)
+          Feeling lucky? Spin the wheel for a chance to win awesome rewards!
         </p>
       </header>
 
@@ -171,7 +186,7 @@ export default function RewardsWheelPage() {
             className="w-full font-semibold text-xl py-6 glow-button"
           >
             {isSpinning ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <RefreshCw className="mr-2 h-6 w-6" />}
-            {isSpinning ? 'Spinning...' : 'Spin the Wheel!'}
+            {isSpinning ? 'Spinning...' : (canSpin ? 'Spin the Wheel!' : 'Spun Today!')}
           </Button>
 
           {finalReward && !isSpinning && (
@@ -209,7 +224,7 @@ export default function RewardsWheelPage() {
               <Loader2 className="h-8 w-8 animate-spin text-accent" />
             </div>
           ) : spinHistory.length === 0 ? (
-            <p className="text-muted-foreground text-center p-4">No spins recorded yet in this session.</p>
+            <p className="text-muted-foreground text-center p-4">No spins recorded yet.</p>
           ) : (
             <ScrollArea className="h-60">
               <ul className="space-y-3 pr-3">
@@ -229,13 +244,10 @@ export default function RewardsWheelPage() {
           )}
         </CardContent>
          <CardFooter>
-            <p className="text-xs text-muted-foreground">Spin history is for the current session (demo).</p>
+            <p className="text-xs text-muted-foreground">Spin history is now saved to your account.</p>
          </CardFooter>
       </Card>
-
-      <p className="text-center text-muted-foreground mt-8 text-sm">
-          Note: Reward logic and daily spin limits are simulated client-side for demo. Full backend integration needed for persistence.
-      </p>
     </div>
   );
 }
+    

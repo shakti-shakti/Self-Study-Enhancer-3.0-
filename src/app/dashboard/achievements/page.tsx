@@ -7,23 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Award, ShieldCheck, Star, Trophy, Zap, Lock, CheckCircle, Target as TargetIcon, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import * as apiClient from '@/lib/apiClient'; // Import the API client
+import * as apiClient from '@/lib/apiClient'; 
 import { useToast } from '@/hooks/use-toast';
 
-// Placeholder data structure for achievements
 interface Achievement {
   id: string;
   title: string;
   description: string;
   icon: React.ElementType;
   isUnlocked: boolean;
-  progress?: number; // Optional: 0-100 for progress bar
-  xpValue?: number; // Conceptual: XP awarded or XP threshold for this achievement
+  progress?: number; 
+  xpValue?: number; 
   badgeImageUrl?: string;
   dataAiHint?: string;
 }
 
-// Updated to include achievement IDs used in apiClient and ChallengesPage
 const initialSampleAchievements: Achievement[] = [
   { id: 'ach_first_mission', title: 'Mission Accomplished!', description: 'Complete your first mission from the Challenges page.', icon: TargetIcon, isUnlocked: false, xpValue: 75, dataAiHint: 'target mission complete' },
   { id: 'ach_xp_100', title: 'XP Centurion', description: 'Reach 100 XP!', icon: Star, isUnlocked: false, xpValue: 100, dataAiHint: 'star level up' },
@@ -76,7 +74,7 @@ export default function AchievementsPage() {
           <Trophy className="mr-4 h-10 w-10 text-primary" /> Achievements & Trophies
         </h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-          Track your accomplishments and showcase your dedication! (Unlock system is conceptual for demo)
+          Track your accomplishments and showcase your dedication!
         </p>
       </header>
 
@@ -124,8 +122,9 @@ export default function AchievementsPage() {
         ))}
       </div>
        <p className="text-center text-muted-foreground mt-8 text-sm">
-        Note: Achievement unlocking logic and XP system are simulated on the client-side for demo. Full backend integration is required.
+        Achievement unlocking logic is now connected to your profile progress.
       </p>
     </div>
   );
 }
+    

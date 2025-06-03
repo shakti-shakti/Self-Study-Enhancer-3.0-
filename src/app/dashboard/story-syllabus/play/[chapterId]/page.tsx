@@ -7,8 +7,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollText, ChevronLeft, Loader2, AlertTriangle, Puzzle } from 'lucide-react';
-import { initialSyllabusRealms, type Chapter as StoryChapterType } from '@/lib/story-data'; // Use a distinct name for the type
-import puzzleDatabase from '@/lib/puzzle-data'; // Import puzzle database to find related puzzles
+import { initialSyllabusRealms, type Chapter as StoryChapterType } from '@/lib/story-data';
+import puzzleDatabase from '@/lib/puzzle-data';
 
 interface ChapterDisplayData {
   id: string;
@@ -17,7 +17,7 @@ interface ChapterDisplayData {
   story_summary?: string;
   realmName?: string;
   subject?: string;
-  firstPuzzleId?: string; // ID of a conceptually linked first puzzle
+  firstPuzzleId?: string;
   firstPuzzleName?: string;
 }
 
@@ -36,19 +36,31 @@ export default function StoryChapterPlayPage() {
       for (const realm of initialSyllabusRealms) {
         const chapter = realm.chapters.find(ch => ch.id === chapterId);
         if (chapter) {
-          // Conceptual link: Find first puzzle matching chapter name/subject for demo
           let firstPuzzleId: string | undefined = undefined;
           let firstPuzzleName: string | undefined = undefined;
           
-          const potentialPuzzles = Object.values(puzzleDatabase).filter(p => 
-            (p.subject && p.subject.toLowerCase() === realm.subject.toLowerCase()) ||
-            (p.name.toLowerCase().includes(chapter.name.toLowerCase().split(" ")[0])) // Match first word of chapter name
-          );
-
+          // Try to find a puzzle that matches the chapter's subject AND roughly its name
+          // This is a conceptual link for the demo.
+          const potentialPuzzles = Object.values(puzzleDatabase).filter(p => {
+            const subjectMatch = p.subject && p.subject.toLowerCase() === realm.subject.toLowerCase();
+            const nameMatch = chapter.name.toLowerCase().split(' ').some(word => word.length > 3 && p.name.toLowerCase().includes(word));
+            return subjectMatch && nameMatch;
+          });
+          
           if (potentialPuzzles.length > 0) {
-            firstPuzzleId = potentialPuzzles[0].id;
-            firstPuzzleName = potentialPuzzles[0].name;
+            // Prioritize puzzles with similar names, then fallback to just subject match
+            const bestMatch = potentialPuzzles.find(p => p.name.toLowerCase().includes(chapter.name.toLowerCase().split(' ')[0])) || potentialPuzzles[0];
+            firstPuzzleId = bestMatch.id;
+            firstPuzzleName = bestMatch.name;
+          } else {
+            // Fallback: if no good name/subject match, find *any* puzzle from the chapter's subject as a placeholder
+             const subjectPuzzles = Object.values(puzzleDatabase).filter(p => p.subject && p.subject.toLowerCase() === realm.subject.toLowerCase());
+             if(subjectPuzzles.length > 0){
+                firstPuzzleId = subjectPuzzles[0].id;
+                firstPuzzleName = subjectPuzzles[0].name;
+             }
           }
+
 
           foundChapter = {
             id: chapter.id,
@@ -133,11 +145,11 @@ export default function StoryChapterPlayPage() {
                     onClick={() => router.push(`/dashboard/puzzles/play/${chapterDisplayData.firstPuzzleId}`)} 
                     className="glow-button text-lg py-3"
                 >
-                    <Puzzle className="mr-2 h-5 w-5"/> Begin First Challenge: {chapterDisplayData.firstPuzzleName || 'Puzzle'}
+                    <Puzzle className="mr-2 h-5 w-5"/> Engage First Challenge: {chapterDisplayData.firstPuzzleName || 'Puzzle'}
                 </Button>
             ) : (
                 <p className="text-muted-foreground">
-                    This chapter's interactive elements are under development. Explore related puzzles in the Puzzle Dashboard or check back soon!
+                    No specific puzzle is linked as the first challenge for this chapter yet. Explore the Puzzle Dashboard for related content!
                 </p>
             )}
           </div>
@@ -149,3 +161,4 @@ export default function StoryChapterPlayPage() {
     </div>
   );
 }
+    

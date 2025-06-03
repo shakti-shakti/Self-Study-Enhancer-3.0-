@@ -1,13 +1,22 @@
+
 // supabase/functions/submit_puzzle_solution/index.ts
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors-headers.ts'
+import { corsHeaders } from '../_shared/cors.ts'
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai'
 
 Deno.serve(async (req) => {
-  // This is needed if you're planning to invoke your function from a browser.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+  
+  const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+  if (!GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY environment variable is not set.');
+    return new Response(JSON.stringify({ error: 'AI service not configured (GEMINI_API_KEY missing)' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
   }
 
   try {
@@ -26,166 +35,163 @@ Deno.serve(async (req) => {
     if (!user_id || !puzzle_id || level === undefined || solution === undefined) {
       return new Response(
         JSON.stringify({ error: 'Missing user_id, puzzle_id, level, or solution' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch user's current level for this puzzle
+    // Fetch puzzle base definition and level-specific criteria (if stored)
+    const { data: puzzleDetails, error: fetchPuzzleError } = await supabaseClient
+      .from('puzzles')
+      .select('name, description, subject, category, base_definition, max_level, default_xp_award') // Add more fields as needed
+      .eq('id', puzzle_id)
+      .single();
+
+    if (fetchPuzzleError || !puzzleDetails) {
+      console.error('Error fetching puzzle details:', fetchPuzzleError?.message || 'Puzzle not found');
+      return new Response(JSON.stringify({ error: 'Error fetching puzzle details' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    const { name: puzzleName, description: puzzleDescription, subject, category, base_definition, max_level, default_xp_award } = puzzleDetails;
+
+
+    // Fetch user's current progress
     const { data: userProgress, error: fetchProgressError } = await supabaseClient
       .from('user_puzzle_progress')
-      .select('current_level')
+      .select('current_level, unlocked_at')
       .eq('user_id', user_id)
       .eq('puzzle_id', puzzle_id)
       .single();
 
-    if (fetchProgressError && fetchProgressError.code !== 'PGRST116') {
+    if (fetchProgressError && fetchProgressError.code !== 'PGRST116') { // PGRST116 = no rows, new player for this puzzle
        console.error('Error fetching user puzzle progress:', fetchProgressError);
-        return new Response(
-            JSON.stringify({ error: 'Database error fetching progress', details: fetchProgressError.message }),
-            {
-                status: 500,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
+        return new Response(JSON.stringify({ error: 'Database error fetching progress', details: fetchProgressError.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
+    
+    const currentLevelOnRecord = userProgress ? userProgress.current_level : 0;
 
-    const currentLevel = userProgress ? userProgress.current_level : 0; // Assume level 0 if no progress entry
-
-    // Check if the submitted level matches the user's current level (or the next expected level)
-    // This prevents users from skipping levels or submitting for levels they haven't reached.
-    if (level !== currentLevel + 1) {
-         // Allow submitting for current level just in case of retries, but don't level up again
-         if (level !== currentLevel) {
-            console.warn(`User ${user_id} submitting solution for incorrect level. Submitted: ${level}, Expected: ${currentLevel + 1}`);
-             return new Response(
-                 JSON.stringify({ success: false, message: 'Invalid level submitted.' }),
-                 {
-                     status: 400,
-                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                 }
-             );
-         }
+    if (level !== currentLevelOnRecord + 1 && level !== currentLevelOnRecord ) { // Allow submitting for current level again
+        console.warn(`User ${user_id} submitting solution for incorrect level. Submitted: ${level}, Expected: ${currentLevelOnRecord + 1} or ${currentLevelOnRecord}`);
+         return new Response(JSON.stringify({ success: false, message: 'Invalid level submitted for evaluation.' }),
+             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+         );
     }
+    
+    // Placeholder: Fetch actual solution criteria for this level if it was stored (e.g., from AI generation step)
+    // For now, we rely on `base_definition.solutionCriteriaForAI` if it exists, or a generic prompt.
+    const solutionCriteria = (base_definition as any)?.solutionCriteriaForAI || `The solution should correctly solve the puzzle type: ${(base_definition as any)?.type} for puzzle "${puzzleName}".`;
 
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // --- Puzzle Evaluation Logic ---
-    // This is where you'd typically fetch the correct answer/criteria from the database
-    // based on puzzle_id and level.
-    // For demonstration, we'll use AI to evaluate.
+    const prompt = `
+      Task: Evaluate a user's solution for a puzzle.
+      Puzzle Name: "${puzzleName}"
+      Puzzle Type: "${(base_definition as any)?.type}"
+      Subject: ${subject || 'General'}
+      Category: ${category}
+      Current Level: ${level} (out of ${max_level})
+      Puzzle Description or Question for this level: "${puzzleDescription || 'Solve this.'}" (Ideally, the dynamic question for *this level* would be passed here if available)
+      User's Solution: "${JSON.stringify(solution)}"
+      Correctness Criteria: "${solutionCriteria}"
 
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') ?? '');
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Or the appropriate model
-
-    // You would likely fetch the puzzle details for the given level here
-    // to provide better context to the AI for evaluation.
-    // For now, a simplified prompt:
-    const prompt = `Evaluate if the following solution for Puzzle ID "${puzzle_id}" at Level ${level} is correct. The puzzle description/question is needed for accurate evaluation (ideally fetched from DB or passed). User's solution: "${solution}". Respond with "CORRECT" if the solution is clearly right, and "INCORRECT" if it is wrong or incomplete. Provide a brief explanation or hint if incorrect.`;
+      Is the user's solution correct based on the criteria?
+      Respond with ONLY "CORRECT" or "INCORRECT".
+      If "INCORRECT", optionally follow with a COLON and a VERY BRIEF, helpful hint (max 15 words).
+      Example 1: CORRECT
+      Example 2: INCORRECT: The sequence should involve adding the previous two numbers.
+      Example 3: INCORRECT: Check the units for your final answer.
+    `;
 
     const result = await model.generateContent(prompt);
     const responseText = await result.response.text();
-    const evaluationResult = responseText.trim().toUpperCase(); // Standardize the response
+    const evaluationResult = responseText.trim().toUpperCase();
 
     let isCorrect = false;
-    let evaluationFeedback = "Could not determine correctness.";
+    let evaluationFeedback = "AI evaluation unclear. Please try again or contact support.";
 
-    if (evaluationResult.includes("CORRECT")) {
+    if (evaluationResult.startsWith("CORRECT")) {
         isCorrect = true;
         evaluationFeedback = "Your solution is correct!";
-    } else {
-        // Attempt to extract feedback if AI provided it after "INCORRECT"
-        const feedbackMatch = responseText.match(/INCORRECT\s*:\s*(.*)/i);
-         if (feedbackMatch && feedbackMatch[1]) {
-            evaluationFeedback = feedbackMatch[1].trim();
-        } else {
-             evaluationFeedback = responseText.trim(); // Use full AI response if not in expected format
-         }
+    } else if (evaluationResult.startsWith("INCORRECT")) {
         isCorrect = false;
+        evaluationFeedback = responseText.substring("INCORRECT".length).replace(/^[:\s]*/, '').trim() || "That's not quite right. Give it another thought!";
+    } else {
+        // Fallback if AI response is not as expected
+        isCorrect = false; // Assume incorrect if can't parse
+        evaluationFeedback = "Could not automatically verify the solution with AI. " + responseText.substring(0, 100);
     }
 
-    // --- End Puzzle Evaluation Logic ---
-
+    let newXP = 0;
     if (isCorrect) {
-      // Fetch max level for the puzzle
-       const { data: puzzleData, error: fetchPuzzleError } = await supabaseClient
-         .from('puzzles')
-         .select('max_level')
-         .eq('id', puzzle_id)
-         .single();
-
-       if (fetchPuzzleError) {
-          console.error('Error fetching puzzle data for max level:', fetchPuzzleError);
-          // Proceed with level update, but log the error
-       }
-
-       const maxLevel = puzzleData?.max_level || 30; // Default max level if fetch fails
+      newXP = (base_definition as any)?.level_specific_xp_award || default_xp_award || 10;
+      // If you have an RLS policy on profiles preventing direct updates from service_role, use an RPC or disable RLS for this specific update.
+      // For simplicity, assuming direct update works with service_role key here.
+      const { error: xpError } = await supabaseClient.rpc('increment_leaderboard_score', {
+        p_user_id: user_id,
+        p_score_increment: newXP, // Using xpAward as score increment here
+        p_period: 'all_time' // Assuming 'all_time' for puzzle XP
+      });
+      if (xpError) console.error("Error incrementing XP via RPC for puzzle solve:", xpError);
+    }
 
 
-       if (level < maxLevel) { // Only level up if not at max level
-            // Update user's level in the database
-            const { error: updateProgressError } = await supabaseClient
-              .from('user_puzzle_progress')
-              .upsert(
-                {
-                  user_id: user_id,
-                  puzzle_id: puzzle_id,
-                  current_level: level + 1, // Increment level
-                  updated_at: new Date().toISOString(),
-                  unlocked_at: userProgress?.current_level === 0 ? new Date().toISOString() : userProgress?.unlocked_at // Keep original unlock time if already started
-                },
-                { onConflict: 'user_id, puzzle_id' }
-              );
+    if (isCorrect && level === currentLevelOnRecord) { // User re-solved current level (e.g., after page refresh)
+         return new Response(JSON.stringify({ success: true, correct: true, message: `Correct again for level ${level}!`, newXP: newXP, newLevel: level, puzzleCompleted: level >= max_level }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+    }
 
-            if (updateProgressError) {
-              console.error('Error updating user puzzle progress:', updateProgressError);
-              return new Response(
-                  JSON.stringify({ success: true, message: 'Solution correct, but failed to update level.' }),
-                  {
-                      status: 500,
-                      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                  }
-              );
-            }
 
-            return new Response(
-              JSON.stringify({ success: true, correct: true, message: `Correct! You've advanced to level ${level + 1}.` }),
-              {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              }
-            );
-       } else {
-            // User solved the max level
-             return new Response(
-                JSON.stringify({ success: true, correct: true, message: `Correct! You've completed all ${maxLevel} levels for this puzzle.` }),
-                 {
-                     status: 200,
-                     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                 }
-             );
-       }
+    if (isCorrect && level > currentLevelOnRecord) { // New level solved
+      const newLevelToRecord = level; // Since level is 1-based, and currentLevelOnRecord is 0-based if new
+      const isPuzzleCompleted = newLevelToRecord >= max_level;
 
-    } else {
-      // Solution is incorrect
-      return new Response(
-        JSON.stringify({ success: true, correct: false, message: `Incorrect. ${evaluationFeedback}` }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+      const { error: updateProgressError } = await supabaseClient
+        .from('user_puzzle_progress')
+        .upsert(
+          {
+            user_id: user_id,
+            puzzle_id: puzzle_id,
+            current_level: newLevelToRecord,
+            last_updated_at: new Date().toISOString(),
+            unlocked_at: userProgress?.unlocked_at || new Date().toISOString(),
+            completed_at: isPuzzleCompleted ? new Date().toISOString() : null,
+          },
+          { onConflict: 'user_id, puzzle_id' }
+        );
+
+      if (updateProgressError) {
+        console.error('Error updating user puzzle progress:', updateProgressError);
+        return new Response(JSON.stringify({ success: true, correct: true, message: 'Solution correct, but failed to update level progress.', newXP }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+        );
+      }
+
+      return new Response(JSON.stringify({ 
+          success: true, 
+          correct: true, 
+          message: isPuzzleCompleted ? `Correct! You've completed all ${max_level} levels of this puzzle!` : `Correct! You've advanced to level ${newLevelToRecord + 1}.`,
+          newLevel: isPuzzleCompleted ? newLevelToRecord : newLevelToRecord + 1,
+          puzzleCompleted: isPuzzleCompleted,
+          newXP
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else { // Incorrect or no level advancement
+      return new Response(JSON.stringify({ success: true, correct: false, message: evaluationFeedback, newXP: 0 }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
   } catch (error) {
     console.error('Error processing puzzle solution:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+    

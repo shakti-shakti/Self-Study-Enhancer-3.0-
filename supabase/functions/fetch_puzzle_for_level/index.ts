@@ -1,3 +1,4 @@
+
 // supabase/functions/fetch_puzzle_for_level/index.ts
 
 import { serve } from 'https://deno.land/std/http/server.ts';
@@ -11,8 +12,23 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  if (!GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY environment variable is not set.');
+    return new Response(JSON.stringify({ error: 'AI service not configured (GEMINI_API_KEY missing)' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+
   try {
     const { user_id, puzzle_id, level } = await req.json();
+
+    if (!user_id || !puzzle_id || level === undefined || level <= 1) { // Level 1 is static
+        return new Response(JSON.stringify({ error: 'Invalid input: user_id, puzzle_id, or level (must be > 1) missing or invalid.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -24,10 +40,9 @@ serve(async (req) => {
       }
     );
 
-    // Fetch base puzzle definition
     const { data: puzzleData, error: puzzleError } = await supabaseClient
       .from('puzzles')
-      .select('base_definition, max_level')
+      .select('name, description, subject, category, base_definition, max_level, default_xp_award')
       .eq('id', puzzle_id)
       .single();
 
@@ -39,7 +54,7 @@ serve(async (req) => {
       });
     }
 
-    const { base_definition, max_level } = puzzleData;
+    const { name, description, subject, category, base_definition, max_level, default_xp_award } = puzzleData;
 
     if (level > max_level) {
         return new Response(JSON.stringify({ error: `Level ${level} exceeds max level ${max_level} for this puzzle.` }), {
@@ -48,24 +63,37 @@ serve(async (req) => {
         });
     }
 
+    // Construct a more detailed prompt for Gemini
+    const promptText = `
+      You are a puzzle generator for a NEET (medical entrance exam) preparation app.
+      The puzzle is: "${name}" (Category: ${category}, Subject: ${subject || 'General'}).
+      Description: "${description || 'Solve this puzzle.'}"
+      Base definition/type details: ${JSON.stringify(base_definition)}
 
-    // Call Gemini API to generate puzzle content for the level
+      Generate a new puzzle variation for LEVEL ${level} (out of ${max_level}).
+      The difficulty should increase appropriately for this level.
+      If the puzzle involves specific data (like words for anagrams, sequences, equations), provide that new data.
+      Output ONLY a JSON object with the following structure:
+      {
+        "question": "The main question or instruction for this level.",
+        "inputType": "text" | "textarea" | "radio" | "checkbox" | "number",
+        "options": ["option1", "option2"] | null, // Only for 'radio' or 'checkbox'
+        "data": { /* Any specific data needed for this puzzle type, e.g., {"scrambled_word": "XFGHI"}, {"sequence_start": [1,2,3]} */ },
+        "solutionCriteriaForAI": "A brief, clear instruction for another AI to evaluate the user's answer for correctness. For example: 'The answer should be X.' or 'The sequence must follow Y pattern.'",
+        "hint": "An optional hint for the user.",
+        "level_specific_xp_award": ${default_xp_award || 10} 
+      }
+      Ensure the JSON is valid. Do not include any other text or markdown formatting.
+      For example, if base_definition.type is 'anagram', 'data' might be {"scrambled_word": "NEWSCRAMBLE"}.
+      If base_definition.type is 'sequence_solver', 'data' might be {"display_sequence": "10, 20, 30, ?"}.
+      If base_definition.type is 'missing_symbol', 'data' might be {"equation_parts": ["X", "Y", "Z"], "operators": ["+", "-"]}.
+      If base_definition.type is 'knights_knaves', 'data' might be {"characters": ["C", "D"], "statements": {"C":"Statement C"}}.
+    `;
+    
     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [
-                        {
-                            text: `Generate puzzle content for puzzle "${puzzle_id}" at level ${level}. The base definition is: ${JSON.stringify(base_definition)}. Make the difficulty appropriate for level ${level} (out of ${max_level}). Provide the output in JSON format containing the puzzle parameters needed for the frontend. Include the correct solution in the JSON.`
-                        }
-                    ]
-                }
-            ]
-        }),
+        headers: { 'Content-Type': 'application/json', },
+        body: JSON.stringify({ contents: [ { parts: [ { text: promptText } ] } ] }),
     });
 
     if (!geminiResponse.ok) {
@@ -78,9 +106,9 @@ serve(async (req) => {
     }
 
     const geminiData = await geminiResponse.json();
-    const generatedContent = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const generatedText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-     if (!generatedContent) {
+     if (!generatedText) {
          console.error('Gemini API returned no content:', JSON.stringify(geminiData, null, 2));
           return new Response(JSON.stringify({ error: 'AI failed to generate puzzle content' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -88,34 +116,30 @@ serve(async (req) => {
          });
      }
 
-     // Attempt to parse the JSON output from Gemini
      let puzzleContent;
      try {
-         puzzleContent = JSON.parse(generatedContent.replace(/
-```
-json\n?|\n?
-```
-/g, '').trim()); // Clean up markdown code block
+         // Gemini often wraps JSON in ```json ... ```
+         const cleanedJsonString = generatedText.replace(/^```json\s*|\s*```$/g, '').trim();
+         puzzleContent = JSON.parse(cleanedJsonString);
      } catch (parseError) {
-         console.error('Error parsing Gemini JSON output:', parseError, 'Raw output:', generatedContent);
-          return new Response(JSON.stringify({ error: 'AI generated invalid JSON', rawOutput: generatedContent }), {
+         console.error('Error parsing Gemini JSON output:', parseError, 'Raw output:', generatedText);
+          return new Response(JSON.stringify({ error: 'AI generated invalid JSON', rawOutput: generatedText }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
          });
      }
 
-
-    // Return the generated puzzle content
     return new Response(JSON.stringify(puzzleContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (error) {
-    console.error('Error in fetch_puzzle_for_level function:', error.message);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    console.error('Error in fetch_puzzle_for_level function:', error.message || error);
+    return new Response(JSON.stringify({ error: 'Internal server error', details: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
   }
 });
+    
