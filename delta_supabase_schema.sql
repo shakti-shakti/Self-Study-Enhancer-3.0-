@@ -67,7 +67,6 @@ ON CONFLICT (id) DO UPDATE SET
 -- If you create functions from the dashboard, ensure to set "SECURITY DEFINER" if they need elevated permissions.
 
 -- Make sure the user_id in 'leaderboard_entries' correctly references 'profiles.id'
--- This constraint should already be in the full schema. If it was missed or incorrect:
 -- Example (ensure this matches your actual table structure and existing constraints before running):
 -- ALTER TABLE public.leaderboard_entries DROP CONSTRAINT IF EXISTS leaderboard_entries_user_id_fkey;
 -- ALTER TABLE public.leaderboard_entries
