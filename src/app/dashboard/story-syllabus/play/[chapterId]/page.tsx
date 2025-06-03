@@ -1,3 +1,4 @@
+
 // src/app/dashboard/story-syllabus/play/[chapterId]/page.tsx
 'use client';
 
@@ -6,9 +7,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollText, ChevronLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { initialSyllabusRealms } from '@/lib/story-data'; // Import the data
+import { initialSyllabusRealms } from '@/lib/story-data'; // Corrected import path
 
-interface ChapterData {
+interface ChapterDisplayData { // Renamed to avoid conflict with Chapter type from story-data
   id: string;
   name: string;
   quest: string;
@@ -22,13 +23,13 @@ export default function StoryChapterPlayPage() {
   const router = useRouter();
   const chapterId = typeof params.chapterId === 'string' ? params.chapterId : null;
 
-  const [chapterData, setChapterData] = useState<ChapterData | null>(null);
+  const [chapterDisplayData, setChapterDisplayData] = useState<ChapterDisplayData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (chapterId) {
       setIsLoading(true);
-      let foundChapter: ChapterData | null = null;
+      let foundChapter: ChapterDisplayData | null = null;
       for (const realm of initialSyllabusRealms) {
         const chapter = realm.chapters.find(ch => ch.id === chapterId);
         if (chapter) {
@@ -43,7 +44,7 @@ export default function StoryChapterPlayPage() {
           break;
         }
       }
-      setChapterData(foundChapter);
+      setChapterDisplayData(foundChapter);
       setIsLoading(false);
     } else {
       setIsLoading(false);
@@ -59,7 +60,7 @@ export default function StoryChapterPlayPage() {
     );
   }
 
-  if (!chapterData) {
+  if (!chapterDisplayData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center p-8">
         <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
@@ -84,11 +85,11 @@ export default function StoryChapterPlayPage() {
         <CardHeader className="text-center">
           <ScrollText className="mx-auto h-12 w-12 text-primary mb-3" />
           <CardTitle className="text-3xl md:text-4xl font-headline font-bold glow-text-primary">
-            {chapterData.name}
+            {chapterDisplayData.name}
           </CardTitle>
-          {chapterData.realmName && (
+          {chapterDisplayData.realmName && (
             <CardDescription className="text-md text-muted-foreground">
-              From the realm of "{chapterData.realmName}" ({chapterData.subject})
+              From the realm of "{chapterDisplayData.realmName}" ({chapterDisplayData.subject})
             </CardDescription>
           )}
         </CardHeader>
@@ -96,14 +97,14 @@ export default function StoryChapterPlayPage() {
           <div>
             <h2 className="text-xl font-semibold text-accent mb-2">Your Quest:</h2>
             <p className="text-lg text-foreground italic p-4 bg-muted/30 rounded-md border border-border/30">
-              {chapterData.quest}
+              {chapterDisplayData.quest}
             </p>
           </div>
-          {chapterData.story_summary && (
+          {chapterDisplayData.story_summary && (
             <div>
               <h2 className="text-xl font-semibold text-accent mb-2">Chapter Introduction:</h2>
               <div className="prose dark:prose-invert max-w-none p-4 bg-background/20 rounded-md border border-border/20 whitespace-pre-line">
-                <p>{chapterData.story_summary}</p>
+                <p>{chapterDisplayData.story_summary}</p>
               </div>
             </div>
           )}
