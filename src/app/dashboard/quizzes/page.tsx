@@ -37,32 +37,236 @@ import * as apiClient from '@/lib/apiClient';
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Updated syllabusData with comprehensive chapters
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   "Physics": {
     "Class 11": {
-      "Units and Measurement": ["Physical World", "Units and Measurement"],
-      "Kinematics": ["Motion in a Straight Line", "Motion in a Plane"],
-      "Laws of Motion": ["Laws of Motion"],
-      "Work, Energy and Power": ["Work, Energy and Power"],
-      "Motion of System of Particles and Rigid Body": ["System of Particles and Rotational Motion"],
-      "Gravitation": ["Gravitation"],
-      "Properties of Bulk Matter": ["Mechanical Properties of Solids", "Mechanical Properties of Fluids", "Thermal Properties of Matter"],
-      "Thermodynamics": ["Thermodynamics"],
-      "Behaviour of Perfect Gas and Kinetic Theory": ["Kinetic Theory"],
-      "Oscillations and Waves": ["Oscillations", "Waves"]
+      "Physical World and Measurement": [
+        "Units of measurements",
+        "System of Units (CGS, MKS, SI)",
+        "Fundamental and derived units",
+        "Least count",
+        "Significant figures",
+        "Errors in measurement",
+        "Dimensions of physical quantities",
+        "Dimensional analysis and its applications"
+      ],
+      "Kinematics": [
+        "Frame of reference",
+        "Motion in a straight line",
+        "Position-time graph",
+        "Speed and velocity",
+        "Uniform and non-uniform motion",
+        "Average speed and instantaneous velocity",
+        "Uniformly accelerated motion",
+        "Velocity-time and position-time graphs",
+        "Scalars and Vectors",
+        "Vector addition and subtraction",
+        "Scalar and vector products",
+        "Unit vector, resolution of a vector",
+        "Relative velocity",
+        "Motion in a plane",
+        "Projectile motion",
+        "Uniform circular motion"
+      ],
+      "Laws of Motion": [
+        "Force and inertia",
+        "Newton's First, Second, and Third laws of motion",
+        "Law of conservation of momentum",
+        "Equilibrium of concurrent forces",
+        "Static and kinetic friction",
+        "Laws of friction, rolling friction",
+        "Dynamics of uniform circular motion",
+        "Centripetal force",
+        "Applications: vehicle on level and banked roads"
+      ],
+      "Work, Energy and Power": [
+        "Work done by a constant and variable force",
+        "Kinetic and potential energies",
+        "Work-energy theorem",
+        "Power",
+        "Potential energy of spring",
+        "Conservation of mechanical energy",
+        "Conservative and non-conservative forces",
+        "Motion in a vertical circle",
+        "Elastic and inelastic collisions in one and two dimensions"
+      ],
+      "Motion of System of Particles and Rigid Body": [
+        "Centre of mass (two-particle system and rigid body)",
+        "Torque",
+        "Angular momentum",
+        "Conservation of angular momentum",
+        "Moment of inertia and radius of gyration",
+        "Theorems of moment of inertia",
+        "Equilibrium of rigid bodies",
+        "Rotational motion",
+        "Comparison of linear and rotational motion"
+      ],
+      "Gravitation": [
+        "Newton's law of gravitation",
+        "Acceleration due to gravity",
+        "Variation with height and depth",
+        "Kepler's laws",
+        "Gravitational potential energy and potential",
+        "Escape velocity",
+        "Orbital velocity",
+        "Energy and time period of satellite motion"
+      ],
+      "Properties of Bulk Matter": [
+        "Elastic behavior and stress-strain",
+        "Hooke's law",
+        "Young's modulus, bulk modulus, rigidity",
+        "Pressure in fluid column",
+        "Pascal's law and applications",
+        "Effect of gravity on pressure",
+        "Viscosity and Stokes' law",
+        "Terminal velocity",
+        "Streamline and turbulent flow",
+        "Critical velocity",
+        "Bernoulli's principle and applications",
+        "Surface energy and tension",
+        "Angle of contact",
+        "Excess pressure across curved surfaces",
+        "Capillarity and its applications",
+        "Thermal properties: expansion, calorimetry, latent heat",
+        "Heat transfer: conduction, convection, radiation"
+      ],
+      "Thermodynamics": [
+        "Thermal equilibrium",
+        "Zeroth law of thermodynamics",
+        "Concept of temperature",
+        "Heat, work, and internal energy",
+        "First law of thermodynamics",
+        "Isothermal and adiabatic processes",
+        "Second law of thermodynamics",
+        "Reversible and irreversible processes"
+      ],
+      "Behaviour of Perfect Gas and Kinetic Theory": [
+        "Equation of state of ideal gas",
+        "Work done on compressing a gas",
+        "Assumptions of kinetic theory",
+        "Concept of pressure",
+        "RMS speed of gas molecules",
+        "Degrees of freedom",
+        "Law of equipartition of energy",
+        "Specific heat capacities",
+        "Mean free path",
+        "Avogadro's number"
+      ],
+      "Oscillations and Waves": [
+        "Oscillations and periodic motion",
+        "SHM: time period, frequency, displacement",
+        "Energy in SHM",
+        "Oscillations of spring",
+        "Simple pendulum and its time period",
+        "Wave motion: longitudinal and transverse",
+        "Speed of wave propagation",
+        "Displacement relation",
+        "Superposition principle",
+        "Reflection of waves",
+        "Standing waves in strings and pipes",
+        "Beats and resonance"
+      ]
     },
     "Class 12": {
-      "Electrostatics": ["Electric Charges and Fields", "Electrostatic Potential and Capacitance"],
-      "Current Electricity": ["Current Electricity"],
-      "Magnetic Effects of Current and Magnetism": ["Moving Charges and Magnetism", "Magnetism and Matter"],
-      "Electromagnetic Induction and Alternating Current": ["Electromagnetic Induction", "Alternating Current"],
-      "Electromagnetic Waves": ["Electromagnetic Waves"],
-      "Optics": ["Ray Optics and Optical Instruments", "Wave Optics"],
-      "Dual Nature of Matter and Radiation": ["Dual Nature of Radiation and Matter"],
-      "Atoms and Nuclei": ["Atoms", "Nuclei"],
-      "Electronic Devices": ["Semiconductor Electronics: Materials, Devices and Simple Circuits"],
-      "Experimental Skills": ["Experimental Skills"]
+      "Electrostatics": [
+        "Electric charges and conservation",
+        "Coulomb's law",
+        "Superposition principle",
+        "Electric field, field lines",
+        "Electric dipole",
+        "Torque on dipole",
+        "Electric flux",
+        "Gauss's law and its applications",
+        "Electric potential and potential energy",
+        "Equipotential surfaces",
+        "Capacitance, capacitors",
+        "Energy stored in capacitors",
+        "Dielectrics and polarization"
+      ],
+      "Current Electricity": [
+        "Electric current, drift velocity",
+        "Ohm's law",
+        "V-I characteristics (Ohmic/non-Ohmic)",
+        "Electrical energy and power",
+        "Resistivity and conductivity",
+        "Series and parallel resistors",
+        "Internal resistance and EMF",
+        "Kirchhoff's laws",
+        "Wheatstone bridge and meter bridge"
+      ],
+      "Magnetic Effects of Current and Magnetism": [
+        "Biot-Savart law",
+        "Ampere's circuital law",
+        "Magnetic force on moving charge",
+        "Force on current-carrying conductor",
+        "Torque on current loop",
+        "Magnetic field of solenoid",
+        "Galvanometer, ammeter, voltmeter",
+        "Magnetic dipole and field lines",
+        "Bar magnet and magnetic moment",
+        "Magnetic materials: para-, dia-, ferromagnetic",
+        "Hysteresis",
+        "Earth's magnetic field"
+      ],
+      "Electromagnetic Induction and AC": [
+        "Faraday's laws",
+        "Lenz's law",
+        "Eddy currents",
+        "Self and mutual induction",
+        "Alternating current and peak/RMS values",
+        "Reactance and impedance",
+        "LCR circuits",
+        "Resonance",
+        "Transformer and AC generator"
+      ],
+      "Electromagnetic Waves": [
+        "Displacement current",
+        "Maxwell's equations (qualitative)",
+        "Properties of EM waves",
+        "Electromagnetic spectrum",
+        "Applications: radio, microwave, IR, UV, X-ray, gamma"
+      ],
+      "Optics": [
+        "Reflection and refraction",
+        "Mirrors and lenses",
+        "Total internal reflection",
+        "Lens/mirror formula",
+        "Power of a lens",
+        "Microscopes and telescopes",
+        "Wavefront and Huygens principle",
+        "Interference (Young's experiment)",
+        "Diffraction and polarization"
+      ],
+      "Dual Nature of Matter and Radiation": [
+        "Photoelectric effect",
+        "Einstein's equation",
+        "Particle nature of light",
+        "de Broglie hypothesis"
+      ],
+      "Atoms and Nuclei": [
+        "Rutherford and Bohr models",
+        "Hydrogen spectrum",
+        "Composition of nucleus",
+        "Binding energy and mass defect",
+        "Radioactivity (alpha, beta, gamma)",
+        "Decay laws",
+        "Fission and fusion"
+      ],
+      "Electronic Devices": [
+        "Semiconductors",
+        "Diode and I-V characteristics",
+        "Zener diode and regulation",
+        "LED, solar cell, photodiode",
+        "Logic gates (AND, OR, NOT, NAND, NOR)"
+      ],
+      "Experimental Skills": [
+        "Vernier calipers and screw gauge",
+        "Young's modulus",
+        "Surface tension and viscosity",
+        "Calorimetry",
+        "Meter bridge, galvanometer",
+        "Optical instruments and diode tests"
+      ]
     }
   },
   "Chemistry": {
