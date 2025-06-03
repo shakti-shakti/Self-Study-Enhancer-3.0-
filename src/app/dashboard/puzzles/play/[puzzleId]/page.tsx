@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, Puzzle as PuzzleIcon, CheckCircle, XCircle, Lightbulb, ChevronLeft } from 'lucide-react';
+import { Loader2, Puzzle as PuzzleIcon, CheckCircle, XCircle, Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as apiClient from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import puzzleDatabase, { type PuzzleData } from '@/lib/puzzle-data'; // Correctly import PuzzleData type
+import puzzleDatabase, { type PuzzleData } from '@/lib/puzzle-data';
 
 export default function PuzzlePlayPage() {
   const params = useParams();
@@ -24,7 +24,7 @@ export default function PuzzlePlayPage() {
 
   const [currentPuzzle, setCurrentPuzzle] = useState<PuzzleData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCompleted, setIsCompleted] = useState(false); // For Level 1 completion
+  const [isLevel1Completed, setIsLevel1Completed] = useState(false);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, 'correct' | 'incorrect' | 'neutral'>>({});
   const [genericInput, setGenericInput] = useState('');
@@ -36,7 +36,6 @@ export default function PuzzlePlayPage() {
       const puzzleData = puzzleDatabase[puzzleId];
       if (puzzleData) {
         setCurrentPuzzle(puzzleData);
-        // Initialize answers based on puzzle type using original_data
         const initialUserAnswers: Record<string, string> = {};
         if (puzzleData.base_definition.type === 'anagram' && puzzleData.base_definition.original_data?.words) {
           puzzleData.base_definition.original_data.words.forEach((word: { scrambled: string }) => {
@@ -77,17 +76,17 @@ export default function PuzzlePlayPage() {
   };
 
   const checkAnswers = () => {
-    if (!currentPuzzle || !currentPuzzle.solution) return; // Use static solution for L1
+    if (!currentPuzzle || !currentPuzzle.solution) return;
     let allCorrect = true;
     const newFeedback: Record<string, 'correct' | 'incorrect' | 'neutral'> = {};
 
-    switch (currentPuzzle.base_definition.type) { // Check against base_definition.type
+    switch (currentPuzzle.base_definition.type) {
       case 'anagram':
       case 'missing_vowels':
         (currentPuzzle.base_definition.original_data.words as Array<{scrambled?: string, gapped?: string}>).forEach((wordObj) => {
           const key = wordObj.scrambled || wordObj.gapped!;
           const userAnswer = userAnswers[key]?.trim().toUpperCase();
-          const correctAnswer = (currentPuzzle.solution as Record<string, string>)[key]; // Static solution
+          const correctAnswer = (currentPuzzle.solution as Record<string, string>)[key];
           if (userAnswer === correctAnswer) {
             newFeedback[key] = 'correct';
           } else {
@@ -98,7 +97,7 @@ export default function PuzzlePlayPage() {
         break;
       
       case 'sequence_solver':
-        if (genericInput.trim() === currentPuzzle.solution) { // Static solution
+        if (genericInput.trim() === currentPuzzle.solution) {
           newFeedback.general = 'correct';
         } else {
           newFeedback.general = 'incorrect';
@@ -108,7 +107,7 @@ export default function PuzzlePlayPage() {
 
       case 'knights_knaves':
         (currentPuzzle.base_definition.original_data.characters as string[]).forEach(char => {
-            if (knightsKnavesAnswers[char] === (currentPuzzle.solution as Record<string,string>)[char]) { // Static solution
+            if (knightsKnavesAnswers[char] === (currentPuzzle.solution as Record<string,string>)[char]) {
                 newFeedback[char] = 'correct';
             } else {
                 newFeedback[char] = 'incorrect';
@@ -120,8 +119,8 @@ export default function PuzzlePlayPage() {
       case 'vector_voyage':
         const mag = parseFloat(userAnswers['magnitude']);
         const dir = parseFloat(userAnswers['direction']);
-        const solMag = (currentPuzzle.solution as {magnitude: number, direction: number}).magnitude; // Static solution
-        const solDir = (currentPuzzle.solution as {magnitude: number, direction: number}).direction; // Static solution
+        const solMag = (currentPuzzle.solution as {magnitude: number, direction: number}).magnitude;
+        const solDir = (currentPuzzle.solution as {magnitude: number, direction: number}).direction;
         if (Math.abs(mag - solMag) < 0.1 && Math.abs(dir - solDir) < 2) {
             newFeedback.general = 'correct';
         } else {
@@ -134,7 +133,7 @@ export default function PuzzlePlayPage() {
         if (currentPuzzle.solution === "Conceptual") {
             newFeedback.general = 'correct';
             allCorrect = true;
-        } else if (genericInput.trim().toUpperCase() === (currentPuzzle.solution as string)?.toUpperCase()) { // Static solution
+        } else if (genericInput.trim().toUpperCase() === (currentPuzzle.solution as string)?.toUpperCase()) {
           newFeedback.general = 'correct';
         } else {
           newFeedback.general = 'incorrect';
@@ -148,10 +147,10 @@ export default function PuzzlePlayPage() {
 
     setFeedback(newFeedback);
     if (allCorrect) {
-      setIsCompleted(true); // Mark Level 1 as completed
-      let successMessage = `Level 1 Complete! You earned ${currentPuzzle.xpAward || 0} XP. Further AI-generated levels for this puzzle are coming soon.`;
+      setIsLevel1Completed(true);
+      let successMessage = `Level 1 Complete! You earned ${currentPuzzle.xpAward || 0} XP.`;
       if(currentPuzzle.solution === "Conceptual") {
-        successMessage = `Solution submitted for ${currentPuzzle.name}. Well done! You earned ${currentPuzzle.xpAward || 0} XP. Further AI-generated levels for this puzzle are coming soon.`;
+        successMessage = `Solution submitted for ${currentPuzzle.name}. Well done! You earned ${currentPuzzle.xpAward || 0} XP.`;
       }
       toast({ title: `${currentPuzzle.name} - Level 1 Solved!`, description: successMessage, className: "bg-primary/10 text-primary-foreground" });
       if (currentPuzzle.xpAward) apiClient.addUserXP(currentPuzzle.xpAward);
@@ -162,15 +161,28 @@ export default function PuzzlePlayPage() {
 
   const checkMissingSymbolAnswer = (selectedOperator: string) => {
     if (!currentPuzzle || currentPuzzle.base_definition.type !== 'missing_symbol' || !currentPuzzle.solution) return;
-    if (selectedOperator === currentPuzzle.solution) { // Static solution
-      setIsCompleted(true); // Mark Level 1 as completed
+    if (selectedOperator === currentPuzzle.solution) {
+      setIsLevel1Completed(true);
       setFeedback({ general: 'correct' });
-      toast({ title: "Symbol Found!", description: `Correct! You earned ${currentPuzzle.xpAward || 0} XP. Further AI-generated levels for this puzzle are coming soon.`, className: "bg-primary/10 text-primary-foreground" });
+      toast({ title: "Symbol Found!", description: `Correct! You earned ${currentPuzzle.xpAward || 0} XP.`, className: "bg-primary/10 text-primary-foreground" });
       if (currentPuzzle.xpAward) apiClient.addUserXP(currentPuzzle.xpAward);
     } else {
       setFeedback({ general: 'incorrect' });
       toast({ variant: "destructive", title: "Incorrect Symbol", description: "That's not the right operator. Try again!" });
     }
+  };
+
+  const handleTryNextLevel = () => {
+    // This is conceptual for now, as AI level generation is not yet implemented
+    toast({
+      title: "Next Level (Conceptual)",
+      description: "AI-generated Level 2 content would load here. For now, you can replay Level 1 or choose another puzzle.",
+    });
+    // In a full implementation:
+    // setCurrentLevel(prev => prev + 1);
+    // fetchPuzzleForLevel(puzzleId, currentLevel + 1);
+    // setIsLevel1Completed(false); // Reset for the new level
+    // setUserAnswers({}); setFeedback({}); setGenericInput(''); // etc.
   };
 
 
@@ -188,7 +200,6 @@ export default function PuzzlePlayPage() {
     );
   }
   
-  // Use currentPuzzle.base_definition.original_data for rendering Level 1
   const puzzleDisplayData = currentPuzzle.base_definition.original_data;
 
   const renderPuzzleContent = () => {
@@ -280,7 +291,7 @@ export default function PuzzlePlayPage() {
             <div className="space-y-4">
                 <p className="text-lg">List alternative uses for: <span className="font-semibold text-accent">{puzzleDisplayData.item}</span></p>
                 <Textarea value={genericInput} onChange={(e) => handleGenericInputChange(e.target.value)} placeholder="Enter as many uses as you can think of..." rows={6} className="input-glow"/>
-                <Button onClick={() => { setIsCompleted(true); toast({title:"Ideas Submitted!", description: "Great thinking! Further AI levels for this puzzle are coming soon."}); if(currentPuzzle.xpAward) apiClient.addUserXP(currentPuzzle.xpAward); }} className="glow-button">Submit Ideas</Button>
+                <Button onClick={() => { setIsLevel1Completed(true); toast({title:"Ideas Submitted!", description: "Great thinking!"}); if(currentPuzzle.xpAward) apiClient.addUserXP(currentPuzzle.xpAward); }} className="glow-button">Submit Ideas</Button>
             </div>
         );
       case 'vector_voyage':
@@ -302,8 +313,8 @@ export default function PuzzlePlayPage() {
             <div className="space-y-4 text-center">
                  {currentPuzzle.id === 'visual_001' && puzzleDisplayData?.image1 && (
                     <div className="flex gap-2 justify-center mb-4">
-                        <img src={puzzleDisplayData.image1} alt="Visual Puzzle Image 1" className="rounded-md border max-w-[45%] shadow-md" data-ai-hint="abstract pattern" />
-                        <img src={puzzleDisplayData.image2} alt="Visual Puzzle Image 2" className="rounded-md border max-w-[45%] shadow-md" data-ai-hint="abstract pattern variation" />
+                        <img src={puzzleDisplayData.image1} alt="Visual Puzzle Image 1" className="rounded-md border max-w-[45%] shadow-md" data-ai-hint="abstract pattern"/>
+                        <img src={puzzleDisplayData.image2} alt="Visual Puzzle Image 2" className="rounded-md border max-w-[45%] shadow-md" data-ai-hint="abstract pattern variation"/>
                     </div>
                 )}
                 <p className="text-muted-foreground">{puzzleDisplayData?.prompt || "Enter your solution below:"}</p>
@@ -338,19 +349,23 @@ export default function PuzzlePlayPage() {
            <p className="text-center text-accent font-semibold">Level: 1 / {currentPuzzle.max_level}</p>
         </CardHeader>
         <CardContent>
-          {isCompleted ? (
+          {isLevel1Completed ? (
             <div className="text-center py-8">
               <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
               <h2 className="text-2xl font-semibold text-green-400">Level 1 Complete!</h2>
               <p className="text-muted-foreground mt-2">
                 You've successfully completed the first level of {currentPuzzle.name}.
-                <br/>
-                Further AI-generated levels for this puzzle are coming soon!
               </p>
               {currentPuzzle.xpAward && <p className="text-lg text-accent mt-1">+ {currentPuzzle.xpAward} XP Earned!</p>}
-               <Button onClick={() => router.push('/dashboard/puzzles')} className="mt-6 glow-button">
-                Back to Puzzles
-              </Button>
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                 <Button onClick={() => router.push('/dashboard/puzzles')} className="glow-button">
+                    <ChevronLeft className="mr-2 h-5 w-5" /> Back to Puzzles
+                </Button>
+                <Button onClick={handleTryNextLevel} className="glow-button" variant="outline">
+                    Try Next Level (Conceptual) <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">AI-generated levels beyond Level 1 are coming soon.</p>
             </div>
           ) : (
             renderPuzzleContent()

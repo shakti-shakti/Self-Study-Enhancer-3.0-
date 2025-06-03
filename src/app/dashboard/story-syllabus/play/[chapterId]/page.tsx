@@ -6,16 +6,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ScrollText, ChevronLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { initialSyllabusRealms } from '@/lib/story-data'; // Corrected import path
+import { ScrollText, ChevronLeft, Loader2, AlertTriangle, Puzzle } from 'lucide-react';
+import { initialSyllabusRealms, type Chapter as StoryChapterType } from '@/lib/story-data'; // Use a distinct name for the type
+import puzzleDatabase from '@/lib/puzzle-data'; // Import puzzle database to find related puzzles
 
-interface ChapterDisplayData { // Renamed to avoid conflict with Chapter type from story-data
+interface ChapterDisplayData {
   id: string;
   name: string;
   quest: string;
   story_summary?: string;
   realmName?: string;
   subject?: string;
+  firstPuzzleId?: string; // ID of a conceptually linked first puzzle
+  firstPuzzleName?: string;
 }
 
 export default function StoryChapterPlayPage() {
@@ -33,6 +36,20 @@ export default function StoryChapterPlayPage() {
       for (const realm of initialSyllabusRealms) {
         const chapter = realm.chapters.find(ch => ch.id === chapterId);
         if (chapter) {
+          // Conceptual link: Find first puzzle matching chapter name/subject for demo
+          let firstPuzzleId: string | undefined = undefined;
+          let firstPuzzleName: string | undefined = undefined;
+          
+          const potentialPuzzles = Object.values(puzzleDatabase).filter(p => 
+            (p.subject && p.subject.toLowerCase() === realm.subject.toLowerCase()) ||
+            (p.name.toLowerCase().includes(chapter.name.toLowerCase().split(" ")[0])) // Match first word of chapter name
+          );
+
+          if (potentialPuzzles.length > 0) {
+            firstPuzzleId = potentialPuzzles[0].id;
+            firstPuzzleName = potentialPuzzles[0].name;
+          }
+
           foundChapter = {
             id: chapter.id,
             name: chapter.name,
@@ -40,6 +57,8 @@ export default function StoryChapterPlayPage() {
             story_summary: chapter.story_summary,
             realmName: realm.name,
             subject: realm.subject,
+            firstPuzzleId,
+            firstPuzzleName,
           };
           break;
         }
@@ -109,13 +128,18 @@ export default function StoryChapterPlayPage() {
             </div>
           )}
           <div className="mt-6 p-4 border-t border-border/30 text-center">
-            <p className="text-muted-foreground">
-              This is the narrative setup for your quest. Interactive gameplay elements for this chapter will be implemented here.
-            </p>
-            {/* Placeholder for future interactive elements */}
-            <Button className="mt-4 glow-button" disabled>
-                Engage with Chapter (Coming Soon)
-            </Button>
+            {chapterDisplayData.firstPuzzleId ? (
+                <Button 
+                    onClick={() => router.push(`/dashboard/puzzles/play/${chapterDisplayData.firstPuzzleId}`)} 
+                    className="glow-button text-lg py-3"
+                >
+                    <Puzzle className="mr-2 h-5 w-5"/> Begin First Challenge: {chapterDisplayData.firstPuzzleName || 'Puzzle'}
+                </Button>
+            ) : (
+                <p className="text-muted-foreground">
+                    This chapter's interactive elements are under development. Explore related puzzles in the Puzzle Dashboard or check back soon!
+                </p>
+            )}
           </div>
         </CardContent>
         <CardFooter>
