@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, Puzzle as PuzzleIcon, CheckCircle, XCircle, Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Puzzle as PuzzleIcon, CheckCircle, XCircle, Lightbulb, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import * as apiClient from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -32,21 +32,24 @@ export default function PuzzlePlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLevelCompleted, setIsLevelCompleted] = useState(false);
   
-  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({}); // For Level 1 static puzzles with multiple inputs
-  const [genericInput, setGenericInput] = useState(''); // For Level 1 static puzzles with single input or dynamic puzzles
-  const [feedback, setFeedback] = useState<Record<string, 'correct' | 'incorrect' | 'neutral'>>({}); // For Level 1 static feedback
+  const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
+  const [genericInput, setGenericInput] = useState('');
+  const [feedback, setFeedback] = useState<Record<string, 'correct' | 'incorrect' | 'neutral'>>({});
+  const [dynamicContentError, setDynamicContentError] = useState<string | null>(null); // Added for dynamic content loading errors
+
 
   useEffect(() => {
     async function loadPuzzle() {
       if (puzzleId) {
         setIsLoading(true);
+        setDynamicContentError(null); // Reset error on new puzzle load
         const staticPuzzleData = puzzleDatabase[puzzleId];
         if (staticPuzzleData) {
           setCurrentStaticPuzzle(staticPuzzleData);
           setMaxLevel(staticPuzzleData.max_level);
-          setCurrentLevel(1); // Always start at level 1
+          setCurrentLevel(1); 
           resetInputsForPuzzle(staticPuzzleData);
-          setIsLevelCompleted(false); // Reset completion status
+          setIsLevelCompleted(false);
         } else {
           toast({ variant: "destructive", title: "Puzzle Not Found", description: "This puzzle ID is invalid." });
           router.push('/dashboard/puzzles');
@@ -100,10 +103,8 @@ export default function PuzzlePlayPage() {
         else { newFeedback[key] = 'incorrect'; allCorrect = false; }
       });
     } else if (puzzleType === 'sequence_solver' || puzzleType === 'placeholder_input' || puzzleType === 'vector_voyage' || puzzleType === 'missing_symbol' || puzzleType === 'knights_knaves' || puzzleType === 'alternative_uses') {
-        // These now go through handleSubmitSolution to be AI-evaluable conceptually, even for L1
-        // For simplicity in static L1, we do a direct check here:
-        if(puzzleType === 'missing_symbol'){ // This one has specific button based submission
-             return; // Handled by its own button
+        if(puzzleType === 'missing_symbol'){
+             return; 
         }
 
         let isL1Correct = false;
@@ -114,7 +115,7 @@ export default function PuzzlePlayPage() {
             const solDir = (currentStaticPuzzle.solution as {magnitude: number, direction: number}).direction;
             if (Math.abs(mag - solMag) < 0.1 && Math.abs(dir - solDir) < 2) isL1Correct = true;
         } else if (puzzleType === 'knights_knaves') {
-            isL1Correct = true; // Placeholder, complex logic needed or AI eval
+            isL1Correct = true; 
              (currentStaticPuzzle.base_definition.original_data.characters as string[]).forEach((char:string) => {
                 if (userAnswers[char] !== (currentStaticPuzzle.solution as Record<string,string>)[char]) isL1Correct = false;
              });
@@ -126,7 +127,7 @@ export default function PuzzlePlayPage() {
         if (isL1Correct) newFeedback.general = 'correct';
         else { newFeedback.general = 'incorrect'; allCorrect = false; }
     } else {
-      allCorrect = false; // Unknown type
+      allCorrect = false; 
     }
 
     setFeedback(newFeedback);
@@ -156,45 +157,49 @@ export default function PuzzlePlayPage() {
   const handleSubmitDynamicSolution = async () => {
     if (!puzzleId || !currentDynamicPuzzleContent || currentLevel <= 1) return;
     setIsSubmitting(true);
+    setDynamicContentError(null); 
     try {
       const response = await apiClient.submitPuzzleSolution(puzzleId, currentLevel, genericInput);
       if (response.correct) {
         toast({ title: `Level ${currentLevel} Solved!`, description: response.message || `Correct! You earned ${response.newXP || 0} XP.`, className: "bg-primary/10 text-primary-foreground" });
-        if(response.newXP) await apiClient.addUserXP(response.newXP); // Ensure XP is added from API response
+        if(response.newXP) await apiClient.addUserXP(response.newXP); 
         
         if (response.puzzleCompleted || currentLevel >= maxLevel) {
-          setIsLevelCompleted(true); // Marks the whole puzzle as done
-          setCurrentDynamicPuzzleContent(null); // Clear dynamic content
-          // Potentially show a "Puzzle Mastered!" screen here.
+          setIsLevelCompleted(true); 
+          setCurrentDynamicPuzzleContent(null); 
         } else if (response.newLevel && response.newLevel > currentLevel) {
           setCurrentLevel(response.newLevel);
           fetchDynamicPuzzleContent(response.newLevel);
-          setIsLevelCompleted(false); // Ready for next level
-        } else { // Correct but not advancing (e.g. last level)
+          setIsLevelCompleted(false); 
+        } else { 
           setIsLevelCompleted(true);
         }
       } else {
         toast({ variant: "destructive", title: `Level ${currentLevel} Attempt Incorrect`, description: response.message || "Try again!" });
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error Submitting Solution", description: error.message });
+      const errorMessage = error.message || "An unknown error occurred while submitting solution.";
+      setDynamicContentError(errorMessage + " Ensure Edge Functions are deployed or try again.");
+      toast({ variant: "destructive", title: "Error Submitting Solution", description: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
   };
   
   const fetchDynamicPuzzleContent = useCallback(async (levelToFetch: number) => {
-    if (!puzzleId || levelToFetch <= 1) return; // Level 1 is static
+    if (!puzzleId || levelToFetch <= 1) return; 
     setIsLoading(true);
     setCurrentDynamicPuzzleContent(null);
+    setDynamicContentError(null);
     setGenericInput('');
     try {
       const dynamicContent = await apiClient.fetchPuzzleForLevel(puzzleId, levelToFetch);
       setCurrentDynamicPuzzleContent(dynamicContent);
       setIsLevelCompleted(false);
     } catch (error: any) {
-      toast({ variant: "destructive", title: `Error Loading Level ${levelToFetch}`, description: error.message + ". Try reloading or go back." });
-      // Optionally, allow retrying or navigating back
+      const errorMessage = error.message || "An unknown error occurred while fetching puzzle data.";
+      setDynamicContentError(errorMessage); // Set the error message to display in UI
+      toast({ variant: "destructive", title: `Error Loading Level ${levelToFetch}`, description: errorMessage + ". Try reloading or go back." });
     } finally {
       setIsLoading(false);
     }
@@ -206,9 +211,10 @@ export default function PuzzlePlayPage() {
       const nextLevel = currentLevel + 1;
       setCurrentLevel(nextLevel);
       setIsLevelCompleted(false);
-      if (nextLevel > 1) { // Fetch dynamic content for levels > 1
+      setDynamicContentError(null); 
+      if (nextLevel > 1) { 
         fetchDynamicPuzzleContent(nextLevel);
-      } else { // Should not happen if L1 is completed, but as a fallback
+      } else { 
         resetInputsForPuzzle(currentStaticPuzzle); 
       }
     } else {
@@ -217,14 +223,26 @@ export default function PuzzlePlayPage() {
   };
 
 
-  if (isLoading || !currentStaticPuzzle) {
+  if (isLoading && !currentStaticPuzzle) { // Adjusted loading condition
     return <div className="flex justify-center items-center min-h-[calc(100vh-15rem)]"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
+  }
+  
+  if (!currentStaticPuzzle) { // Handles case where puzzleId is invalid after loading
+    return (
+         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-15rem)] text-center p-4">
+            <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
+            <h1 className="text-2xl font-semibold text-destructive-foreground mb-2">Puzzle Data Missing</h1>
+            <p className="text-muted-foreground mb-4">Could not load the details for this puzzle. It might be an invalid link.</p>
+            <Button onClick={() => router.push('/dashboard/puzzles')} className="glow-button">
+              <ChevronLeft className="mr-2 h-5 w-5" /> Back to Puzzles
+            </Button>
+        </div>
+    );
   }
   
   const puzzleDisplayData = currentStaticPuzzle.base_definition.original_data;
 
   const renderPuzzleContent = () => {
-    // For Level 1, use static data
     if (currentLevel === 1 && currentStaticPuzzle) {
         switch (currentStaticPuzzle.base_definition.type) {
             case 'anagram':
@@ -334,20 +352,45 @@ export default function PuzzlePlayPage() {
                 return <Alert><Lightbulb className="h-4 w-4" /><AlertTitle>Puzzle Type Not Fully Implemented!</AlertTitle><AlertDescription>Gameplay for Level 1 of "{currentStaticPuzzle.name}" (type: {currentStaticPuzzle.base_definition.type}) needs specific UI.</AlertDescription></Alert>;
         }
     }
-    // For Level > 1, use dynamic content
-    if (currentLevel > 1 && currentDynamicPuzzleContent) {
-        return (
-            <div className="space-y-4">
-                <p className="text-lg whitespace-pre-wrap">{currentDynamicPuzzleContent.question}</p>
-                {currentDynamicPuzzleContent.inputType === 'textarea' && 
-                    <Textarea value={genericInput} onChange={(e) => setGenericInput(e.target.value)} placeholder="Your answer..." rows={5} className="input-glow" disabled={isLevelCompleted || isSubmitting}/>
-                }
-                {/* Add other input types based on currentDynamicPuzzleContent.inputType */}
-                {currentDynamicPuzzleContent.hint && <p className="text-sm text-muted-foreground italic">Hint: {currentDynamicPuzzleContent.hint}</p>}
-            </div>
-        );
+    
+    if (currentLevel > 1) {
+        if (isLoading) {
+            return <div className="flex justify-center items-center py-10"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+        }
+        if (dynamicContentError) {
+            return (
+                <Alert variant="destructive" className="my-4">
+                    <AlertTriangle className="h-5 w-5" />
+                    <AlertTitle>Error Loading Level {currentLevel}</AlertTitle>
+                    <AlertDescription className="space-y-2">
+                        <p>{dynamicContentError}</p>
+                        <div className="flex gap-2">
+                            <Button onClick={() => fetchDynamicPuzzleContent(currentLevel)} variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive/10">
+                                Retry Loading
+                            </Button>
+                            <Button onClick={() => router.push('/dashboard/puzzles')} variant="outline" size="sm">
+                                Back to Puzzles
+                            </Button>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+            );
+        }
+        if (currentDynamicPuzzleContent) {
+            return (
+                <div className="space-y-4">
+                    <p className="text-lg whitespace-pre-wrap">{currentDynamicPuzzleContent.question}</p>
+                    {currentDynamicPuzzleContent.inputType === 'textarea' && 
+                        <Textarea value={genericInput} onChange={(e) => setGenericInput(e.target.value)} placeholder="Your answer..." rows={5} className="input-glow" disabled={isLevelCompleted || isSubmitting}/>
+                    }
+                    {/* TODO: Add other input types based on currentDynamicPuzzleContent.inputType if needed */}
+                    {currentDynamicPuzzleContent.hint && <p className="text-sm text-muted-foreground italic">Hint: {currentDynamicPuzzleContent.hint}</p>}
+                </div>
+            );
+        }
+        return <p className="text-muted-foreground text-center py-10">Could not display puzzle content for Level {currentLevel}. Please try refreshing or contact support.</p>;
     }
-    return <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />; // Fallback or loading state for dynamic content
+    return null; // Should not be reached if logic is correct
   };
 
 
@@ -362,7 +405,7 @@ export default function PuzzlePlayPage() {
           <CardDescription className="text-center text-muted-foreground text-sm md:text-base">{currentStaticPuzzle.description}</CardDescription>
            <p className="text-center text-accent font-semibold">Level: {currentLevel} / {maxLevel}</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-h-[200px]">
           {isLevelCompleted ? (
             <div className="text-center py-8">
               <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
@@ -382,16 +425,16 @@ export default function PuzzlePlayPage() {
             renderPuzzleContent()
           )}
         </CardContent>
-        {!isLevelCompleted && currentLevel === 1 && currentStaticPuzzle.base_definition.type !== 'missing_symbol' && (
+        {!isLevelCompleted && (
              <CardFooter className="flex justify-end">
-                <Button onClick={checkLevel1Answer} className="glow-button" disabled={isSubmitting}>Check Level 1 Answers</Button>
-            </CardFooter>
-        )}
-        {!isLevelCompleted && currentLevel > 1 && currentDynamicPuzzleContent && (
-            <CardFooter className="flex justify-end">
-                <Button onClick={handleSubmitDynamicSolution} className="glow-button" disabled={isSubmitting || isLoading}>
-                    {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null} Submit Level {currentLevel} Solution
-                </Button>
+                {currentLevel === 1 && currentStaticPuzzle.base_definition.type !== 'missing_symbol' && (
+                    <Button onClick={checkLevel1Answer} className="glow-button" disabled={isSubmitting}>Check Level 1 Answers</Button>
+                )}
+                {currentLevel > 1 && currentDynamicPuzzleContent && !dynamicContentError && (
+                    <Button onClick={handleSubmitDynamicSolution} className="glow-button" disabled={isSubmitting || isLoading}>
+                        {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null} Submit Level {currentLevel} Solution
+                    </Button>
+                )}
             </CardFooter>
         )}
       </Card>
@@ -399,4 +442,3 @@ export default function PuzzlePlayPage() {
   );
 }
 
-    
