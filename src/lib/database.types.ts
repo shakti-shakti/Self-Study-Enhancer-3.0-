@@ -25,8 +25,8 @@ export type Database = {
           custom_countdown_event_name: string | null
           custom_countdown_target_date: string | null
           dataAiHint?: string | null
-          focus_coins: number | null
-          xp: number | null
+          focus_coins: number
+          xp: number
           owned_content_ids: string[] | null
           owned_store_items: string[] | null
           unlocked_achievement_ids: string[] | null
@@ -45,8 +45,8 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null
-          xp?: number | null
+          focus_coins?: number
+          xp?: number
           owned_content_ids?: string[] | null
           owned_store_items?: string[] | null
           unlocked_achievement_ids?: string[] | null
@@ -65,8 +65,8 @@ export type Database = {
           custom_countdown_event_name?: string | null
           custom_countdown_target_date?: string | null
           dataAiHint?: string | null
-          focus_coins?: number | null
-          xp?: number | null
+          focus_coins?: number
+          xp?: number
           owned_content_ids?: string[] | null
           owned_store_items?: string[] | null
           unlocked_achievement_ids?: string[] | null
@@ -117,7 +117,7 @@ export type Database = {
       quizzes: {
         Row: {
           id: string
-          user_id: string | null
+          user_id: string // Changed from string | null
           class_level: string | null
           subject: string | null
           topic: string | null
@@ -129,7 +129,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          user_id?: string | null
+          user_id: string // Changed from string | null
           class_level?: string | null
           subject?: string | null
           topic?: string | null
@@ -141,7 +141,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          user_id?: string | null
+          user_id?: string // Changed from string | null
           class_level?: string | null
           subject?: string | null
           topic?: string | null
@@ -685,22 +685,22 @@ export type Database = {
       doubt_resolution_logs: {
         Row: {
           id: string
-          user_id: string
-          question_image_data_uri: string | null
+          user_id: string // Made NOT NULL
+          question_image_storage_path: string | null
           explanation: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          user_id: string
-          question_image_data_uri?: string | null
+          user_id: string // Made NOT NULL
+          question_image_storage_path?: string | null
           explanation?: string | null
           created_at?: string
         }
         Update: {
           id?: string
-          user_id?: string
-          question_image_data_uri?: string | null
+          user_id?: string // Made NOT NULL
+          question_image_storage_path?: string | null
           explanation?: string | null
           created_at?: string
         }
@@ -983,7 +983,7 @@ export type Database = {
       leaderboard_entries: {
         Row: {
           id: string;
-          user_id: string;
+          user_id: string; // FK to profiles.id
           score: number;
           rank: number | null;
           period: "daily" | "weekly" | "all_time";
@@ -991,7 +991,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          user_id: string;
+          user_id: string; // FK to profiles.id
           score: number;
           rank?: number | null;
           period: "daily" | "weekly" | "all_time";
@@ -999,7 +999,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          user_id?: string;
+          user_id?: string; // FK to profiles.id
           score?: number;
           rank?: number | null;
           period?: "daily" | "weekly" | "all_time";
@@ -1009,7 +1009,7 @@ export type Database = {
           {
             foreignKeyName: "leaderboard_entries_user_id_fkey";
             columns: ["user_id"];
-            referencedRelation: "profiles";
+            referencedRelation: "profiles"; // Corrected: should reference profiles table
             referencedColumns: ["id"];
           }
         ];
@@ -1168,13 +1168,13 @@ export type Database = {
          subject: string | null;
          category: string;
          description: string | null;
-         base_definition: Json | null; // For AI to generate levels
-         max_level: number; // Max levels for this puzzle
-         default_xp_award: number; // Base XP for solving a level
+         base_definition: Json | null; 
+         max_level: number; 
+         default_xp_award: number; 
          created_at: string;
         };
         Insert: {
-         id: string; // Puzzles are admin-defined, so ID is not UUID auto-gen
+         id: string; 
          name: string;
          subject?: string | null;
          category: string;
@@ -1199,13 +1199,13 @@ export type Database = {
        };
        user_puzzle_progress: {
          Row: {
-           id: string; // UUID
-           user_id: string; // UUID, FK to auth.users
-           puzzle_id: string; // TEXT, FK to puzzles.id
+           id: string; 
+           user_id: string; 
+           puzzle_id: string; 
            current_level: number;
-           unlocked_at: string | null; // Timestamp when puzzle was first accessed/unlocked by user
-           last_updated_at: string; // Timestamp of last progress update
-           completed_at: string | null; // Timestamp when all levels completed
+           unlocked_at: string | null; 
+           last_updated_at: string; 
+           completed_at: string | null; 
          };
          Insert: {
            id?: string;
@@ -1279,6 +1279,40 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      }
+      spin_history: {
+        Row: {
+            id: string
+            user_id: string
+            reward_name: string
+            reward_type: string
+            reward_value: string | null
+            spun_at: string
+        }
+        Insert: {
+            id?: string
+            user_id: string
+            reward_name: string
+            reward_type: string
+            reward_value?: string | null
+            spun_at?: string
+        }
+        Update: {
+            id?: string
+            user_id?: string
+            reward_name?: string
+            reward_type?: string
+            reward_value?: string | null
+            spun_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spin_history_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1448,7 +1482,8 @@ export interface SearchResultItem {
 
 export type ActivityLogWithSelfie = Tables<'activity_logs'> & {
   details?: {
-    selfie_image_data_uri?: string;
+    image_storage_path?: string; // Changed from selfie_image_data_uri
+    selfie_image_data_uri?: string; // Keep if old data might exist
     captured_at?: string;
     [key: string]: any;
   } | null;
@@ -1460,18 +1495,23 @@ export type UserPuzzleProgressRow = Tables<'user_puzzle_progress'>;
 
 export interface GeneratedPuzzleLevelContent {
   question: string;
-  options?: string[] | null; // For MCQ
-  inputType: 'text' | 'textarea' | 'radio' | 'checkbox' | 'number'; // Defines UI
-  data?: any; // Additional data like sequence for sequence_solver, image URLs for visual
-  solutionCriteriaForAI?: string; // For AI evaluation on backend
+  options?: string[] | null; 
+  inputType: 'text' | 'textarea' | 'radio' | 'checkbox' | 'number'; 
+  data?: any; 
+  solutionCriteriaForAI?: string; 
   hint?: string;
   level_specific_xp_award?: number;
 }
 
 export interface PuzzleSubmissionResponse {
-  isCorrect: boolean;
-  feedback?: string;
-  newLevel?: number; // If advanced
-  puzzleCompleted?: boolean; // If max level reached
-  newXP?: number;
+  success: boolean; // General success of the function call
+  correct: boolean; // Whether the user's solution was correct
+  message?: string; // Feedback message for the user
+  newLevel?: number; // If advanced to a new level
+  puzzleCompleted?: boolean; // If all levels of the puzzle are now completed
+  newXP?: number; // XP awarded for this submission
 }
+
+// Type for spin history entries
+export interface SpinHistoryEntry extends Tables<'spin_history'> {}
+

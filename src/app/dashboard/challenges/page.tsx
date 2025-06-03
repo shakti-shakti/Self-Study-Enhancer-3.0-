@@ -116,13 +116,18 @@ export default function ChallengesPage() {
 
             const { data: leaderboardData, error: leaderboardError } = await supabase
                 .from('leaderboard_entries')
-                .select('*, profiles!user_id(full_name, username, avatar_url)')
+                .select('*, profiles!inner(id, full_name, username, avatar_url)') // Changed to !inner to ensure profiles exist
                 .eq('period', 'all_time')
                 .order('score', { ascending: false })
                 .limit(10);
-            if (leaderboardError) throw leaderboardError;
-            const processedLeaderboard = (leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1}));
-            setLeaderboard(processedLeaderboard);
+                
+            if (leaderboardError) {
+                console.error("Error fetching leaderboard:", JSON.stringify(leaderboardError, null, 2));
+                toast({ variant: "destructive", title: "Leaderboard Error", description: "Could not load leaderboard data. RLS on profiles might be too restrictive or data missing."});
+            } else {
+                const processedLeaderboard = (leaderboardData as LeaderboardUser[] || []).map((entry, index) => ({...entry, rank: index + 1}));
+                setLeaderboard(processedLeaderboard);
+            }
 
         } catch (error: any) {
              toast({ variant: 'destructive', title: 'Error fetching challenges data', description: error.message });
@@ -157,14 +162,10 @@ export default function ChallengesPage() {
             return;
         }
         
-        // Award XP and Coins using apiClient
-        await apiClient.addUserXP(mission.reward_points); // Assuming reward_points also contribute to XP
+        await apiClient.addUserXP(mission.reward_points);
         const currentCoins = await apiClient.fetchUserFocusCoins();
-        await apiClient.updateUserFocusCoins(currentCoins + (mission.reward_points / 2)); // Example: coins are half of XP
+        await apiClient.updateUserFocusCoins(currentCoins + (mission.reward_points / 2)); 
 
-        // Optionally, if your RPC also updates profile XP, you might not need separate addUserXP call
-        // or adjust the RPC to only update leaderboard score.
-        // For now, let's call the RPC primarily for leaderboard score update:
         const { error: scoreError } = await supabase.rpc('increment_leaderboard_score', { 
             p_user_id: userId, 
             p_score_increment: mission.reward_points, 
@@ -172,7 +173,7 @@ export default function ChallengesPage() {
         });
         if (scoreError) {
           console.error("Error updating leaderboard score via RPC:", scoreError);
-          toast({ variant: "destructive", title: "Leaderboard Score Error", description: "Could not update leaderboard score. The RPC 'increment_leaderboard_score' might not be set up or there was an issue.", duration: 7000 });
+          toast({ variant: "destructive", title: "Leaderboard Score Error", description: "Could not update leaderboard score. RPC might be missing or there was an issue.", duration: 7000 });
         }
 
         if (mission.badge_id_reward) {
@@ -185,7 +186,7 @@ export default function ChallengesPage() {
             } else if (!badgeError) {
                 const awardedBadge = availableBadges.find(b => b.id === mission.badge_id_reward) || userBadges.find(b => b.id === mission.badge_id_reward);
                  toast({ title: "Badge Unlocked!", description: `You've earned the ${awardedBadge?.name || 'new'} badge!`, className: 'bg-accent/20 border-accent text-accent-foreground glow-text-accent'});
-                 await apiClient.unlockAchievement(mission.badge_id_reward); // Also mark in general achievements if applicable
+                 await apiClient.unlockAchievement(mission.badge_id_reward);
             }
         }
         
@@ -198,11 +199,10 @@ export default function ChallengesPage() {
 
         toast({ title: "Mission Complete!", description: `You've completed "${mission.title}" and earned rewards!`, className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary'});
         
-        // Unlock general achievement for first mission
-        if(mission.id === 'mission_example_1' || userMissions.filter(m=>m.status==='completed').length === 0) { // Assuming a specific ID or first completion
+        if(mission.id === 'mission_example_1' || userMissions.filter(m=>m.status==='completed').length === 0) { 
             await apiClient.unlockAchievement('ach_first_mission');
         }
-        await fetchChallengesData(); // Refetch all data
+        await fetchChallengesData(); 
     });
   };
   

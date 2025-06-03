@@ -320,9 +320,9 @@ export default function QuizzesPage() {
     } else {
       setAvailableChapters([]);
     }
-    configForm.setValue('chapter', '');
-    setAvailableTopics([]);
-    configForm.setValue('topic','');
+    configForm.setValue('chapter', ''); // Reset chapter when class/subject changes
+    setAvailableTopics([]); // Reset topics when chapter changes
+    configForm.setValue('topic',''); // Reset topic selection
   }, [selectedClass, selectedSubject, configForm]);
 
   useEffect(() => {
@@ -332,7 +332,7 @@ export default function QuizzesPage() {
     } else {
       setAvailableTopics([]);
     }
-    configForm.setValue('topic', '');
+    configForm.setValue('topic', ''); // Reset topic when chapter changes
   }, [selectedClass, selectedSubject, selectedChapter, configForm]);
 
 
@@ -364,8 +364,9 @@ export default function QuizzesPage() {
           if (values.topic) {
             topicForAI += ` - Specific Topic: ${values.topic}`;
           } else {
+            // If chapter selected but no specific topic, use general chapter concepts
             const subTopics = syllabusData[values.subject!]?.[`Class ${values.class_level!}`]?.[values.chapter] || [];
-            if (subTopics.length > 0) {
+            if (subTopics.length > 0) { // Include a few subtopics as context if available
                 topicForAI += ` (Covering general concepts from this chapter, including: ${subTopics.slice(0,2).join(', ')}${subTopics.length > 2 ? ' and more' : ''})`;
             }
           }
@@ -387,34 +388,36 @@ export default function QuizzesPage() {
         }
 
         const quizId = uuidv4();
+        // For DB storage, use a more structured topics array if available
         const dbTopicsArray = values.topic ? [values.chapter, values.topic].filter(Boolean) as string[] : (values.chapter ? [values.chapter] : null);
+        // For display, use the most specific selected topic or fallback
         const displayTopicString = values.topic || values.chapter || values.subject;
 
 
         const quizDataForState: CurrentGeneratedQuiz['quizData'] = {
             id: quizId,
-            user_id: userId,
+            user_id: userId, // user_id is now non-nullable for quizzes table
             class_level: values.class_level,
             subject: values.subject,
             topics: dbTopicsArray,
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            display_topic: displayTopicString,
+            display_topic: displayTopicString, // For UI display
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
             id: uuidv4(),
-            quiz_id: quizId,
+            quiz_id: quizId, // This will be updated after quiz is inserted
             question_text: q.questionText,
             options: q.options,
             correct_option_index: q.correctOptionIndex,
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.topic || values.chapter || null,
+            topic: values.topic || values.chapter || null, // Most specific topic selected
             source: values.question_source || null,
-            neet_syllabus_year: 2026,
+            neet_syllabus_year: 2026, // Example, can be dynamic
             created_at: new Date().toISOString(),
         }));
 
@@ -446,7 +449,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -455,11 +458,12 @@ export default function QuizzesPage() {
 
     startSubmittingTransition(async () => {
       try {
-        const { display_topic, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
+        // Destructure user_id from quizData and ensure the one from state is used
+        const { display_topic, user_id: qdUserId, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
 
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase,
-            user_id: userId,
+            user_id: userId, // Explicitly use the userId from component state
             topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics.join(' - ') : currentGeneratedQuiz.quizData.subject
         };
 
@@ -471,7 +475,7 @@ export default function QuizzesPage() {
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
             id: q.id,
-            quiz_id: insertedQuiz.id,
+            quiz_id: insertedQuiz.id, // Use the ID from the inserted quiz
             question_text: q.question_text,
             options: q.options,
             correct_option_index: q.correct_option_index,
@@ -511,7 +515,7 @@ export default function QuizzesPage() {
           quiz_id: insertedQuiz.id,
           score: score,
           total_questions: currentGeneratedQuiz.questions.length,
-          answers_submitted: userAnswers.map(ua => ({q: ua.questionId, a: ua.selectedOptionIndex})),
+          answers_submitted: userAnswers.map(ua => ({q: ua.questionId, a: ua.selectedOptionIndex})), // Storing question ID and answer index
           completed_at: new Date().toISOString(),
         };
         const { error: attemptError } = await supabase.from('quiz_attempts').insert(attemptInsert);
@@ -520,6 +524,7 @@ export default function QuizzesPage() {
             return;
         }
 
+        // Log activity
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: userId,
           activity_type: 'quiz_attempted',
@@ -536,8 +541,9 @@ export default function QuizzesPage() {
         };
         await supabase.from('activity_logs').insert(activityLog);
 
-        const xpEarned = score * 2;
-        const coinsEarned = score * 5;
+        // Award XP & Coins
+        const xpEarned = score * 2; // Example: 2 XP per correct answer
+        const coinsEarned = score * 5; // Example: 5 coins per correct answer
         await apiClient.addUserXP(xpEarned);
         const currentCoins = await apiClient.fetchUserFocusCoins();
         await apiClient.updateUserFocusCoins(currentCoins + coinsEarned);
@@ -557,6 +563,7 @@ export default function QuizzesPage() {
         });
 
       } catch (error: any) {
+        // It's helpful to log the full error object to see Supabase specific details
         console.error("Error submitting quiz and saving to DB:", JSON.stringify(error, null, 2));
         toast({ variant: 'destructive', title: 'Error Submitting Quiz', description: error.message || 'An unexpected error occurred. Check console for details.' });
       }
@@ -592,7 +599,7 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id,
+                question_id: question.id, // Store the original question ID
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
@@ -604,16 +611,17 @@ export default function QuizzesPage() {
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') {
+              if (error.code === '23505') { // Unique constraint violation (user_id, question_id)
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
-              } else if (error.code === '23503') {
+              } else if (error.code === '23503') { // Foreign key violation (question_id not in questions table)
                 toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save question. The original question might not have been saved to the database correctly. Please ensure quiz data is properly saved first."});
               }
               else {
-                throw error;
+                throw error; // Rethrow other errors
               }
             } else {
                toast({ title: "Question Saved!", description: "You can find it in your 'Saved Questions' dashboard."});
+                // Log activity
                 const activityLog: TablesInsert<'activity_logs'> = {
                   user_id: userId,
                   activity_type: 'question_saved',
@@ -623,6 +631,7 @@ export default function QuizzesPage() {
                 await supabase.from('activity_logs').insert(activityLog);
             }
         } catch(error: any) {
+            // Log the full error for debugging if needed
             console.error("Error in handleSaveQuestion:", JSON.stringify(error, null, 2));
             toast({ variant: 'destructive', title: "Error Saving Question", description: error.message || "An unexpected error occurred."});
         }

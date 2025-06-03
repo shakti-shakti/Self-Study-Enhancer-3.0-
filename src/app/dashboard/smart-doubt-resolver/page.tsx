@@ -39,7 +39,7 @@ type DoubtResolverFormData = z.infer<typeof doubtResolverSchema>;
 export default function SmartDoubtResolverPage() {
   const [isPending, startTransition] = useTransition();
   const [aiExplanation, setAiExplanation] = useState<ResolveDoubtOutput | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null); // This will hold the Data URI for UI preview
+  const [previewImage, setPreviewImage] = useState<string | null>(null); 
   const { toast } = useToast();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +87,7 @@ export default function SmartDoubtResolverPage() {
     }
     
     const file = values.questionImage[0];
-    const imageDataUriForAI = previewImage; // Use the Data URI from state for AI processing
+    const imageDataUriForAI = previewImage; 
 
     startTransition(async () => {
       try {
@@ -97,13 +97,12 @@ export default function SmartDoubtResolverPage() {
             return;
         }
 
-        // 1. Upload image to Supabase Storage
         const blob = dataURItoBlob(imageDataUriForAI);
         const fileName = `doubt_${user.id}_${Date.now()}.${file.name.split('.').pop()}`;
         const filePath = `${user.id}/${fileName}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('doubt-resolver-images') // Ensure this bucket exists
+            .from('doubt-resolver-images') 
             .upload(filePath, blob, { upsert: false });
 
         if (uploadError) throw uploadError;
@@ -111,21 +110,20 @@ export default function SmartDoubtResolverPage() {
         const imageStoragePath = publicUrlData.publicUrl;
 
 
-        // 2. Call AI flow with Data URI
         const input: ResolveDoubtInput = { 
-            questionImage: imageDataUriForAI, // AI flow expects Data URI
+            questionImage: imageDataUriForAI, 
             subjectContext: values.subjectContext
         };
         const result = await resolveDoubt(input);
         setAiExplanation(result);
 
-        // 3. Log to DB with storage path
         const logEntry: TablesInsert<'doubt_resolution_logs'> = {
             user_id: user.id,
             question_image_storage_path: imageStoragePath, 
             explanation: result.explanation,
         };
-        await supabase.from('doubt_resolution_logs').insert(logEntry);
+        const { error: insertLogError } = await supabase.from('doubt_resolution_logs').insert(logEntry);
+        if (insertLogError) throw insertLogError; // Throw to catch below
         
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: user.id,

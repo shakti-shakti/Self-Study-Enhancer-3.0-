@@ -107,14 +107,16 @@ export default function StudyRoomsPage() {
           async (payload) => {
             const newMessage = payload.new as Tables<'study_room_messages'>; 
             
+            // Fetch profile for the new message sender
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('email, full_name, avatar_url')
-              .eq('id', newMessage.user_id)
+              .eq('id', newMessage.user_id) // Assuming profiles.id is the user_id
               .single();
             
             const newMessageWithProfile: StudyRoomMessageWithProfile = {
                 ...newMessage,
+                // profiles table 'id' is FK to auth.users.id
                 profiles: profileData ? { email: profileData.email, full_name: profileData.full_name, avatar_url: profileData.avatar_url } : {email: 'Unknown User', full_name: 'Unknown', avatar_url: null}
             };
             setMessages((prevMessages) => [...prevMessages, newMessageWithProfile]);
@@ -136,7 +138,7 @@ export default function StudyRoomsPage() {
     startTransition(async () => {
       const { data, error } = await supabase
         .from('study_room_messages')
-        .select('*, profiles!user_id(email, full_name, avatar_url)') 
+        .select('*, profiles:user_id(email, full_name, avatar_url)') // Adjusted join
         .eq('room_id', roomId)
         .order('created_at', { ascending: true })
         .limit(100); 
@@ -154,7 +156,6 @@ export default function StudyRoomsPage() {
     const roomToDelete = rooms.find(r => r.id === roomId);
 
     startRoomOperationTransition(async () => {
-      // First, attempt to delete associated messages (optional, depends on RLS/cascade)
       const { error: messagesError } = await supabase
         .from('study_room_messages')
         .delete()
@@ -162,7 +163,6 @@ export default function StudyRoomsPage() {
 
       if (messagesError) {
         console.warn("Error deleting messages for room", roomId, messagesError.message);
-        // Decide if you want to proceed with room deletion or stop
       }
 
       const { error } = await supabase.from('study_rooms').delete().eq('id', roomId);
@@ -446,6 +446,4 @@ export default function StudyRoomsPage() {
     </div>
   );
 }
-    
-
     
