@@ -243,7 +243,7 @@ const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Biology'], { required_error: 'Please select a subject.' }),
   chapter: z.string().optional(),
-  topic: z.string().optional(), 
+  topic: z.string().optional(),
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   numQuestions: z.coerce.number().int().min(1).max(50),
@@ -252,11 +252,11 @@ const quizConfigSchema = z.object({
 type QuizConfigFormData = z.infer<typeof quizConfigSchema>;
 
 type CurrentGeneratedQuiz = {
-  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at' | 'topic'> & { 
-    id: string, 
-    user_id: string, 
-    topics: string[] | null, 
-    display_topic?: string 
+  quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at' | 'topic'> & {
+    id: string,
+    user_id: string,
+    topics: string[] | null,
+    display_topic?: string
   };
   questions: Question[];
 };
@@ -304,7 +304,7 @@ export default function QuizzesPage() {
       class_level: undefined,
       subject: undefined,
       chapter: '',
-      topic: '', 
+      topic: '',
       question_source: undefined,
     },
   });
@@ -320,7 +320,7 @@ export default function QuizzesPage() {
     } else {
       setAvailableChapters([]);
     }
-    configForm.setValue('chapter', ''); 
+    configForm.setValue('chapter', '');
     setAvailableTopics([]);
     configForm.setValue('topic','');
   }, [selectedClass, selectedSubject, configForm]);
@@ -396,11 +396,11 @@ export default function QuizzesPage() {
             user_id: userId,
             class_level: values.class_level,
             subject: values.subject,
-            topics: dbTopicsArray, 
+            topics: dbTopicsArray,
             question_source: values.question_source || null,
             difficulty: values.difficulty,
             num_questions: generatedQuizOutput.questions.length,
-            display_topic: displayTopicString, 
+            display_topic: displayTopicString,
         };
 
         const questionsForState: Question[] = generatedQuizOutput.questions.map(q => ({
@@ -412,9 +412,9 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.topic || values.chapter || null, 
+            topic: values.topic || values.chapter || null,
             source: values.question_source || null,
-            neet_syllabus_year: 2026, 
+            neet_syllabus_year: 2026,
             created_at: new Date().toISOString(),
         }));
 
@@ -446,7 +446,7 @@ export default function QuizzesPage() {
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1); 
+      setCurrentQuestionIndex(prev => prev - 1);
     }
   };
 
@@ -456,17 +456,17 @@ export default function QuizzesPage() {
     startSubmittingTransition(async () => {
       try {
         const { display_topic, ...quizDataForDbBase } = currentGeneratedQuiz.quizData;
-        
+
         const quizToInsert: TablesInsert<'quizzes'> = {
-            ...quizDataForDbBase, 
+            ...quizDataForDbBase,
             user_id: userId,
-            topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics.join(' - ') : currentGeneratedQuiz.quizData.subject 
+            topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics.join(' - ') : currentGeneratedQuiz.quizData.subject
         };
-        
+
         const { data: insertedQuiz, error: quizError } = await supabase.from('quizzes').insert(quizToInsert).select().single();
         if (quizError) {
             toast({ variant: 'destructive', title: 'DB Error: Quiz Save', description: `Code: ${quizError.code}. ${quizError.message}` });
-            return; 
+            return;
         }
 
         const questionsToInsert = currentGeneratedQuiz.questions.map(q => ({
@@ -478,7 +478,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            topic: q.topic, 
+            topic: q.topic,
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
@@ -492,9 +492,9 @@ export default function QuizzesPage() {
         const { error: questionsError } = await supabase.from('questions').insert(questionsToInsert);
         if (questionsError) {
              toast({ variant: 'destructive', title: 'DB Error: Question Save', description: `Code: ${questionsError.code}. ${questionsError.message}` });
-             return; 
+             return;
         }
-        
+
         let score = 0;
         const questionsWithUserAnswers = currentGeneratedQuiz.questions.map(q => {
             const userAnswer = userAnswers.find(ans => ans.questionId === q.id);
@@ -519,7 +519,7 @@ export default function QuizzesPage() {
             toast({ variant: 'destructive', title: 'DB Error: Attempt Save', description: `Code: ${attemptError.code}. ${attemptError.message}` });
             return;
         }
-        
+
         const activityLog: TablesInsert<'activity_logs'> = {
           user_id: userId,
           activity_type: 'quiz_attempted',
@@ -535,9 +535,9 @@ export default function QuizzesPage() {
           }
         };
         await supabase.from('activity_logs').insert(activityLog);
-        
-        const xpEarned = score * 2; 
-        const coinsEarned = score * 5; 
+
+        const xpEarned = score * 2;
+        const coinsEarned = score * 5;
         await apiClient.addUserXP(xpEarned);
         const currentCoins = await apiClient.fetchUserFocusCoins();
         await apiClient.updateUserFocusCoins(currentCoins + coinsEarned);
@@ -573,7 +573,7 @@ export default function QuizzesPage() {
           question: question.question_text,
           answer: correctAnswerText,
           studentAnswer: studentAnswerText,
-          topic: question.topic || question.subject || 'general', 
+          topic: question.topic || question.subject || 'general',
         };
 
         const result = await explainQuizQuestion(input);
@@ -592,21 +592,21 @@ export default function QuizzesPage() {
         try {
             const savedQuestionData: TablesInsert<'saved_questions'> = {
                 user_id: userId,
-                question_id: question.id, 
+                question_id: question.id,
                 question_text: question.question_text,
                 options: question.options,
                 correct_option_index: question.correct_option_index,
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: question.topic, 
+                topic: question.topic,
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
             if (error) {
-              if (error.code === '23505') { 
+              if (error.code === '23505') {
                 toast({ variant: 'default', title: "Question Already Saved", description: "This question is already in your saved list."});
-              } else if (error.code === '23503') { 
+              } else if (error.code === '23503') {
                 toast({ variant: 'destructive', title: "Error Saving Question", description: "Failed to save question. The original question might not have been saved to the database correctly. Please ensure quiz data is properly saved first."});
               }
               else {
@@ -660,12 +660,12 @@ export default function QuizzesPage() {
               <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer has-[:checked]:bg-primary/10 has-[:checked]:border-primary input-glow">
                 <input
                   type="radio"
-                  name={question.id} 
+                  name={question.id}
                   value={index.toString()}
                   id={`${question.id}-option-${index}`}
                   checked={userAnswer?.selectedOptionIndex === index}
                   onChange={() => handleAnswerChange(question.id, index)}
-                  className="form-radio h-4 w-4 text-primary border-border focus:ring-primary cursor-pointer" 
+                  className="form-radio h-4 w-4 text-primary border-border focus:ring-primary cursor-pointer"
                 />
                 <label htmlFor={`${question.id}-option-${index}`} className="font-normal text-base flex-1 cursor-pointer">
                   {String.fromCharCode(65 + index)}. {option}
@@ -678,7 +678,7 @@ export default function QuizzesPage() {
           <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0} className="glow-button">
             <ChevronLeft className="mr-2" /> Previous
           </Button>
-          
+
           {currentQuestionIndex < currentGeneratedQuiz.questions.length - 1 ? (
             <Button onClick={handleNextQuestion} className="glow-button bg-primary hover:bg-primary/90">
               Next <ChevronRight className="ml-2" />
@@ -754,7 +754,7 @@ export default function QuizzesPage() {
                             <AlertDescription className="text-sm whitespace-pre-wrap">{explanation}</AlertDescription>
                         </Alert>
                         ) : (
-                        question.explanation_prompt && 
+                        q.explanation_prompt &&
                         <Button
                             variant="outline"
                             size="sm"
