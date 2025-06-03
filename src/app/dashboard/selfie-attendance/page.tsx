@@ -119,45 +119,46 @@ export default function SelfieAttendancePage() {
     return new Blob([ab], { type: mimeString });
   };
 
-  const captureSelfieAndUpload = async (): Promise<string | null> => {
-    if (videoRef.current && canvasRef.current && hasCameraPermission) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUri = canvas.toDataURL('image/png');
-        
-        if (!userId) {
-            toast({variant: "destructive", title: "User ID missing", description: "Cannot upload image."});
-            return null;
-        }
-
-        const blob = dataURItoBlob(dataUri);
-        const fileName = `selfie_${userId}_${Date.now()}.png`;
-        const filePath = `${userId}/${fileName}`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('selfie-attendances') // Ensure this bucket exists
-            .upload(filePath, blob, {
-                cacheControl: '3600',
-                upsert: false, // true if you want to overwrite if file name clashes, false to error
-            });
-
-        if (uploadError) {
-            console.error("Error uploading selfie to storage:", uploadError);
-            toast({ variant: "destructive", title: "Upload Failed", description: uploadError.message });
-            return null;
-        }
-        
-        // Get public URL of the uploaded file
-        const { data: publicUrlData } = supabase.storage.from('selfie-attendances').getPublicUrl(filePath);
-        return publicUrlData.publicUrl;
-      }
+  const captureSelfieAndUpload = async (): Promise<string> => { // Changed return type to throw on error
+    if (!videoRef.current || !canvasRef.current || !hasCameraPermission) {
+      throw new Error("Camera or canvas not ready.");
     }
-    return null;
+    if (!userId) {
+        throw new Error("User not authenticated. Cannot upload image.");
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        throw new Error("Failed to get canvas context.");
+    }
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUri = canvas.toDataURL('image/png');
+    
+    const blob = dataURItoBlob(dataUri);
+    const fileName = `selfie_${userId}_${Date.now()}.png`;
+    const filePath = `${userId}/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('selfie-attendances') 
+        .upload(filePath, blob, {
+            cacheControl: '3600',
+            upsert: false,
+        });
+
+    if (uploadError) {
+        console.error("Error uploading selfie to storage:", uploadError);
+        throw new Error(`Storage upload failed: ${uploadError.message}. Check bucket RLS policies.`);
+    }
+    
+    const { data: publicUrlData } = supabase.storage.from('selfie-attendances').getPublicUrl(filePath);
+    if (!publicUrlData.publicUrl) {
+        throw new Error("Failed to get public URL for uploaded selfie.");
+    }
+    return publicUrlData.publicUrl;
   };
 
   const handleMarkAttendance = () => {
@@ -170,39 +171,32 @@ export default function SelfieAttendancePage() {
                     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
                     setCountdown(null);
                     
-                    captureSelfieAndUpload().then(async (imageStoragePath) => {
-                        if (imageStoragePath) {
-                            if (userId) {
-                                try {
-                                    const attendanceLog: TablesInsert<'activity_logs'> = { 
-                                        user_id: userId,
-                                        activity_type: 'selfie_attendance_marked',
-                                        description: 'Selfie attendance marked.',
-                                        details: { 
-                                            image_storage_path: imageStoragePath, // Store path instead of data URI
-                                            captured_at: new Date().toISOString() 
-                                        }
-                                    };
-                                    const { error: logError } = await supabase.from('activity_logs').insert(attendanceLog);
-                                    if (logError) throw logError;
+                    captureSelfieAndUpload()
+                        .then(async (imageStoragePath) => {
+                            if (userId) { // userId should already be checked by captureSelfieAndUpload
+                                const attendanceLog: TablesInsert<'activity_logs'> = { 
+                                    user_id: userId,
+                                    activity_type: 'selfie_attendance_marked',
+                                    description: 'Selfie attendance marked.',
+                                    details: { 
+                                        image_storage_path: imageStoragePath,
+                                        captured_at: new Date().toISOString() 
+                                    }
+                                };
+                                const { error: logError } = await supabase.from('activity_logs').insert(attendanceLog);
+                                if (logError) throw logError;
 
-                                    toast({
-                                        title: 'Attendance Marked!',
-                                        description: 'Your presence has been noted and image saved.',
-                                        className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
-                                    });
-                                    fetchSelfieHistory(); // Refresh history
-                                } catch (error: any) {
-                                     console.error("Error saving attendance log:", error);
-                                     toast({variant: "destructive", title: "Error Saving Attendance", description: error.message});
-                                }
-                            } else {
-                                 toast({variant: "destructive", title: "User ID Missing", description: "Cannot save attendance without user ID."});
+                                toast({
+                                    title: 'Attendance Marked!',
+                                    description: 'Your presence has been noted and image saved.',
+                                    className: 'bg-primary/10 border-primary text-primary-foreground glow-text-primary',
+                                });
+                                fetchSelfieHistory(); 
                             }
-                        } else {
-                            toast({ variant: "destructive", title: "Capture or Upload Failed", description: "Could not capture or upload selfie." });
-                        }
-                    });
+                        })
+                        .catch(error => {
+                            toast({ variant: "destructive", title: "Capture or Upload Failed", description: error.message });
+                        });
                     return null;
                 }
                 return prev - 1;
@@ -310,9 +304,9 @@ export default function SelfieAttendancePage() {
 
       <Alert variant="default" className="max-w-lg mx-auto bg-muted/30 border-primary/30">
         <Info className="h-5 w-5 text-primary" />
-        <AlertTitle className="font-semibold text-primary">Data Storage</AlertTitle>
+        <AlertTitle className="font-semibold text-primary">Data Storage & Permissions</AlertTitle>
         <AlertDescription>
-            Selfies are uploaded to secure cloud storage, and only the path is stored in the database for display. This ensures privacy and efficient data management.
+            Selfies are uploaded to secure cloud storage, and only the path is stored in the database for display. This ensures privacy and efficient data management. Ensure your Supabase bucket 'selfie-attendances' exists and has correct RLS policies for uploads.
         </AlertDescription>
       </Alert>
     </div>
