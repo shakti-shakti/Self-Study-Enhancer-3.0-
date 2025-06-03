@@ -37,84 +37,84 @@ import * as apiClient from '@/lib/apiClient';
 import { Target, Lightbulb, ChevronRight, ChevronLeft, Loader2, Wand2, HelpCircle, CheckCircle2, XCircle, RotateCcw, Save, ThumbsUp, ClipboardCopy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Updated syllabusData
+// Updated syllabusData with comprehensive chapters
 const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   "Physics": {
     "Class 11": {
-      "1. Physical World and Measurement": [],
-      "2. Kinematics": [],
-      "3. Laws of Motion": [],
-      "4. Work, Energy and Power": [],
-      "5. Motion of System of Particles and Rigid Body": [],
-      "6. Gravitation": [],
-      "7. Properties of Bulk Matter": [],
-      "8. Thermodynamics": [],
-      "9. Behaviour of Perfect Gas and Kinetic Theory": [],
-      "10. Oscillations and Waves": []
+      "Units and Measurement": ["Physical World", "Units and Measurement"],
+      "Kinematics": ["Motion in a Straight Line", "Motion in a Plane"],
+      "Laws of Motion": ["Laws of Motion"],
+      "Work, Energy and Power": ["Work, Energy and Power"],
+      "Motion of System of Particles and Rigid Body": ["System of Particles and Rotational Motion"],
+      "Gravitation": ["Gravitation"],
+      "Properties of Bulk Matter": ["Mechanical Properties of Solids", "Mechanical Properties of Fluids", "Thermal Properties of Matter"],
+      "Thermodynamics": ["Thermodynamics"],
+      "Behaviour of Perfect Gas and Kinetic Theory": ["Kinetic Theory"],
+      "Oscillations and Waves": ["Oscillations", "Waves"]
     },
     "Class 12": {
-      "11. Electrostatics": [],
-      "12. Current Electricity": [],
-      "13. Magnetic Effects of Current and Magnetism": [],
-      "14. Electromagnetic Induction and Alternating Current": [],
-      "15. Electromagnetic Waves": [],
-      "16. Optics": [],
-      "17. Dual Nature of Matter and Radiation": [],
-      "18. Atoms and Nuclei": [],
-      "19. Electronic Devices": [],
-      "20. Experimental Skills": []
+      "Electrostatics": ["Electric Charges and Fields", "Electrostatic Potential and Capacitance"],
+      "Current Electricity": ["Current Electricity"],
+      "Magnetic Effects of Current and Magnetism": ["Moving Charges and Magnetism", "Magnetism and Matter"],
+      "Electromagnetic Induction and Alternating Current": ["Electromagnetic Induction", "Alternating Current"],
+      "Electromagnetic Waves": ["Electromagnetic Waves"],
+      "Optics": ["Ray Optics and Optical Instruments", "Wave Optics"],
+      "Dual Nature of Matter and Radiation": ["Dual Nature of Radiation and Matter"],
+      "Atoms and Nuclei": ["Atoms", "Nuclei"],
+      "Electronic Devices": ["Semiconductor Electronics: Materials, Devices and Simple Circuits"],
+      "Experimental Skills": ["Experimental Skills"]
     }
   },
   "Chemistry": {
     "Class 11": {
-      "1. Some Basic Concepts of Chemistry": [],
-      "2. Structure of Atom": [],
-      "3. Classification of Elements and Periodicity in Properties": [],
-      "4. Chemical Bonding and Molecular Structure": [],
-      "5. States of Matter: Gases and Liquids": [],
-      "6. Thermodynamics": [],
-      "7. Equilibrium": [],
-      "8. Redox Reactions": [],
-      "9. Hydrogen": [],
-      "10. The s-Block Element": [],
-      "11. Some p-Block Elements": [],
-      "12. Organic Chemistry - Some Basic Principles and Techniques": [],
-      "13. Hydrocarbons": [],
-      "14. Environmental Chemistry": []
+      "Some Basic Concepts of Chemistry": ["Some Basic Concepts of Chemistry"],
+      "Structure of Atom": ["Structure of Atom"],
+      "Classification of Elements and Periodicity in Properties": ["Classification of Elements and Periodicity in Properties"],
+      "Chemical Bonding and Molecular Structure": ["Chemical Bonding and Molecular Structure"],
+      "States of Matter: Gases and Liquids": ["States of Matter"],
+      "Thermodynamics": ["Thermodynamics"],
+      "Equilibrium": ["Equilibrium"],
+      "Redox Reactions": ["Redox Reactions"],
+      "Hydrogen": ["Hydrogen"],
+      "s-Block Element (Alkali and Alkaline earth metals)": ["The s-Block Elements"],
+      "Some p-Block Elements": ["Some p-Block Elements"],
+      "Organic Chemistry - Some Basic Principles and Techniques": ["Organic Chemistry - Some Basic Principles and Techniques"],
+      "Hydrocarbons": ["Hydrocarbons"],
+      "Environmental Chemistry": ["Environmental Chemistry"]
     },
     "Class 12": {
-      "1. Solid State": [],
-      "2. Solutions": [],
-      "3. Electrochemistry": [],
-      "4. Chemical Kinetics": [],
-      "5. Surface Chemistry": [],
-      "6. General Principles and Processes of Isolation of Elements": [],
-      "7. The p-Block Element": [],
-      "8. The d- and f-Block Elements": [],
-      "9. Coordination Compounds": [],
-      "10. Haloalkanes and Haloarenes": [],
-      "11. Alcohols, Phenols and Ethers": [],
-      "12. Aldehydes, Ketones and Carboxylic Acids": [],
-      "13. Organic Compounds Containing Nitrogen": [],
-      "14. Biomolecules": [],
-      "15. Polymers": [],
-      "16. Chemistry in Everyday Life": []
+      "Solid State": ["Solid State"],
+      "Solutions": ["Solutions"],
+      "Electrochemistry": ["Electrochemistry"],
+      "Chemical Kinetics": ["Chemical Kinetics"],
+      "Surface Chemistry": ["Surface Chemistry"],
+      "General Principles and Processes of Isolation of Elements": ["General Principles and Processes of Isolation of Elements"],
+      "p-Block Element": ["The p-Block Elements (Group 15, 16, 17, 18)"],
+      "d and f Block Elements": ["The d-and f-Block Elements"],
+      "Coordination Compounds": ["Coordination Compounds"],
+      "Haloalkanes and Haloarenes": ["Haloalkanes and Haloarenes"],
+      "Alcohols, Phenols and Ethers": ["Alcohols, Phenols and Ethers"],
+      "Aldehydes, Ketones and Carboxylic Acids": ["Aldehydes, Ketones and Carboxylic Acids"],
+      "Organic Compounds Containing Nitrogen": ["Amines"],
+      "Biomolecules": ["Biomolecules"],
+      "Polymers": ["Polymers"],
+      "Chemistry in Everyday Life": ["Chemistry in Everyday Life"]
     }
   },
   "Biology": {
     "Class 11": {
-      "1. Diversity of Living Organisms": [],
-      "2. Structural Organisation in Animals and Plants": [],
-      "3. Cell Structure and Function": [],
-      "4. Plant Physiology": [],
-      "5. Human Physiology": []
+      "Diversity in Living World": ["The Living World", "Biological Classification", "Plant Kingdom", "Animal Kingdom"],
+      "Structural Organisation in Animals and Plants": ["Morphology of Flowering Plants", "Anatomy of Flowering Plants", "Structural Organisation in Animals"],
+      "Cell Structure and Function": ["Cell: The Unit of Life", "Biomolecules", "Cell Cycle and Cell Division"],
+      "Plant Physiology": ["Transport in Plants", "Mineral Nutrition", "Photosynthesis in Higher Plants", "Respiration in Plants", "Plant Growth and Development"],
+      "Human Physiology": ["Digestion and Absorption", "Breathing and Exchange of Gases", "Body Fluids and Circulation", "Excretory Products and their Elimination", "Locomotion and Movement", "Neural Control and Coordination", "Chemical Coordination and Integration"]
     },
     "Class 12": {
-      "6. Reproduction": [],
-      "7. Genetics and Evolution": [],
-      "8. Biology and Human Welfare": [],
-      "9. Biotechnology and Its Applications": [],
-      "10. Ecology and Environment": []
+      "Reproduction": ["Reproduction in Organisms", "Sexual Reproduction in Flowering Plants", "Human Reproduction", "Reproductive Health"],
+      "Genetics and Evolution": ["Principles of Inheritance and Variation", "Molecular Basis of Inheritance", "Evolution"],
+      "Biology and Human Welfare": ["Human Health and Disease", "Strategies for Enhancement in Food Production", "Microbes in Human Welfare"],
+      "Biotechnology and Its Applications": ["Biotechnology : Principles and Processes", "Biotechnology and its Applications"],
+      "Ecology and Environment": ["Organisms and Populations", "Ecosystem", "Biodiversity and Conservation", "Environmental Issues"]
     }
   }
 };
@@ -124,7 +124,7 @@ const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Biology'], { required_error: 'Please select a subject.' }),
   chapter: z.string().optional(),
-  topic: z.string().optional(), // Topic is not in the new structure, but keeping field for potential future use. UI will not populate it.
+  topic: z.string().optional(), // Specific topic within a chapter (will remain empty as per current syllabusData)
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   numQuestions: z.coerce.number().int().min(1).max(50),
@@ -202,21 +202,8 @@ export default function QuizzesPage() {
     } else {
       setAvailableChapters([]);
     }
-    configForm.setValue('chapter', ''); // Reset chapter when class/subject changes
-    // configForm.setValue('topic', ''); // Reset topic
-    // setAvailableTopics([]);
+    configForm.setValue('chapter', ''); 
   }, [selectedClass, selectedSubject, configForm]);
-
-  // This useEffect for topics is no longer needed as topics are not in the new structure
-  // useEffect(() => {
-  //   if (selectedClass && selectedSubject && selectedChapter && syllabusData[selectedSubject]?.[`Class ${selectedClass}`]?.[selectedChapter]) {
-  //     const topics = syllabusData[selectedSubject][`Class ${selectedClass}`][selectedChapter];
-  //     setAvailableTopics(topics);
-  //   } else {
-  //     setAvailableTopics([]);
-  //   }
-  //   configForm.setValue('topic', ''); // Reset topic when chapter changes
-  // }, [selectedChapter, selectedClass, selectedSubject, configForm]);
 
 
   useEffect(() => {
@@ -244,9 +231,8 @@ export default function QuizzesPage() {
         // Construct a more descriptive topic for the AI based on selected chapter
         let topicForAI = `${values.subject} - Class ${values.class_level}`;
         if (values.chapter) {
-          topicForAI += ` - ${values.chapter}`; // Using the full chapter name from selection
+          topicForAI += ` - ${values.chapter}`; 
         }
-        // The 'topic' field is no longer populated from the new syllabus, so we don't use values.topic here.
         if (values.question_source) {
           topicForAI += ` - Source: ${values.question_source}`;
         }
@@ -264,7 +250,6 @@ export default function QuizzesPage() {
         }
 
         const quizId = uuidv4();
-        // `topics` field in DB can store the chapter name
         const dbTopicsArray = values.chapter ? [values.chapter] : null;
         const displayTopicString = values.chapter || values.subject;
 
@@ -290,7 +275,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.chapter || null, // Store chapter as topic if specific topic isn't available
+            topic: values.chapter || null, 
             source: values.question_source || null,
             neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
@@ -338,7 +323,6 @@ export default function QuizzesPage() {
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase, 
             user_id: userId,
-            // The `topic` field for quizzes table can be the chapter name or general subject if no chapter
             topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics[0] : currentGeneratedQuiz.quizData.subject 
         };
         
@@ -357,7 +341,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanation_prompt,
             class_level: q.class_level,
             subject: q.subject,
-            topic: q.topic, // This should be the chapter name now
+            topic: q.topic, 
             source: q.source,
             neet_syllabus_year: q.neet_syllabus_year,
             created_at: q.created_at,
@@ -414,9 +398,8 @@ export default function QuizzesPage() {
         };
         await supabase.from('activity_logs').insert(activityLog);
         
-        // Award XP and Coins
-        const xpEarned = score * 2; // Example: 2 XP per correct answer
-        const coinsEarned = score * 5; // Example: 5 coins per correct answer
+        const xpEarned = score * 2; 
+        const coinsEarned = score * 5; 
         await apiClient.addUserXP(xpEarned);
         const currentCoins = await apiClient.fetchUserFocusCoins();
         await apiClient.updateUserFocusCoins(currentCoins + coinsEarned);
@@ -452,7 +435,7 @@ export default function QuizzesPage() {
           question: question.question_text,
           answer: correctAnswerText,
           studentAnswer: studentAnswerText,
-          topic: question.topic || question.subject || 'general', // Use stored chapter as topic
+          topic: question.topic || question.subject || 'general', 
         };
 
         const result = await explainQuizQuestion(input);
@@ -478,7 +461,7 @@ export default function QuizzesPage() {
                 explanation_prompt: question.explanation_prompt,
                 class_level: question.class_level,
                 subject: question.subject,
-                topic: question.topic, // Chapter name
+                topic: question.topic, 
                 source: question.source,
             };
             const { error } = await supabase.from('saved_questions').insert(savedQuestionData);
@@ -633,7 +616,7 @@ export default function QuizzesPage() {
                             <AlertDescription className="text-sm whitespace-pre-wrap">{explanation}</AlertDescription>
                         </Alert>
                         ) : (
-                        question.explanation_prompt && // Only show if prompt exists
+                        question.explanation_prompt && 
                         <Button
                             variant="outline"
                             size="sm"
@@ -723,7 +706,6 @@ export default function QuizzesPage() {
                       <FormMessage />
                     </FormItem>
                 )} />
-                {/* Topic field is removed as it's not present in the new syllabus structure */}
                 <FormField control={configForm.control} name="question_source" render={({ field }) => (
                     <FormItem>
                         <FormLabel className="text-base font-medium">Question Source (Optional)</FormLabel>
