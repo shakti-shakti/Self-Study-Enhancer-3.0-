@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 // RadioGroup and RadioGroupItem are used for the config form, but NOT for rendering quiz options
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -41,521 +41,198 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   "Physics": {
     "Class 11": {
       "Physical World and Measurement": [
-        "Units of measurements",
-        "System of Units (CGS, MKS, SI)",
-        "Fundamental and derived units",
-        "Least count",
-        "Significant figures",
-        "Errors in measurement",
-        "Dimensions of physical quantities",
-        "Dimensional analysis and its applications"
+        "Units of measurements", "System of Units (CGS, MKS, SI)", "Fundamental and derived units", "Least count", "Significant figures", "Errors in measurement", "Dimensions of physical quantities", "Dimensional analysis and its applications"
       ],
       "Kinematics": [
-        "Frame of reference",
-        "Motion in a straight line",
-        "Position-time graph",
-        "Speed and velocity",
-        "Uniform and non-uniform motion",
-        "Average speed and instantaneous velocity",
-        "Uniformly accelerated motion",
-        "Velocity-time and position-time graphs",
-        "Scalars and Vectors",
-        "Vector addition and subtraction",
-        "Scalar and vector products",
-        "Unit vector, resolution of a vector",
-        "Relative velocity",
-        "Motion in a plane",
-        "Projectile motion",
-        "Uniform circular motion"
+        "Frame of reference", "Motion in a straight line", "Position-time graph", "Speed and velocity", "Uniform and non-uniform motion", "Average speed and instantaneous velocity", "Uniformly accelerated motion", "Velocity-time and position-time graphs", "Scalars and Vectors", "Vector addition and subtraction", "Scalar and vector products", "Unit vector, resolution of a vector", "Relative velocity", "Motion in a plane", "Projectile motion", "Uniform circular motion"
       ],
       "Laws of Motion": [
-        "Force and inertia",
-        "Newton’s First, Second, and Third laws of motion",
-        "Law of conservation of momentum",
-        "Equilibrium of concurrent forces",
-        "Static and kinetic friction",
-        "Laws of friction, rolling friction",
-        "Dynamics of uniform circular motion",
-        "Centripetal force",
-        "Applications: vehicle on level and banked roads"
+        "Force and inertia", "Newton’s First, Second, and Third laws of motion", "Law of conservation of momentum", "Equilibrium of concurrent forces", "Static and kinetic friction", "Laws of friction, rolling friction", "Dynamics of uniform circular motion", "Centripetal force", "Applications: vehicle on level and banked roads"
       ],
       "Work, Energy and Power": [
-        "Work done by a constant and variable force",
-        "Kinetic and potential energies",
-        "Work-energy theorem",
-        "Power",
-        "Potential energy of spring",
-        "Conservation of mechanical energy",
-        "Conservative and non-conservative forces",
-        "Motion in a vertical circle",
-        "Elastic and inelastic collisions in one and two dimensions"
+        "Work done by a constant and variable force", "Kinetic and potential energies", "Work-energy theorem", "Power", "Potential energy of spring", "Conservation of mechanical energy", "Conservative and non-conservative forces", "Motion in a vertical circle", "Elastic and inelastic collisions in one and two dimensions"
       ],
       "Motion of System of Particles and Rigid Body": [
-        "Centre of mass (two-particle system and rigid body)",
-        "Torque",
-        "Angular momentum",
-        "Conservation of angular momentum",
-        "Moment of inertia and radius of gyration",
-        "Theorems of moment of inertia",
-        "Equilibrium of rigid bodies",
-        "Rotational motion",
-        "Comparison of linear and rotational motion"
+        "Centre of mass (two-particle system and rigid body)", "Torque", "Angular momentum", "Conservation of angular momentum", "Moment of inertia and radius of gyration", "Theorems of moment of inertia", "Equilibrium of rigid bodies", "Rotational motion", "Comparison of linear and rotational motion"
       ],
       "Gravitation": [
-        "Newton’s law of gravitation",
-        "Acceleration due to gravity",
-        "Variation with height and depth",
-        "Kepler’s laws",
-        "Gravitational potential energy and potential",
-        "Escape velocity",
-        "Orbital velocity",
-        "Energy and time period of satellite motion"
+        "Newton’s law of gravitation", "Acceleration due to gravity", "Variation with height and depth", "Kepler’s laws", "Gravitational potential energy and potential", "Escape velocity", "Orbital velocity", "Energy and time period of satellite motion"
       ],
       "Properties of Bulk Matter": [
-        "Elastic behavior and stress-strain",
-        "Hooke's law",
-        "Young’s modulus, bulk modulus, rigidity",
-        "Pressure in fluid column",
-        "Pascal’s law and applications",
-        "Effect of gravity on pressure",
-        "Viscosity and Stokes’ law",
-        "Terminal velocity",
-        "Streamline and turbulent flow",
-        "Critical velocity",
-        "Bernoulli’s principle and applications",
-        "Surface energy and tension",
-        "Angle of contact",
-        "Excess pressure across curved surfaces",
-        "Capillarity and its applications",
-        "Thermal properties: expansion, calorimetry, latent heat",
-        "Heat transfer: conduction, convection, radiation"
+        "Elastic behavior and stress-strain", "Hooke's law", "Young’s modulus, bulk modulus, rigidity", "Pressure in fluid column", "Pascal’s law and applications", "Effect of gravity on pressure", "Viscosity and Stokes’ law", "Terminal velocity", "Streamline and turbulent flow", "Critical velocity", "Bernoulli’s principle and applications", "Surface energy and tension", "Angle of contact", "Excess pressure across curved surfaces", "Capillarity and its applications", "Thermal properties: expansion, calorimetry, latent heat", "Heat transfer: conduction, convection, radiation"
       ],
       "Thermodynamics": [
-        "Thermal equilibrium",
-        "Zeroth law of thermodynamics",
-        "Concept of temperature",
-        "Heat, work, and internal energy",
-        "First law of thermodynamics",
-        "Isothermal and adiabatic processes",
-        "Second law of thermodynamics",
-        "Reversible and irreversible processes"
+        "Thermal equilibrium", "Zeroth law of thermodynamics", "Concept of temperature", "Heat, work, and internal energy", "First law of thermodynamics", "Isothermal and adiabatic processes", "Second law of thermodynamics", "Reversible and irreversible processes"
       ],
       "Behaviour of Perfect Gas and Kinetic Theory": [
-        "Equation of state of ideal gas",
-        "Work done on compressing a gas",
-        "Assumptions of kinetic theory",
-        "Concept of pressure",
-        "RMS speed of gas molecules",
-        "Degrees of freedom",
-        "Law of equipartition of energy",
-        "Specific heat capacities",
-        "Mean free path",
-        "Avogadro’s number"
+        "Equation of state of ideal gas", "Work done on compressing a gas", "Assumptions of kinetic theory", "Concept of pressure", "RMS speed of gas molecules", "Degrees of freedom", "Law of equipartition of energy", "Specific heat capacities", "Mean free path", "Avogadro’s number"
       ],
       "Oscillations and Waves": [
-        "Oscillations and periodic motion",
-        "SHM: time period, frequency, displacement",
-        "Energy in SHM",
-        "Oscillations of spring",
-        "Simple pendulum and its time period",
-        "Wave motion: longitudinal and transverse",
-        "Speed of wave propagation",
-        "Displacement relation",
-        "Superposition principle",
-        "Reflection of waves",
-        "Standing waves in strings and pipes",
-        "Beats and resonance"
+        "Oscillations and periodic motion", "SHM: time period, frequency, displacement", "Energy in SHM", "Oscillations of spring", "Simple pendulum and its time period", "Wave motion: longitudinal and transverse", "Speed of wave propagation", "Displacement relation", "Superposition principle", "Reflection of waves", "Standing waves in strings and pipes", "Beats and resonance"
       ]
     },
     "Class 12": {
       "Electrostatics": [
-        "Electric charges and conservation",
-        "Coulomb’s law",
-        "Superposition principle",
-        "Electric field, field lines",
-        "Electric dipole",
-        "Torque on dipole",
-        "Electric flux",
-        "Gauss’s law and its applications",
-        "Electric potential and potential energy",
-        "Equipotential surfaces",
-        "Capacitance, capacitors",
-        "Energy stored in capacitors",
-        "Dielectrics and polarization"
+        "Electric charges and conservation", "Coulomb’s law", "Superposition principle", "Electric field, field lines", "Electric dipole", "Torque on dipole", "Electric flux", "Gauss’s law and its applications", "Electric potential and potential energy", "Equipotential surfaces", "Capacitance, capacitors", "Energy stored in capacitors", "Dielectrics and polarization"
       ],
       "Current Electricity": [
-        "Electric current, drift velocity",
-        "Ohm’s law",
-        "V-I characteristics (Ohmic/non-Ohmic)",
-        "Electrical energy and power",
-        "Resistivity and conductivity",
-        "Series and parallel resistors",
-        "Internal resistance and EMF",
-        "Kirchhoff’s laws",
-        "Wheatstone bridge and meter bridge"
+        "Electric current, drift velocity", "Ohm’s law", "V-I characteristics (Ohmic/non-Ohmic)", "Electrical energy and power", "Resistivity and conductivity", "Series and parallel resistors", "Internal resistance and EMF", "Kirchhoff’s laws", "Wheatstone bridge and meter bridge"
       ],
       "Magnetic Effects of Current and Magnetism": [
-        "Biot-Savart law",
-        "Ampere’s circuital law",
-        "Magnetic force on moving charge",
-        "Force on current-carrying conductor",
-        "Torque on current loop",
-        "Magnetic field of solenoid",
-        "Galvanometer, ammeter, voltmeter",
-        "Magnetic dipole and field lines",
-        "Bar magnet and magnetic moment",
-        "Magnetic materials: para-, dia-, ferromagnetic",
-        "Hysteresis",
-        "Earth’s magnetic field"
+        "Biot-Savart law", "Ampere’s circuital law", "Magnetic force on moving charge", "Force on current-carrying conductor", "Torque on current loop", "Magnetic field of solenoid", "Galvanometer, ammeter, voltmeter", "Magnetic dipole and field lines", "Bar magnet and magnetic moment", "Magnetic materials: para-, dia-, ferromagnetic", "Hysteresis", "Earth’s magnetic field"
       ],
       "Electromagnetic Induction and AC": [
-        "Faraday’s laws",
-        "Lenz’s law",
-        "Eddy currents",
-        "Self and mutual induction",
-        "Alternating current and peak/RMS values",
-        "Reactance and impedance",
-        "LCR circuits",
-        "Resonance",
-        "Transformer and AC generator"
+        "Faraday’s laws", "Lenz’s law", "Eddy currents", "Self and mutual induction", "Alternating current and peak/RMS values", "Reactance and impedance", "LCR circuits", "Resonance", "Transformer and AC generator"
       ],
       "Electromagnetic Waves": [
-        "Displacement current",
-        "Maxwell’s equations (qualitative)",
-        "Properties of EM waves",
-        "Electromagnetic spectrum",
-        "Applications: radio, microwave, IR, UV, X-ray, gamma"
+        "Displacement current", "Maxwell’s equations (qualitative)", "Properties of EM waves", "Electromagnetic spectrum", "Applications: radio, microwave, IR, UV, X-ray, gamma"
       ],
       "Optics": [
-        "Reflection and refraction",
-        "Mirrors and lenses",
-        "Total internal reflection",
-        "Lens/mirror formula",
-        "Power of a lens",
-        "Microscopes and telescopes",
-        "Wavefront and Huygens principle",
-        "Interference (Young’s experiment)",
-        "Diffraction and polarization"
+        "Reflection and refraction", "Mirrors and lenses", "Total internal reflection", "Lens/mirror formula", "Power of a lens", "Microscopes and telescopes", "Wavefront and Huygens principle", "Interference (Young’s experiment)", "Diffraction and polarization"
       ],
       "Dual Nature of Matter and Radiation": [
-        "Photoelectric effect",
-        "Einstein’s equation",
-        "Particle nature of light",
-        "de Broglie hypothesis"
+        "Photoelectric effect", "Einstein’s equation", "Particle nature of light", "de Broglie hypothesis"
       ],
       "Atoms and Nuclei": [
-        "Rutherford and Bohr models",
-        "Hydrogen spectrum",
-        "Composition of nucleus",
-        "Binding energy and mass defect",
-        "Radioactivity (alpha, beta, gamma)",
-        "Decay laws",
-        "Fission and fusion"
+        "Rutherford and Bohr models", "Hydrogen spectrum", "Composition of nucleus", "Binding energy and mass defect", "Radioactivity (alpha, beta, gamma)", "Decay laws", "Fission and fusion"
       ],
       "Electronic Devices": [
-        "Semiconductors",
-        "Diode and I-V characteristics",
-        "Zener diode and regulation",
-        "LED, solar cell, photodiode",
-        "Logic gates (AND, OR, NOT, NAND, NOR)"
+        "Semiconductors", "Diode and I-V characteristics", "Zener diode and regulation", "LED, solar cell, photodiode", "Logic gates (AND, OR, NOT, NAND, NOR)"
       ],
       "Experimental Skills": [
-        "Vernier calipers and screw gauge",
-        "Young's modulus",
-        "Surface tension and viscosity",
-        "Calorimetry",
-        "Meter bridge, galvanometer",
-        "Optical instruments and diode tests"
+        "Vernier calipers and screw gauge", "Young's modulus", "Surface tension and viscosity", "Calorimetry", "Meter bridge, galvanometer", "Optical instruments and diode tests"
       ]
     }
   },
   "Chemistry": {
     "Class 11": {
       "Some Basic Concepts of Chemistry": [
-        "Laws of chemical combination",
-        "Dalton’s atomic theory",
-        "Mole concept",
-        "Atomic and molecular masses",
-        "Molar mass and stoichiometry"
+        "Laws of chemical combination", "Dalton’s atomic theory", "Mole concept", "Atomic and molecular masses", "Molar mass and stoichiometry"
       ],
       "Structure of Atom": [
-        "Electromagnetic radiation",
-        "Spectrum of hydrogen atom",
-        "Bohr’s model and limitations",
-        "Quantum mechanical model",
-        "Quantum numbers",
-        "Shapes of orbitals",
-        "Electronic configuration"
+        "Electromagnetic radiation", "Spectrum of hydrogen atom", "Bohr’s model and limitations", "Quantum mechanical model", "Quantum numbers", "Shapes of orbitals", "Electronic configuration"
       ],
       "Classification of Elements and Periodicity in Properties": [
-        "Modern periodic law",
-        "Periodic table",
-        "Atomic and ionic radii",
-        "Ionization enthalpy",
-        "Electron gain enthalpy",
-        "Electronegativity"
+        "Modern periodic law", "Periodic table", "Atomic and ionic radii", "Ionization enthalpy", "Electron gain enthalpy", "Electronegativity"
       ],
       "Chemical Bonding and Molecular Structure": [
-        "Ionic and covalent bonding",
-        "Lewis structures and octet rule",
-        "VSEPR theory",
-        "Hybridization (s, p, d)",
-        "Molecular orbital theory",
-        "Bond order and bond energy",
-        "Hydrogen bonding"
+        "Ionic and covalent bonding", "Lewis structures and octet rule", "VSEPR theory", "Hybridization (s, p, d)", "Molecular orbital theory", "Bond order and bond energy", "Hydrogen bonding"
       ],
       "States of Matter: Gases and Liquids": [
-        "Gas laws (Boyle, Charles, Avogadro)",
-        "Ideal gas equation",
-        "Kinetic theory of gases",
-        "Real gases and deviations",
-        "Liquids – vapour pressure, surface tension, viscosity"
+        "Gas laws (Boyle, Charles, Avogadro)", "Ideal gas equation", "Kinetic theory of gases", "Real gases and deviations", "Liquids – vapour pressure, surface tension, viscosity"
       ],
       "Thermodynamics": [
-        "System and surroundings",
-        "Internal energy, work, and heat",
-        "First law and enthalpy",
-        "Heat capacity",
-        "Hess’s law",
-        "Second law and entropy",
-        "Gibbs energy"
+        "System and surroundings", "Internal energy, work, and heat", "First law and enthalpy", "Heat capacity", "Hess’s law", "Second law and entropy", "Gibbs energy"
       ],
       "Equilibrium": [
-        "Equilibrium in physical and chemical processes",
-        "Law of mass action",
-        "Equilibrium constant (Kp, Kc)",
-        "Le Chatelier’s principle",
-        "Acids and bases (Arrhenius, Bronsted, Lewis)",
-        "pH scale",
-        "Common ion effect",
-        "Buffers",
-        "Solubility product"
+        "Equilibrium in physical and chemical processes", "Law of mass action", "Equilibrium constant (Kp, Kc)", "Le Chatelier’s principle", "Acids and bases (Arrhenius, Bronsted, Lewis)", "pH scale", "Common ion effect", "Buffers", "Solubility product"
       ],
       "Redox Reactions": [
-        "Oxidation and reduction",
-        "Oxidation number",
-        "Redox reactions balancing",
-        "Displacement reactions"
+        "Oxidation and reduction", "Oxidation number", "Redox reactions balancing", "Displacement reactions"
       ],
       "Hydrogen": [
-        "Position in periodic table",
-        "Isotopes and properties",
-        "Hydrogen bonding",
-        "Water, heavy water",
-        "Hydrides"
+        "Position in periodic table", "Isotopes and properties", "Hydrogen bonding", "Water, heavy water", "Hydrides"
       ],
       "The s-Block Element (Alkali and Alkaline earth metals)": [
-        "Group 1 and 2 elements",
-        "Physical and chemical properties",
-        "Anomalous behavior of lithium and beryllium",
-        "Important compounds (NaCl, CaO, etc.)",
-        "Biological importance"
+        "Group 1 and 2 elements", "Physical and chemical properties", "Anomalous behavior of lithium and beryllium", "Important compounds (NaCl, CaO, etc.)", "Biological importance"
       ],
       "Some p-Block Elements": [
-        "Group 13 and 14 elements",
-        "General trends",
-        "Important compounds (borax, aluminium chloride, CO2, etc.)"
+        "Group 13 and 14 elements", "General trends", "Important compounds (borax, aluminium chloride, CO2, etc.)"
       ],
       "Organic Chemistry – Basic Principles and Techniques": [
-        "Classification and IUPAC naming",
-        "Isomerism",
-        "Electron displacement effects (inductive, resonance, hyperconjugation)",
-        "Reaction intermediates: carbocations, carbanions, free radicals",
-        "Types of organic reactions"
+        "Classification and IUPAC naming", "Isomerism", "Electron displacement effects (inductive, resonance, hyperconjugation)", "Reaction intermediates: carbocations, carbanions, free radicals", "Types of organic reactions"
       ],
       "Hydrocarbons": [
-        "Alkanes: preparation, properties, conformations",
-        "Alkenes: reactions, Markovnikov’s rule, peroxide effect",
-        "Alkynes",
-        "Aromatic hydrocarbons: electrophilic substitution"
+        "Alkanes: preparation, properties, conformations", "Alkenes: reactions, Markovnikov’s rule, peroxide effect", "Alkynes", "Aromatic hydrocarbons: electrophilic substitution"
       ],
       "Environmental Chemistry": [
-        "Air and water pollution",
-        "Green chemistry",
-        "Ozone and greenhouse effect"
+        "Air and water pollution", "Green chemistry", "Ozone and greenhouse effect"
       ]
     },
     "Class 12": {
       "Solid State": [
-        "Types of solids: molecular, ionic, metallic, covalent",
-        "Unit cells and packing",
-        "Density and voids",
-        "Defects in solids",
-        "Electrical and magnetic properties"
+        "Types of solids: molecular, ionic, metallic, covalent", "Unit cells and packing", "Density and voids", "Defects in solids", "Electrical and magnetic properties"
       ],
       "Solutions": [
-        "Types of solutions",
-        "Concentration units",
-        "Solubility",
-        "Vapour pressure",
-        "Raoult’s law",
-        "Colligative properties",
-        "Abnormal molar masses",
-        "Van’t Hoff factor"
+        "Types of solutions", "Concentration units", "Solubility", "Vapour pressure", "Raoult’s law", "Colligative properties", "Abnormal molar masses", "Van’t Hoff factor"
       ],
       "Electrochemistry": [
-        "Redox reactions and electrode potential",
-        "Nernst equation",
-        "Electrochemical cells",
-        "Conductance and cell constant",
-        "Electrolysis and Faraday’s laws",
-        "Batteries and fuel cells"
+        "Redox reactions and electrode potential", "Nernst equation", "Electrochemical cells", "Conductance and cell constant", "Electrolysis and Faraday’s laws", "Batteries and fuel cells"
       ],
       "Chemical Kinetics": [
-        "Rate of reaction",
-        "Rate law and order",
-        "Integrated rate equations",
-        "Temperature effect and activation energy",
-        "Collision theory"
+        "Rate of reaction", "Rate law and order", "Integrated rate equations", "Temperature effect and activation energy", "Collision theory"
       ],
       "Surface Chemistry": [
-        "Adsorption",
-        "Catalysis",
-        "Colloids: preparation, properties",
-        "Emulsions and gels"
+        "Adsorption", "Catalysis", "Colloids: preparation, properties", "Emulsions and gels"
       ],
       "General Principles and Processes of Isolation of Elements": [
-        "Principles and methods of extraction",
-        "Thermodynamic principles",
-        "Ellingham diagram",
-        "Electrochemical principles",
-        "Refining methods"
+        "Principles and methods of extraction", "Thermodynamic principles", "Ellingham diagram", "Electrochemical principles", "Refining methods"
       ],
       "The p-Block Element": [
-        "Group 15 to 18 elements",
-        "Structures of oxides and halides",
-        "Anomalous properties of nitrogen",
-        "Interhalogen compounds"
+        "Group 15 to 18 elements", "Structures of oxides and halides", "Anomalous properties of nitrogen", "Interhalogen compounds"
       ],
       "The d- and f-Block Elements": [
-        "Electronic configuration",
-        "Variable oxidation states",
-        "Magnetic properties",
-        "Lanthanide contraction"
+        "Electronic configuration", "Variable oxidation states", "Magnetic properties", "Lanthanide contraction"
       ],
       "Coordination Compounds": [
-        "Ligands, coordination number",
-        "Werner’s theory",
-        "Nomenclature and isomerism",
-        "VBT and CFT bonding",
-        "Applications"
+        "Ligands, coordination number", "Werner’s theory", "Nomenclature and isomerism", "VBT and CFT bonding", "Applications"
       ],
       "Haloalkanes and Haloarenes": [
-        "Nomenclature",
-        "Nature of C-X bond",
-        "Substitution reactions",
-        "Environmental effects: DDT, CFCs"
+        "Nomenclature", "Nature of C-X bond", "Substitution reactions", "Environmental effects: DDT, CFCs"
       ],
       "Alcohols, Phenols and Ethers": [
-        "Classification and nomenclature",
-        "Preparation and properties",
-        "Reactions of phenol and alcohol"
+        "Classification and nomenclature", "Preparation and properties", "Reactions of phenol and alcohol"
       ],
       "Aldehydes, Ketones and Carboxylic Acids": [
-        "Structure and reactivity",
-        "Nucleophilic addition",
-        "Oxidation and reduction",
-        "Aldol condensation, Cannizzaro reaction"
+        "Structure and reactivity", "Nucleophilic addition", "Oxidation and reduction", "Aldol condensation, Cannizzaro reaction"
       ],
       "Organic Compounds Containing Nitrogen": [
-        "Amines: classification, basicity",
-        "Diazonium salts and reactions"
+        "Amines: classification, basicity", "Diazonium salts and reactions"
       ],
       "Biomolecules": [
-        "Carbohydrates (glucose, fructose)",
-        "Proteins and peptides",
-        "Enzymes and vitamins",
-        "Nucleic acids"
+        "Carbohydrates (glucose, fructose)", "Proteins and peptides", "Enzymes and vitamins", "Nucleic acids"
       ],
       "Polymers": [
-        "Classification: natural, synthetic",
-        "Addition and condensation polymers",
-        "Biodegradable polymers"
+        "Classification: natural, synthetic", "Addition and condensation polymers", "Biodegradable polymers"
       ],
       "Chemistry in Everyday Life": [
-        "Drugs and medicines",
-        "Antacids, antibiotics, antihistamines",
-        "Cleansing agents"
+        "Drugs and medicines", "Antacids, antibiotics, antihistamines", "Cleansing agents"
       ]
     }
   },
   "Biology": {
     "Class 11": {
       "Diversity of Living Organisms": [
-        "What is living?",
-        "Biodiversity and classification",
-        "Three domain classification",
-        "Five kingdom classification (Monera, Protista, Fungi, Plantae, Animalia)",
-        "Binomial nomenclature",
-        "Plant kingdom: Algae, Bryophytes, Pteridophytes, Gymnosperms, Angiosperms",
-        "Animal kingdom: Non-chordates to chordates, salient features"
+        "What is living?", "Biodiversity and classification", "Three domain classification", "Five kingdom classification (Monera, Protista, Fungi, Plantae, Animalia)", "Binomial nomenclature", "Plant kingdom: Algae, Bryophytes, Pteridophytes, Gymnosperms, Angiosperms", "Animal kingdom: Non-chordates to chordates, salient features"
       ],
       "Structural Organisation in Animals and Plants": [
-        "Morphology of flowering plants: root, stem, leaf, inflorescence, flower, fruit, seed",
-        "Anatomy of dicot and monocot root, stem and leaf",
-        "Animal tissues: epithelial, connective, muscular, neural",
-        "Cockroach anatomy"
+        "Morphology of flowering plants: root, stem, leaf, inflorescence, flower, fruit, seed", "Anatomy of dicot and monocot root, stem and leaf", "Animal tissues: epithelial, connective, muscular, neural", "Cockroach anatomy"
       ],
       "Cell Structure and Function": [
-        "Cell theory, prokaryotic and eukaryotic cells",
-        "Cell membrane and cell wall",
-        "Cell organelles: nucleus, mitochondria, plastids, ribosomes, endoplasmic reticulum, Golgi apparatus, lysosomes, centrioles",
-        "Biomolecules: carbohydrates, proteins, lipids, nucleic acids, enzymes",
-        "Cell cycle and division: mitosis, meiosis"
+        "Cell theory, prokaryotic and eukaryotic cells", "Cell membrane and cell wall", "Cell organelles: nucleus, mitochondria, plastids, ribosomes, endoplasmic reticulum, Golgi apparatus, lysosomes, centrioles", "Biomolecules: carbohydrates, proteins, lipids, nucleic acids, enzymes", "Cell cycle and division: mitosis, meiosis"
       ],
       "Plant Physiology": [
-        "Transport in plants: diffusion, osmosis, active transport, transpiration",
-        "Mineral nutrition: essential nutrients and deficiency symptoms",
-        "Photosynthesis: light reaction, Calvin cycle, photorespiration",
-        "Respiration in plants: glycolysis, Krebs cycle, electron transport",
-        "Plant growth and development: phytohormones (auxin, gibberellin, cytokinin, ABA, ethylene), seed dormancy and germination"
+        "Transport in plants: diffusion, osmosis, active transport, transpiration", "Mineral nutrition: essential nutrients and deficiency symptoms", "Photosynthesis: light reaction, Calvin cycle, photorespiration", "Respiration in plants: glycolysis, Krebs cycle, electron transport", "Plant growth and development: phytohormones (auxin, gibberellin, cytokinin, ABA, ethylene), seed dormancy and germination"
       ],
       "Human Physiology": [
-        "Digestion and absorption: alimentary canal, digestive glands",
-        "Breathing and respiration: respiratory system, mechanism of breathing, gas exchange",
-        "Body fluids and circulation: blood components, heart structure, cardiac cycle",
-        "Excretory products and elimination: structure and function of kidneys",
-        "Locomotion and movement: bones, joints, muscle contraction",
-        "Neural control and coordination: neuron structure, impulse transmission, brain and spinal cord",
-        "Chemical coordination and integration: endocrine glands and hormones"
+        "Digestion and absorption: alimentary canal, digestive glands", "Breathing and respiration: respiratory system, mechanism of breathing, gas exchange", "Body fluids and circulation: blood components, heart structure, cardiac cycle", "Excretory products and elimination: structure and function of kidneys", "Locomotion and movement: bones, joints, muscle contraction", "Neural control and coordination: neuron structure, impulse transmission, brain and spinal cord", "Chemical coordination and integration: endocrine glands and hormones"
       ]
     },
     "Class 12": {
       "Reproduction": [
-        "Reproduction in organisms: asexual and sexual",
-        "Sexual reproduction in flowering plants: structure of flower, pollination, fertilization",
-        "Human reproduction: male and female reproductive systems, gametogenesis, menstrual cycle",
-        "Reproductive health: contraception, infertility, STDs"
+        "Reproduction in organisms: asexual and sexual", "Sexual reproduction in flowering plants: structure of flower, pollination, fertilization", "Human reproduction: male and female reproductive systems, gametogenesis, menstrual cycle", "Reproductive health: contraception, infertility, STDs"
       ],
       "Genetics and Evolution": [
-        "Principles of inheritance: Mendel’s laws, deviation from Mendelism",
-        "Chromosomal theory of inheritance",
-        "Sex determination",
-        "Genetic disorders",
-        "DNA structure and replication",
-        "RNA and transcription",
-        "Genetic code and translation",
-        "Human genome project",
-        "Evolution: origin of life, evidence, Hardy-Weinberg principle, speciation"
+        "Principles of inheritance: Mendel’s laws, deviation from Mendelism", "Chromosomal theory of inheritance", "Sex determination", "Genetic disorders", "DNA structure and replication", "RNA and transcription", "Genetic code and translation", "Human genome project", "Evolution: origin of life, evidence, Hardy-Weinberg principle, speciation"
       ],
       "Biology and Human Welfare": [
-        "Health and diseases: pathogens, immunity, vaccines",
-        "Cancer, allergy, AIDS",
-        "Alcohol and drug abuse",
-        "Microbes in human welfare: antibiotics, fermentation, sewage treatment, biogas"
+        "Health and diseases: pathogens, immunity, vaccines", "Cancer, allergy, AIDS", "Alcohol and drug abuse", "Microbes in human welfare: antibiotics, fermentation, sewage treatment, biogas"
       ],
       "Biotechnology and Its Applications": [
-        "Biotechnology principles and tools: restriction enzymes, cloning vectors, PCR, electrophoresis",
-        "Recombinant DNA technology",
-        "Biotechnology in agriculture: GM crops, Bt cotton",
-        "Biotechnology in medicine: gene therapy, insulin production",
-        "Biosafety issues and regulations"
+        "Biotechnology principles and tools: restriction enzymes, cloning vectors, PCR, electrophoresis", "Recombinant DNA technology", "Biotechnology in agriculture: GM crops, Bt cotton", "Biotechnology in medicine: gene therapy, insulin production", "Biosafety issues and regulations"
       ],
       "Ecology and Environment": [
-        "Organisms and populations: adaptations, population attributes",
-        "Ecosystems: structure and function, productivity, decomposition, energy flow",
-        "Biodiversity and conservation: importance, hotspots, endangered species, conservation methods",
-        "Environmental issues: pollution (air, water, soil), global warming, ozone depletion, waste management"
+        "Organisms and populations: adaptations, population attributes", "Ecosystems: structure and function, productivity, decomposition, energy flow", "Biodiversity and conservation: importance, hotspots, endangered species, conservation methods", "Environmental issues: pollution (air, water, soil), global warming, ozone depletion, waste management"
       ]
     }
   }
@@ -566,7 +243,7 @@ const quizConfigSchema = z.object({
   class_level: z.enum(['11', '12'], { required_error: 'Please select a class.' }),
   subject: z.enum(['Physics', 'Chemistry', 'Biology'], { required_error: 'Please select a subject.' }),
   chapter: z.string().optional(),
-  topic: z.string().optional(), // Specific topic within a chapter (will remain empty as per current syllabusData)
+  topic: z.string().optional(), 
   question_source: z.enum(['NCERT', 'PYQ', 'Mixed']).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   numQuestions: z.coerce.number().int().min(1).max(50),
@@ -578,7 +255,7 @@ type CurrentGeneratedQuiz = {
   quizData: Omit<TablesInsert<'quizzes'>, 'id' | 'user_id' | 'created_at' | 'topic'> & { 
     id: string, 
     user_id: string, 
-    topics: string[] | null, // topics is used for combined chapter/topic strings for DB
+    topics: string[] | null, 
     display_topic?: string 
   };
   questions: Question[];
@@ -613,8 +290,7 @@ export default function QuizzesPage() {
 
   const [availableSubjects, setAvailableSubjects] = useState<string[]>(Object.keys(syllabusData));
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
-  // Topics are no longer used from the new syllabus structure, so availableTopics will remain empty.
-  // const [availableTopics, setAvailableTopics] = useState<string[]>([]);
+  const [availableTopics, setAvailableTopics] = useState<string[]>([]);
 
 
   const { toast } = useToast();
@@ -628,14 +304,14 @@ export default function QuizzesPage() {
       class_level: undefined,
       subject: undefined,
       chapter: '',
-      topic: '', // Will remain empty
+      topic: '', 
       question_source: undefined,
     },
   });
 
   const selectedClass = configForm.watch('class_level');
   const selectedSubject = configForm.watch('subject');
-  // const selectedChapter = configForm.watch('chapter'); // No longer needed for topic filtering
+  const selectedChapter = configForm.watch('chapter');
 
   useEffect(() => {
     if (selectedClass && selectedSubject && syllabusData[selectedSubject] && syllabusData[selectedSubject][`Class ${selectedClass}`]) {
@@ -645,7 +321,19 @@ export default function QuizzesPage() {
       setAvailableChapters([]);
     }
     configForm.setValue('chapter', ''); 
+    setAvailableTopics([]);
+    configForm.setValue('topic','');
   }, [selectedClass, selectedSubject, configForm]);
+
+  useEffect(() => {
+    if (selectedClass && selectedSubject && selectedChapter && syllabusData[selectedSubject]?.[`Class ${selectedClass}`]?.[selectedChapter]) {
+      const topics = syllabusData[selectedSubject][`Class ${selectedClass}`][selectedChapter];
+      setAvailableTopics(topics || []);
+    } else {
+      setAvailableTopics([]);
+    }
+    configForm.setValue('topic', '');
+  }, [selectedClass, selectedSubject, selectedChapter, configForm]);
 
 
   useEffect(() => {
@@ -670,14 +358,16 @@ export default function QuizzesPage() {
       setCurrentQuestionIndex(0);
 
       try {
-        // Construct a more descriptive topic for the AI based on selected chapter and its sub-topics
         let topicForAI = `${values.subject} - Class ${values.class_level}`;
         if (values.chapter) {
           topicForAI += ` - Chapter: ${values.chapter}`;
-          // Get all sub-topics for the selected chapter
-          const subTopics = syllabusData[values.subject!]?.[`Class ${values.class_level!}`]?.[values.chapter] || [];
-          if (subTopics.length > 0) {
-            topicForAI += ` (Covering topics like: ${subTopics.slice(0, 3).join(', ')}${subTopics.length > 3 ? ', and more' : ''})`;
+          if (values.topic) {
+            topicForAI += ` - Specific Topic: ${values.topic}`;
+          } else {
+            const subTopics = syllabusData[values.subject!]?.[`Class ${values.class_level!}`]?.[values.chapter] || [];
+            if (subTopics.length > 0) {
+                topicForAI += ` (Covering general concepts from this chapter, including: ${subTopics.slice(0,2).join(', ')}${subTopics.length > 2 ? ' and more' : ''})`;
+            }
           }
         }
         if (values.question_source) {
@@ -697,8 +387,8 @@ export default function QuizzesPage() {
         }
 
         const quizId = uuidv4();
-        const dbTopicsArray = values.chapter ? [values.chapter] : null;
-        const displayTopicString = values.chapter || values.subject;
+        const dbTopicsArray = values.topic ? [values.chapter, values.topic].filter(Boolean) as string[] : (values.chapter ? [values.chapter] : null);
+        const displayTopicString = values.topic || values.chapter || values.subject;
 
 
         const quizDataForState: CurrentGeneratedQuiz['quizData'] = {
@@ -722,7 +412,7 @@ export default function QuizzesPage() {
             explanation_prompt: q.explanationPrompt,
             class_level: values.class_level,
             subject: values.subject,
-            topic: values.chapter || null, 
+            topic: values.topic || values.chapter || null, 
             source: values.question_source || null,
             neet_syllabus_year: 2026, 
             created_at: new Date().toISOString(),
@@ -770,7 +460,7 @@ export default function QuizzesPage() {
         const quizToInsert: TablesInsert<'quizzes'> = {
             ...quizDataForDbBase, 
             user_id: userId,
-            topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics[0] : currentGeneratedQuiz.quizData.subject 
+            topic: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics.join(' - ') : currentGeneratedQuiz.quizData.subject 
         };
         
         const { data: insertedQuiz, error: quizError } = await supabase.from('quizzes').insert(quizToInsert).select().single();
@@ -840,7 +530,8 @@ export default function QuizzesPage() {
             total_questions: currentGeneratedQuiz.questions.length,
             subject: currentGeneratedQuiz.quizData.subject,
             difficulty: currentGeneratedQuiz.quizData.difficulty,
-            chapter: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics[0] : null
+            chapter: currentGeneratedQuiz.quizData.topics ? currentGeneratedQuiz.quizData.topics[0] : null,
+            topic: currentGeneratedQuiz.quizData.topics && currentGeneratedQuiz.quizData.topics.length > 1 ? currentGeneratedQuiz.quizData.topics[1] : null
           }
         };
         await supabase.from('activity_logs').insert(activityLog);
@@ -1150,6 +841,19 @@ export default function QuizzesPage() {
                           {availableChapters.map(chap => <SelectItem key={chap} value={chap}>{chap}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={configForm.control} name="topic" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-base font-medium">Topic (Optional)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedChapter || availableTopics.length === 0}>
+                        <FormControl><SelectTrigger className="h-11 text-base input-glow"><SelectValue placeholder="Select specific topic..." /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {availableTopics.map(top => <SelectItem key={top} value={top}>{top}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>Narrows down questions to this sub-topic if available.</FormDescription>
                       <FormMessage />
                     </FormItem>
                 )} />
