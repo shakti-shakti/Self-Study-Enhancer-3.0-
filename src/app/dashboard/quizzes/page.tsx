@@ -70,7 +70,7 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       ],
       "Laws of Motion": [
         "Force and inertia",
-        "Newton's First, Second, and Third laws of motion",
+        "Newton’s First, Second, and Third laws of motion",
         "Law of conservation of momentum",
         "Equilibrium of concurrent forces",
         "Static and kinetic friction",
@@ -102,10 +102,10 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         "Comparison of linear and rotational motion"
       ],
       "Gravitation": [
-        "Newton's law of gravitation",
+        "Newton’s law of gravitation",
         "Acceleration due to gravity",
         "Variation with height and depth",
-        "Kepler's laws",
+        "Kepler’s laws",
         "Gravitational potential energy and potential",
         "Escape velocity",
         "Orbital velocity",
@@ -114,15 +114,15 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       "Properties of Bulk Matter": [
         "Elastic behavior and stress-strain",
         "Hooke's law",
-        "Young's modulus, bulk modulus, rigidity",
+        "Young’s modulus, bulk modulus, rigidity",
         "Pressure in fluid column",
-        "Pascal's law and applications",
+        "Pascal’s law and applications",
         "Effect of gravity on pressure",
-        "Viscosity and Stokes' law",
+        "Viscosity and Stokes’ law",
         "Terminal velocity",
         "Streamline and turbulent flow",
         "Critical velocity",
-        "Bernoulli's principle and applications",
+        "Bernoulli’s principle and applications",
         "Surface energy and tension",
         "Angle of contact",
         "Excess pressure across curved surfaces",
@@ -150,7 +150,7 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         "Law of equipartition of energy",
         "Specific heat capacities",
         "Mean free path",
-        "Avogadro's number"
+        "Avogadro’s number"
       ],
       "Oscillations and Waves": [
         "Oscillations and periodic motion",
@@ -170,13 +170,13 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
     "Class 12": {
       "Electrostatics": [
         "Electric charges and conservation",
-        "Coulomb's law",
+        "Coulomb’s law",
         "Superposition principle",
         "Electric field, field lines",
         "Electric dipole",
         "Torque on dipole",
         "Electric flux",
-        "Gauss's law and its applications",
+        "Gauss’s law and its applications",
         "Electric potential and potential energy",
         "Equipotential surfaces",
         "Capacitance, capacitors",
@@ -185,18 +185,18 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       ],
       "Current Electricity": [
         "Electric current, drift velocity",
-        "Ohm's law",
+        "Ohm’s law",
         "V-I characteristics (Ohmic/non-Ohmic)",
         "Electrical energy and power",
         "Resistivity and conductivity",
         "Series and parallel resistors",
         "Internal resistance and EMF",
-        "Kirchhoff's laws",
+        "Kirchhoff’s laws",
         "Wheatstone bridge and meter bridge"
       ],
       "Magnetic Effects of Current and Magnetism": [
         "Biot-Savart law",
-        "Ampere's circuital law",
+        "Ampere’s circuital law",
         "Magnetic force on moving charge",
         "Force on current-carrying conductor",
         "Torque on current loop",
@@ -206,11 +206,11 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         "Bar magnet and magnetic moment",
         "Magnetic materials: para-, dia-, ferromagnetic",
         "Hysteresis",
-        "Earth's magnetic field"
+        "Earth’s magnetic field"
       ],
       "Electromagnetic Induction and AC": [
-        "Faraday's laws",
-        "Lenz's law",
+        "Faraday’s laws",
+        "Lenz’s law",
         "Eddy currents",
         "Self and mutual induction",
         "Alternating current and peak/RMS values",
@@ -221,7 +221,7 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
       ],
       "Electromagnetic Waves": [
         "Displacement current",
-        "Maxwell's equations (qualitative)",
+        "Maxwell’s equations (qualitative)",
         "Properties of EM waves",
         "Electromagnetic spectrum",
         "Applications: radio, microwave, IR, UV, X-ray, gamma"
@@ -234,12 +234,12 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
         "Power of a lens",
         "Microscopes and telescopes",
         "Wavefront and Huygens principle",
-        "Interference (Young's experiment)",
+        "Interference (Young’s experiment)",
         "Diffraction and polarization"
       ],
       "Dual Nature of Matter and Radiation": [
         "Photoelectric effect",
-        "Einstein's equation",
+        "Einstein’s equation",
         "Particle nature of light",
         "de Broglie hypothesis"
       ],
@@ -271,54 +271,292 @@ const syllabusData: Record<string, Record<string, Record<string, string[]>>> = {
   },
   "Chemistry": {
     "Class 11": {
-      "Some Basic Concepts of Chemistry": ["Some Basic Concepts of Chemistry"],
-      "Structure of Atom": ["Structure of Atom"],
-      "Classification of Elements and Periodicity in Properties": ["Classification of Elements and Periodicity in Properties"],
-      "Chemical Bonding and Molecular Structure": ["Chemical Bonding and Molecular Structure"],
-      "States of Matter: Gases and Liquids": ["States of Matter"],
-      "Thermodynamics": ["Thermodynamics"],
-      "Equilibrium": ["Equilibrium"],
-      "Redox Reactions": ["Redox Reactions"],
-      "Hydrogen": ["Hydrogen"],
-      "s-Block Element (Alkali and Alkaline earth metals)": ["The s-Block Elements"],
-      "Some p-Block Elements": ["Some p-Block Elements"],
-      "Organic Chemistry - Some Basic Principles and Techniques": ["Organic Chemistry - Some Basic Principles and Techniques"],
-      "Hydrocarbons": ["Hydrocarbons"],
-      "Environmental Chemistry": ["Environmental Chemistry"]
+      "Some Basic Concepts of Chemistry": [
+        "Laws of chemical combination",
+        "Dalton’s atomic theory",
+        "Mole concept",
+        "Atomic and molecular masses",
+        "Molar mass and stoichiometry"
+      ],
+      "Structure of Atom": [
+        "Electromagnetic radiation",
+        "Spectrum of hydrogen atom",
+        "Bohr’s model and limitations",
+        "Quantum mechanical model",
+        "Quantum numbers",
+        "Shapes of orbitals",
+        "Electronic configuration"
+      ],
+      "Classification of Elements and Periodicity in Properties": [
+        "Modern periodic law",
+        "Periodic table",
+        "Atomic and ionic radii",
+        "Ionization enthalpy",
+        "Electron gain enthalpy",
+        "Electronegativity"
+      ],
+      "Chemical Bonding and Molecular Structure": [
+        "Ionic and covalent bonding",
+        "Lewis structures and octet rule",
+        "VSEPR theory",
+        "Hybridization (s, p, d)",
+        "Molecular orbital theory",
+        "Bond order and bond energy",
+        "Hydrogen bonding"
+      ],
+      "States of Matter: Gases and Liquids": [
+        "Gas laws (Boyle, Charles, Avogadro)",
+        "Ideal gas equation",
+        "Kinetic theory of gases",
+        "Real gases and deviations",
+        "Liquids – vapour pressure, surface tension, viscosity"
+      ],
+      "Thermodynamics": [
+        "System and surroundings",
+        "Internal energy, work, and heat",
+        "First law and enthalpy",
+        "Heat capacity",
+        "Hess’s law",
+        "Second law and entropy",
+        "Gibbs energy"
+      ],
+      "Equilibrium": [
+        "Equilibrium in physical and chemical processes",
+        "Law of mass action",
+        "Equilibrium constant (Kp, Kc)",
+        "Le Chatelier’s principle",
+        "Acids and bases (Arrhenius, Bronsted, Lewis)",
+        "pH scale",
+        "Common ion effect",
+        "Buffers",
+        "Solubility product"
+      ],
+      "Redox Reactions": [
+        "Oxidation and reduction",
+        "Oxidation number",
+        "Redox reactions balancing",
+        "Displacement reactions"
+      ],
+      "Hydrogen": [
+        "Position in periodic table",
+        "Isotopes and properties",
+        "Hydrogen bonding",
+        "Water, heavy water",
+        "Hydrides"
+      ],
+      "The s-Block Element (Alkali and Alkaline earth metals)": [
+        "Group 1 and 2 elements",
+        "Physical and chemical properties",
+        "Anomalous behavior of lithium and beryllium",
+        "Important compounds (NaCl, CaO, etc.)",
+        "Biological importance"
+      ],
+      "Some p-Block Elements": [
+        "Group 13 and 14 elements",
+        "General trends",
+        "Important compounds (borax, aluminium chloride, CO2, etc.)"
+      ],
+      "Organic Chemistry – Basic Principles and Techniques": [
+        "Classification and IUPAC naming",
+        "Isomerism",
+        "Electron displacement effects (inductive, resonance, hyperconjugation)",
+        "Reaction intermediates: carbocations, carbanions, free radicals",
+        "Types of organic reactions"
+      ],
+      "Hydrocarbons": [
+        "Alkanes: preparation, properties, conformations",
+        "Alkenes: reactions, Markovnikov’s rule, peroxide effect",
+        "Alkynes",
+        "Aromatic hydrocarbons: electrophilic substitution"
+      ],
+      "Environmental Chemistry": [
+        "Air and water pollution",
+        "Green chemistry",
+        "Ozone and greenhouse effect"
+      ]
     },
     "Class 12": {
-      "Solid State": ["Solid State"],
-      "Solutions": ["Solutions"],
-      "Electrochemistry": ["Electrochemistry"],
-      "Chemical Kinetics": ["Chemical Kinetics"],
-      "Surface Chemistry": ["Surface Chemistry"],
-      "General Principles and Processes of Isolation of Elements": ["General Principles and Processes of Isolation of Elements"],
-      "p-Block Element": ["The p-Block Elements (Group 15, 16, 17, 18)"],
-      "d and f Block Elements": ["The d-and f-Block Elements"],
-      "Coordination Compounds": ["Coordination Compounds"],
-      "Haloalkanes and Haloarenes": ["Haloalkanes and Haloarenes"],
-      "Alcohols, Phenols and Ethers": ["Alcohols, Phenols and Ethers"],
-      "Aldehydes, Ketones and Carboxylic Acids": ["Aldehydes, Ketones and Carboxylic Acids"],
-      "Organic Compounds Containing Nitrogen": ["Amines"],
-      "Biomolecules": ["Biomolecules"],
-      "Polymers": ["Polymers"],
-      "Chemistry in Everyday Life": ["Chemistry in Everyday Life"]
+      "Solid State": [
+        "Types of solids: molecular, ionic, metallic, covalent",
+        "Unit cells and packing",
+        "Density and voids",
+        "Defects in solids",
+        "Electrical and magnetic properties"
+      ],
+      "Solutions": [
+        "Types of solutions",
+        "Concentration units",
+        "Solubility",
+        "Vapour pressure",
+        "Raoult’s law",
+        "Colligative properties",
+        "Abnormal molar masses",
+        "Van’t Hoff factor"
+      ],
+      "Electrochemistry": [
+        "Redox reactions and electrode potential",
+        "Nernst equation",
+        "Electrochemical cells",
+        "Conductance and cell constant",
+        "Electrolysis and Faraday’s laws",
+        "Batteries and fuel cells"
+      ],
+      "Chemical Kinetics": [
+        "Rate of reaction",
+        "Rate law and order",
+        "Integrated rate equations",
+        "Temperature effect and activation energy",
+        "Collision theory"
+      ],
+      "Surface Chemistry": [
+        "Adsorption",
+        "Catalysis",
+        "Colloids: preparation, properties",
+        "Emulsions and gels"
+      ],
+      "General Principles and Processes of Isolation of Elements": [
+        "Principles and methods of extraction",
+        "Thermodynamic principles",
+        "Ellingham diagram",
+        "Electrochemical principles",
+        "Refining methods"
+      ],
+      "The p-Block Element": [
+        "Group 15 to 18 elements",
+        "Structures of oxides and halides",
+        "Anomalous properties of nitrogen",
+        "Interhalogen compounds"
+      ],
+      "The d- and f-Block Elements": [
+        "Electronic configuration",
+        "Variable oxidation states",
+        "Magnetic properties",
+        "Lanthanide contraction"
+      ],
+      "Coordination Compounds": [
+        "Ligands, coordination number",
+        "Werner’s theory",
+        "Nomenclature and isomerism",
+        "VBT and CFT bonding",
+        "Applications"
+      ],
+      "Haloalkanes and Haloarenes": [
+        "Nomenclature",
+        "Nature of C-X bond",
+        "Substitution reactions",
+        "Environmental effects: DDT, CFCs"
+      ],
+      "Alcohols, Phenols and Ethers": [
+        "Classification and nomenclature",
+        "Preparation and properties",
+        "Reactions of phenol and alcohol"
+      ],
+      "Aldehydes, Ketones and Carboxylic Acids": [
+        "Structure and reactivity",
+        "Nucleophilic addition",
+        "Oxidation and reduction",
+        "Aldol condensation, Cannizzaro reaction"
+      ],
+      "Organic Compounds Containing Nitrogen": [
+        "Amines: classification, basicity",
+        "Diazonium salts and reactions"
+      ],
+      "Biomolecules": [
+        "Carbohydrates (glucose, fructose)",
+        "Proteins and peptides",
+        "Enzymes and vitamins",
+        "Nucleic acids"
+      ],
+      "Polymers": [
+        "Classification: natural, synthetic",
+        "Addition and condensation polymers",
+        "Biodegradable polymers"
+      ],
+      "Chemistry in Everyday Life": [
+        "Drugs and medicines",
+        "Antacids, antibiotics, antihistamines",
+        "Cleansing agents"
+      ]
     }
   },
   "Biology": {
     "Class 11": {
-      "Diversity in Living World": ["The Living World", "Biological Classification", "Plant Kingdom", "Animal Kingdom"],
-      "Structural Organisation in Animals and Plants": ["Morphology of Flowering Plants", "Anatomy of Flowering Plants", "Structural Organisation in Animals"],
-      "Cell Structure and Function": ["Cell: The Unit of Life", "Biomolecules", "Cell Cycle and Cell Division"],
-      "Plant Physiology": ["Transport in Plants", "Mineral Nutrition", "Photosynthesis in Higher Plants", "Respiration in Plants", "Plant Growth and Development"],
-      "Human Physiology": ["Digestion and Absorption", "Breathing and Exchange of Gases", "Body Fluids and Circulation", "Excretory Products and their Elimination", "Locomotion and Movement", "Neural Control and Coordination", "Chemical Coordination and Integration"]
+      "Diversity of Living Organisms": [
+        "What is living?",
+        "Biodiversity and classification",
+        "Three domain classification",
+        "Five kingdom classification (Monera, Protista, Fungi, Plantae, Animalia)",
+        "Binomial nomenclature",
+        "Plant kingdom: Algae, Bryophytes, Pteridophytes, Gymnosperms, Angiosperms",
+        "Animal kingdom: Non-chordates to chordates, salient features"
+      ],
+      "Structural Organisation in Animals and Plants": [
+        "Morphology of flowering plants: root, stem, leaf, inflorescence, flower, fruit, seed",
+        "Anatomy of dicot and monocot root, stem and leaf",
+        "Animal tissues: epithelial, connective, muscular, neural",
+        "Cockroach anatomy"
+      ],
+      "Cell Structure and Function": [
+        "Cell theory, prokaryotic and eukaryotic cells",
+        "Cell membrane and cell wall",
+        "Cell organelles: nucleus, mitochondria, plastids, ribosomes, endoplasmic reticulum, Golgi apparatus, lysosomes, centrioles",
+        "Biomolecules: carbohydrates, proteins, lipids, nucleic acids, enzymes",
+        "Cell cycle and division: mitosis, meiosis"
+      ],
+      "Plant Physiology": [
+        "Transport in plants: diffusion, osmosis, active transport, transpiration",
+        "Mineral nutrition: essential nutrients and deficiency symptoms",
+        "Photosynthesis: light reaction, Calvin cycle, photorespiration",
+        "Respiration in plants: glycolysis, Krebs cycle, electron transport",
+        "Plant growth and development: phytohormones (auxin, gibberellin, cytokinin, ABA, ethylene), seed dormancy and germination"
+      ],
+      "Human Physiology": [
+        "Digestion and absorption: alimentary canal, digestive glands",
+        "Breathing and respiration: respiratory system, mechanism of breathing, gas exchange",
+        "Body fluids and circulation: blood components, heart structure, cardiac cycle",
+        "Excretory products and elimination: structure and function of kidneys",
+        "Locomotion and movement: bones, joints, muscle contraction",
+        "Neural control and coordination: neuron structure, impulse transmission, brain and spinal cord",
+        "Chemical coordination and integration: endocrine glands and hormones"
+      ]
     },
     "Class 12": {
-      "Reproduction": ["Reproduction in Organisms", "Sexual Reproduction in Flowering Plants", "Human Reproduction", "Reproductive Health"],
-      "Genetics and Evolution": ["Principles of Inheritance and Variation", "Molecular Basis of Inheritance", "Evolution"],
-      "Biology and Human Welfare": ["Human Health and Disease", "Strategies for Enhancement in Food Production", "Microbes in Human Welfare"],
-      "Biotechnology and Its Applications": ["Biotechnology : Principles and Processes", "Biotechnology and its Applications"],
-      "Ecology and Environment": ["Organisms and Populations", "Ecosystem", "Biodiversity and Conservation", "Environmental Issues"]
+      "Reproduction": [
+        "Reproduction in organisms: asexual and sexual",
+        "Sexual reproduction in flowering plants: structure of flower, pollination, fertilization",
+        "Human reproduction: male and female reproductive systems, gametogenesis, menstrual cycle",
+        "Reproductive health: contraception, infertility, STDs"
+      ],
+      "Genetics and Evolution": [
+        "Principles of inheritance: Mendel’s laws, deviation from Mendelism",
+        "Chromosomal theory of inheritance",
+        "Sex determination",
+        "Genetic disorders",
+        "DNA structure and replication",
+        "RNA and transcription",
+        "Genetic code and translation",
+        "Human genome project",
+        "Evolution: origin of life, evidence, Hardy-Weinberg principle, speciation"
+      ],
+      "Biology and Human Welfare": [
+        "Health and diseases: pathogens, immunity, vaccines",
+        "Cancer, allergy, AIDS",
+        "Alcohol and drug abuse",
+        "Microbes in human welfare: antibiotics, fermentation, sewage treatment, biogas"
+      ],
+      "Biotechnology and Its Applications": [
+        "Biotechnology principles and tools: restriction enzymes, cloning vectors, PCR, electrophoresis",
+        "Recombinant DNA technology",
+        "Biotechnology in agriculture: GM crops, Bt cotton",
+        "Biotechnology in medicine: gene therapy, insulin production",
+        "Biosafety issues and regulations"
+      ],
+      "Ecology and Environment": [
+        "Organisms and populations: adaptations, population attributes",
+        "Ecosystems: structure and function, productivity, decomposition, energy flow",
+        "Biodiversity and conservation: importance, hotspots, endangered species, conservation methods",
+        "Environmental issues: pollution (air, water, soil), global warming, ozone depletion, waste management"
+      ]
     }
   }
 };
@@ -432,10 +670,15 @@ export default function QuizzesPage() {
       setCurrentQuestionIndex(0);
 
       try {
-        // Construct a more descriptive topic for the AI based on selected chapter
+        // Construct a more descriptive topic for the AI based on selected chapter and its sub-topics
         let topicForAI = `${values.subject} - Class ${values.class_level}`;
         if (values.chapter) {
-          topicForAI += ` - ${values.chapter}`; 
+          topicForAI += ` - Chapter: ${values.chapter}`;
+          // Get all sub-topics for the selected chapter
+          const subTopics = syllabusData[values.subject!]?.[`Class ${values.class_level!}`]?.[values.chapter] || [];
+          if (subTopics.length > 0) {
+            topicForAI += ` (Covering topics like: ${subTopics.slice(0, 3).join(', ')}${subTopics.length > 3 ? ', and more' : ''})`;
+          }
         }
         if (values.question_source) {
           topicForAI += ` - Source: ${values.question_source}`;
