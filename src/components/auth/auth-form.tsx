@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { loginWithEmail, signupWithEmail } from '@/app/auth/actions';
-import { useState, useTransition, useEffect } from 'react'; // Added useEffect
+import { useState, useTransition, useEffect, Suspense } from 'react'; // Added Suspense
 import { Loader2, LogInIcon, UserPlus, ShieldCheck, Chrome, Radio } from 'lucide-react'; // Added Chrome and Radio for icons
 import { createClient } from '@/lib/supabase/client';
 
@@ -47,9 +47,10 @@ type FormMessageState = {
   text: string;
 } | null;
 
-export function AuthForm({ mode }: AuthFormProps) {
+// This inner component uses useSearchParams
+function AuthFormContent({ mode }: AuthFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams(); // For reading OAuth errors
+  const searchParams = useSearchParams(); 
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -59,9 +60,11 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   useEffect(() => {
     const errorDescription = searchParams.get('error_description');
-    if (errorDescription) {
-      setFormMessage({ type: 'error', text: decodeURIComponent(errorDescription) });
-      toast({ variant: 'destructive', title: 'OAuth Error', description: decodeURIComponent(errorDescription) });
+    const oauthError = searchParams.get('error'); // Catch generic 'error' param too
+    if (errorDescription || oauthError) {
+      const message = decodeURIComponent(errorDescription || oauthError || "An unknown OAuth error occurred.");
+      setFormMessage({ type: 'error', text: message });
+      toast({ variant: 'destructive', title: 'OAuth Error', description: message });
       // Clear the error from URL to prevent re-showing on refresh
       router.replace(mode === 'login' ? '/login' : '/signup', { scroll: false });
     }
@@ -122,7 +125,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             form.reset();
           } else if (result?.success) { 
             toast({ title: 'Account Created & Logged In!', description: 'Redirecting to dashboard...', className: 'bg-primary/20 border-primary text-primary-foreground glow-text-primary' });
-            router.refresh();
+            router.refresh(); // This should trigger a redirect via middleware or layout if user state changes
           } else {
             console.warn("[AuthForm] Signup: Unexpected result from server action.");
             const errorMsg = 'An unexpected error occurred during signup.';
@@ -158,8 +161,9 @@ export function AuthForm({ mode }: AuthFormProps) {
       console.error(`OAuth Error (${provider}):`, error);
       setFormMessage({type: 'error', text: `Failed to initiate ${provider} login: ${error.message}`});
       toast({ variant: 'destructive', title: `OAuth Error`, description: error.message });
+      setIsSubmitting(false); // Reset submitting state if there's an immediate error
     }
-    // No need to setIsSubmitting(false) here as page will redirect
+    // No need to setIsSubmitting(false) on success as page will redirect
   };
 
   return (
@@ -227,7 +231,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </p>
             )}
             <Button type="submit" className="w-full font-headline font-semibold text-xl py-7 glow-button tracking-wider" disabled={isSubmitting}>
-              {isSubmitting && !isPending ? ( // Show loader only if specifically submitting this form
+              {isSubmitting && !isPending ? ( 
                 <Loader2 className="mr-2 h-6 w-6 animate-spin" />
               ) : (
                 mode === 'login' ? <LogInIcon className="mr-2 h-6 w-6" /> : <UserPlus className="mr-2 h-6 w-6" />
@@ -272,3 +276,11 @@ export function AuthForm({ mode }: AuthFormProps) {
   );
 }
 
+// Exporting a wrapper that includes Suspense for useSearchParams
+export function AuthForm(props: AuthFormProps) {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+      <AuthFormContent {...props} />
+    </Suspense>
+  )
+}
