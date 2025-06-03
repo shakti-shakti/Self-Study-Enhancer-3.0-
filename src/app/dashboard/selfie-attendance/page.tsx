@@ -1,4 +1,3 @@
-
 // src/app/dashboard/selfie-attendance/page.tsx
 'use client';
 
@@ -22,7 +21,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import type { TablesInsert, ActivityLogWithSelfie } from '@/lib/database.types';
 import { format, parseISO } from 'date-fns';
-import NextImage from 'next/image'; // For displaying stored images
+import SelfieImageDisplay from '@/components/dashboard/SelfieImageDisplay'; // Added import
 
 export default function SelfieAttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -220,15 +219,14 @@ export default function SelfieAttendancePage() {
     if (!userId || !log.details?.image_storage_path) return;
     startProcessingTransition(async () => {
       try {
-        // Extract the file path within the bucket from the full URL
         const urlParts = log.details.image_storage_path.split('/');
-        const filePathInBucket = urlParts.slice(urlParts.indexOf(userId)).join('/'); // Assumes path is userId/filename.png
+        const filePathInBucket = urlParts.slice(urlParts.indexOf(userId)).join('/');
 
         const { error: storageError } = await supabase.storage
           .from('selfie-attendances')
           .remove([filePathInBucket]);
 
-        if (storageError && storageError.message !== 'The resource was not found') { // Ignore if file already deleted
+        if (storageError && storageError.message !== 'The resource was not found') {
           throw new Error(`Storage deletion error: ${storageError.message}`);
         }
 
@@ -324,20 +322,14 @@ export default function SelfieAttendancePage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {selfieHistory.map(log => (
                         <Card key={log.id} className="overflow-hidden bg-card/70 border-border/50 shadow-md group relative">
-                            {log.details?.image_storage_path ? (
-                                <NextImage
-                                    src={log.details.image_storage_path}
-                                    alt={`Selfie from ${log.details.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`}
-                                    width={150}
-                                    height={150}
-                                    className="w-full aspect-square object-cover"
-                                    onError={(e) => { e.currentTarget.src = 'https://placehold.co/150x150/CCCCCC/777777.png?text=Error';}}
-                                />
-                            ) : (
-                                <div className="w-full aspect-square bg-muted flex items-center justify-center">
-                                    <Camera className="h-10 w-10 text-muted-foreground"/>
-                                </div>
-                            )}
+                            <SelfieImageDisplay
+                                src={log.details?.image_storage_path}
+                                alt={`Selfie from ${log.details?.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`}
+                                width={150}
+                                height={150}
+                                className="w-full aspect-square object-cover"
+                                dataAiHint="selfie image thumbnail"
+                            />
                             <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-1 text-center">
                                 <p className="text-xs text-white">
                                     {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : format(parseISO(log.created_at), "MMM d, HH:mm")}
@@ -381,5 +373,3 @@ export default function SelfieAttendancePage() {
     </div>
   );
 }
-
-    

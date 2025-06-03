@@ -1,4 +1,3 @@
-
 // src/app/dashboard/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
@@ -12,7 +11,7 @@ import type { QuizAttemptWithQuizTopic, ChatSessionPreview, Tables, ActivityLogW
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import ClockWidget from '@/components/dashboard/ClockWidget';
 import CountdownWidget from '@/components/dashboard/CountdownWidget';
-import NextImage from 'next/image'; 
+import SelfieImageDisplay from '@/components/dashboard/SelfieImageDisplay'; // Added import
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -106,7 +105,6 @@ export default async function DashboardPage() {
           ...log,
           details: log.details ? {
               ...log.details,
-              // Ensure image_storage_path is used, not selfie_image_data_uri for display
               selfie_image_storage_path: (log.details as any).image_storage_path || (log.details as any).selfie_image_data_uri, 
           } : null,
       }));
@@ -322,20 +320,14 @@ export default async function DashboardPage() {
                     <div className="grid grid-cols-2 gap-3">
                         {recentSelfieAttendances.map(log => (
                             <div key={log.id} className="border rounded-md overflow-hidden bg-muted/30">
-                                {log.details?.image_storage_path ? (
-                                    <NextImage 
-                                        src={log.details.image_storage_path} 
-                                        alt={`Selfie from ${log.details.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`} 
-                                        width={150} 
-                                        height={150} 
-                                        className="w-full aspect-square object-cover"
-                                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/150x150/CCCCCC/777777.png?text=Error';}} // Fallback image
-                                    />
-                                ) : (
-                                    <div className="w-full aspect-square bg-muted flex items-center justify-center">
-                                        <Camera className="h-8 w-8 text-muted-foreground"/>
-                                    </div>
-                                )}
+                                <SelfieImageDisplay
+                                    src={log.details?.image_storage_path}
+                                    alt={`Selfie from ${log.details?.captured_at ? format(parseISO(log.details.captured_at), "PP") : 'past'}`}
+                                    width={150}
+                                    height={150}
+                                    className="w-full aspect-square object-cover"
+                                    dataAiHint="selfie image"
+                                />
                                 <p className="text-xs text-center p-1 bg-background text-muted-foreground">
                                     {log.details?.captured_at ? format(parseISO(log.details.captured_at), "MMM d, HH:mm") : format(parseISO(log.created_at), "MMM d, HH:mm")}
                                 </p>
@@ -355,4 +347,3 @@ export default async function DashboardPage() {
     </div>
   );
 }
-    
